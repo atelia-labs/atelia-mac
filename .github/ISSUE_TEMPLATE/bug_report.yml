@@ -1,0 +1,16 @@
+name: Bug report
+description: Report a problem in Atelia Mac.
+title: "[Bug]: "
+labels: ["type: bug", "needs: triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+
