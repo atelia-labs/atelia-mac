@@ -14,7 +14,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(path: "../atelia-kit")
+        .package(url: "https://github.com/atelia-labs/atelia-kit.git", branch: "main")
     ],
     targets: [
         .target(
