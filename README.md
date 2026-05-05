@@ -2,7 +2,7 @@
 
 [日本語版 README](README.ja.md)
 
-Atelia Mac is the native macOS client for operating Atelia.
+Atelia Mac is the native macOS client for operating Atelia Secretary beta.
 
 This repository owns macOS-specific UI, windowing, notifications, file access,
 Git / review surfaces, terminal, Hook / automation / extension management, and
@@ -12,20 +12,33 @@ Within AEP, Atelia Mac is a reference presentation host. It renders semantic,
 permission-aware AEP presentation surfaces with native Swift components. It does
 not install or execute arbitrary downloaded client UI code.
 
+## First Operating Surface
+
+The beta opens on the Atelia surface. It is the default Mac working surface for
+Secretary: project and thread switching, agent task status, Git branch /
+worktree / diff / commit / push / PR actions, the in-app terminal, review queue,
+voice operation, and connection management all live in one place.
+
+The first surface is designed for day-to-day operator work. It keeps the current
+work visible, lets the user inspect changes and review results, and makes it
+easy to move from one task to the next without leaving the client. Browser use,
+computer use, and deeper extension management stay out of the initial beta
+surface.
+
 ## Initial Scope
 
-- project / thread list and switching
-- status for multiple agent tasks
-- Git branch / worktree / diff / commit / push / PR surfaces
-- automatic review result display
-- in-app terminal
-- review queue
-- voice operation
-- Hook / automation / extension inspection
-- connection management for the Atelia Secretary daemon
+- Atelia surface
+- Projects and threads
+- Multiple agent task status
+- Git review surface
+- Automatic review result display
+- In-app terminal
+- Review queue
+- Voice operation
+- Hooks, automations, and basic runtime extension usage
+- Connection management for the Atelia Secretary daemon
 - AEP semantic presentation renderer subset
-- extension install, permission diff, approval, review, settings, and audit
-  surfaces
+- basic runtime extension inspection and review surface
 
 ## Future Scope
 
