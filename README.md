@@ -38,8 +38,7 @@ surface.
 - Hooks, automations, and basic runtime extension usage
 - Connection management for the Atelia Secretary daemon
 - AEP semantic presentation renderer subset
-- extension install, permission diff, approval, review, settings, and audit
-  surfaces
+- basic runtime extension inspection and review surfaces
 
 ## Future Scope
 
