@@ -27,7 +27,7 @@ AEP において、Atelia Mac は reference presentation host です。semantic 
 - アプリ内ブラウザ
 - browser use / computer use
 - plugin / skill / automation / extension の詳細管理
-- 将来の high-trust native client extension profile
+- 将来の high-trust native client extension profile（別途承認された場合）
 - memory、policy、audit log の確認
 
 ## 開発
