@@ -35,7 +35,7 @@ surface.
 - In-app terminal
 - Review queue
 - Voice operation
-- Hooks, automations, and extensions
+- Hooks, automations, and basic runtime extension usage
 - Connection management for the Atelia Secretary daemon
 - AEP semantic presentation renderer subset
 - extension install, permission diff, approval, review, settings, and audit
