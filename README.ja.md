@@ -4,38 +4,35 @@
 
 Atelia Mac は、Atelia Secretary beta を操作するための macOS 向けネイティブクライアントです。
 
-このリポジトリは、macOS 固有の UI、ウィンドウ管理、通知、ファイルアクセス、Git / review interface、terminal、Hook / automation / extension 管理、音声による操作を扱います。共有ロジックは `atelia-kit` に置きます。
+このリポジトリは、macOS native な Atelia shell と Surface Protocol Resolver を扱います。windowing、project space、built-in package resolution、presentation hosting、permissions、approvals、audit visibility、extension inspection、platform integration が責務です。Git、review、terminal、browser、documents、calendar、tasks、media などの豊かな product area は、bundled official package または third-party extension package として提供されます。共有ロジックは `atelia-kit` に置きます。
 
 AEP において、Atelia Mac は reference presentation host です。semantic で permission-aware な AEP presentation surface を native Swift component で描画します。任意に download された client UI code の install / execute は行いません。
 
+Atelia Mac の default UI は、extension-provided UI と同じ Surface Protocol によって宣言されなければなりません。既定の Mac 体験は minimal built-in package set であり、native shell はそれを extension package と同じ Surface Protocol で resolve します。extension とは別の特権的な UI layer ではありません。詳しくは [Standard Surfaces](docs/standard-surfaces.ja.md) を参照してください。
+
 ## 最初の操作面
 
-beta は Atelia surface で起動します。Secretary を Mac で操作するための既定の作業面で、project / thread の切り替え、agent task の状態、Git branch / worktree / diff / commit / push / PR 操作、アプリ内ターミナル、review queue、音声操作、接続管理を 1 か所にまとめます。
+beta は Atelia project space で起動します。minimal client baseline は、project selection、project conversation、extension installation / inspection、settings、connection management、permissions、approvals、audit visibility、recovery surfaces を提供します。
 
-この最初の操作面は、日々の operator 作業に合わせて設計します。いま進んでいる作業を見失わず、変更内容と review 結果を確認し、client から離れずに次の task へ進めるようにします。browser use、computer use、より詳細な extension 管理は初期 beta の操作面には含めません。
+日々の作業は、同じ project space に参加する bundled official packages と third-party extension packages によって豊かになります。Git や terminal の体験が Atelia に同梱される場合でも、それは hidden client core ではなく、同じ presentation、context、permission、action model を使う official package として扱います。
 
 ## 初期スコープ
 
-- Atelia surface
-- Projects and threads
-- 複数 agent 作業の状態表示
-- Git review surface
-- 自動レビュー結果の表示
-- アプリ内ターミナル
-- review queue
-- 音声による操作
-- Hooks, automations, and basic runtime extension usage
+- Atelia project space
+- Project home surface
+- Project conversation
+- Minimal project navigation
 - Atelia Secretary daemon への接続管理
+- permission、approval、audit、recovery の built-in package surface
+- extension installation、inspection、disabling、rollback、safe mode
 - AEP semantic presentation renderer subset
-- basic runtime extension inspection / review surface
+- settings
 
 ## 将来スコープ
 
-- アプリ内ブラウザ
-- browser use / computer use
-- plugin / skill / automation / extension の詳細管理
-- 将来の high-trust native client extension profile（別途承認された場合）
-- memory、policy、audit log の確認
+- Git、review、terminal、documents、browser、tasks、calendar、notes、media など高価値 workflow の bundled official packages
+- third-party package ecosystem
+- 将来の host-extension integration profile（platform policy review を前提とする）
 
 ## 開発
 
