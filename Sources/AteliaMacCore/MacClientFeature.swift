@@ -2,19 +2,24 @@ import AteliaKit
 import Foundation
 
 public struct MacClientFeature: Sendable, Equatable, Hashable, Identifiable {
-    public let id: String
-    public let title: String
+    public var id: String
+    public var title: String
 
     @available(*, deprecated, message: "MacClientFeature.initial contains baseline features only; future package scope is no longer represented here.")
     public var isInitialScope: Bool {
-        true
+        get { true }
+        set { }
     }
 
+    /// Creates a baseline Mac client feature.
     public init(id: String, title: String) {
         self.id = id
         self.title = title
     }
 
+    /// Compatibility initializer for the previous mixed initial/future scope model.
+    /// The `isInitialScope` argument is ignored because `MacClientFeature.initial`
+    /// now contains baseline features only.
     @available(*, deprecated, message: "Use init(id:title:). MacClientFeature.initial contains baseline features only.")
     public init(id: String, title: String, isInitialScope: Bool) {
         self.init(id: id, title: title)

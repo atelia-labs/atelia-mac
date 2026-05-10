@@ -46,7 +46,9 @@ import Testing
 
 @available(*, deprecated, message: "Exercises deprecated compatibility API.")
 @Test func deprecatedInitialScopeCompatibilityAlwaysReportsBaselineScope() {
-    let feature = MacClientFeature(id: "test", title: "Test", isInitialScope: false)
+    var feature = MacClientFeature(id: "test", title: "Test", isInitialScope: false)
+
+    feature.isInitialScope = false
 
     #expect(feature.isInitialScope)
 }
