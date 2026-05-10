@@ -3,7 +3,8 @@
 [日本語版 README](README.ja.md)
 
 Atelia Mac is the native macOS client for operating a user-owned Atelia harness
-through Atelia Secretary.
+through Atelia Secretary: the user's own workspace of packages, surfaces,
+workflows, agents, and brokered actions.
 
 This repository owns the macOS-native Atelia shell and Surface Protocol Resolver:
 windowing, project space, built-in package resolution, presentation hosting,

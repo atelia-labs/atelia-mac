@@ -405,7 +405,7 @@ escape hatch.
 
 Atelia Mac is a client shell, not a static dashboard of package cards.
 
-- Built-in packages are not a private UI system unavailable to other
+- Built-in packages are not a private UI system that is unavailable to other
   packages.
 - Packages must not bypass host permissions by owning UI.
 - Protocol-first does not mean every surface must look the same.
