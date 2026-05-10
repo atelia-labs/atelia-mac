@@ -24,8 +24,6 @@ graph, and permission model as every other package.
   capabilities, schemas, actions, resources, and permissions.
 - **Built-in package**: a package bundled inside the app binary. Built-in is a
   distribution fact, not a separate protocol model.
-- **Extension package**: a package installed from a registry, repository, or
-  user-selected source. It uses the same surface protocol as built-in packages.
 - **Surface**: a protocol participant mounted inside project space. A surface
   belongs to a package, has lifecycle, may read or contribute context, may
   propose actions, and declares presentation.
@@ -35,7 +33,7 @@ graph, and permission model as every other package.
 - **Context graph**: the structured, permission-aware project state shared by
   the user, the project Secretary, and eligible surfaces.
 - **Action**: a declared proposal routed by the resolver through policy,
-  permission, approval, audit, and Secretary / service brokers.
+  permission, approval, audit, and Secretary / service broker.
 - **Activation context**: resolver-created session data that gives a mounted
   surface authority to answer a specific prompt, approval, recovery, or task
   flow. A surface cannot mint its own activation context.
@@ -102,7 +100,7 @@ private UI architecture.
 ## Why This Matters
 
 Atelia is intended to become a user's working and living space. Documents,
-browser, calendar, tasks, notes, media, GitHub, terminal, reviews, automations,
+browser, calendar, tasks, notes, media, GitHub, review, terminal, automations,
 and future tools can appear in one coherent client, but those
 capabilities are package-provided surfaces, not assumptions built into the
 initial client.
@@ -160,7 +158,7 @@ resolver must guarantee. Any surface a user could reasonably obtain by enabling
 a bundled official package must not become built-in client core.
 
 Documents, browser, tasks, calendar, notes, media, GitHub, review, terminal,
-and similar product areas arrive as bundled official packages or
+automations, and similar product areas arrive as bundled official packages or
 user-selected / registry-verified packages. They may feel native and central when installed,
 but they are not part of the minimal client baseline. The architectural point is
 distribution through the package model, not absence from the product.
