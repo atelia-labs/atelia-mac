@@ -13,12 +13,14 @@ public struct MacClientFeature: Sendable, Equatable, Identifiable {
     }
 
     public static let initial: [MacClientFeature] = [
-        MacClientFeature(id: "atelia", title: "Atelia surface", isInitialScope: true),
-        MacClientFeature(id: "projects", title: "Projects and threads", isInitialScope: true),
-        MacClientFeature(id: "git", title: "Git review surface", isInitialScope: true),
-        MacClientFeature(id: "terminal", title: "In-app terminal", isInitialScope: true),
-        MacClientFeature(id: "voice", title: "Voice operation", isInitialScope: true),
-        MacClientFeature(id: "extensions", title: "Hooks, automations, and extensions", isInitialScope: true),
-        MacClientFeature(id: "browser", title: "In-app browser", isInitialScope: false)
+        MacClientFeature(id: "project-space", title: "Atelia project space", isInitialScope: true),
+        MacClientFeature(id: "project-home", title: "Project home surface", isInitialScope: true),
+        MacClientFeature(id: "project-conversation", title: "Project conversation", isInitialScope: true),
+        MacClientFeature(id: "project-navigation", title: "Minimal project navigation", isInitialScope: true),
+        MacClientFeature(id: "secretary-connection", title: "Atelia Secretary daemon connection", isInitialScope: true),
+        MacClientFeature(id: "permission-recovery", title: "Permission, approval, audit, and recovery surfaces", isInitialScope: true),
+        MacClientFeature(id: "package-management", title: "Package installation, inspection, disabling, rollback, and safe mode", isInitialScope: true),
+        MacClientFeature(id: "presentation-renderer", title: "AEP semantic presentation renderer subset", isInitialScope: true),
+        MacClientFeature(id: "settings", title: "Settings", isInitialScope: true)
     ]
 }

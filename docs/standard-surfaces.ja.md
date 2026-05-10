@@ -183,7 +183,7 @@ surface は次のような action を propose できます。
 
 Permission と approval decision も protocol-mediated です。permission / approval surface は、ひとつの decision session のために resolver-created activation context を受け取ります。その response はその session に対してのみ valid であり、resolver によって audit されます。surface は自分で authority を作れません。
 
-Action proposal には resolver-assigned correlation id が付与されます。resolver は project event scope 内で unique な collision-resistant correlation id を mint し、duplicate または resolver-issued ではない id を reject しなければなりません。Result は、その correlation id を provenance に含む context graph contribution として報告されます。action を propose した surface は、自分の correlation id に一致する context contribution を subscribe して result を追跡します。result を project-visible、requester-visible、audit-only のどれにするかは surface ではなく resolver が決定します。resolver は、result content の visibility に関わらず、route したすべての action に対して最低でも requester-visible な completion acknowledgment を届けなければなりません。
+Action proposal には resolver-assigned correlation id が付与されます。resolver は project event scope 内で unique な collision-resistant correlation id を mint し、duplicate な id、および resolver 以外が発行した id を reject しなければなりません。Result は、その correlation id を provenance に含む context graph contribution として報告されます。action を propose した surface は、自分の correlation id に一致する context contribution を subscribe して result を追跡します。result を project-visible、requester-visible、audit-only のどれにするかは surface ではなく resolver が決定します。resolver は、result content の visibility に関わらず、route したすべての action に対して最低でも requester-visible な completion acknowledgment を届けなければなりません。
 
 ## 境界付き編集モデル
 

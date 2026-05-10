@@ -1,15 +1,38 @@
 import Testing
 @testable import AteliaMacCore
 
-@Test func initialScopeIncludesGitSurface() {
-    #expect(MacClientFeature.initial.contains { $0.id == "git" && $0.isInitialScope })
+@Test func initialScopeMatchesDocumentedMacBaseline() {
+    let initialIds = MacClientFeature.initial.filter(\.isInitialScope).map(\.id)
+
+    #expect(initialIds == [
+        "project-space",
+        "project-home",
+        "project-conversation",
+        "project-navigation",
+        "secretary-connection",
+        "permission-recovery",
+        "package-management",
+        "presentation-renderer",
+        "settings"
+    ])
 }
 
-@Test func initialScopeIncludesWorkplaceSurfaces() {
-    #expect(MacClientFeature.initial.contains { $0.id == "atelia" && $0.title == "Atelia surface" && $0.isInitialScope })
-    #expect(MacClientFeature.initial.contains { $0.id == "extensions" && $0.isInitialScope })
+@Test func richProductAreasAreNotInitialClientCore() {
+    let initialIds = Set(MacClientFeature.initial.filter(\.isInitialScope).map(\.id))
+
+    #expect(initialIds.isDisjoint(with: [
+        "browser",
+        "git",
+        "terminal",
+        "voice",
+        "extensions"
+    ]))
 }
 
-@Test func initialScopeIncludesVoiceOperation() {
-    #expect(MacClientFeature.initial.contains { $0.id == "voice" && $0.title == "Voice operation" && $0.isInitialScope })
+@Test func packageManagementIncludesSafeMode() {
+    #expect(MacClientFeature.initial.contains {
+        $0.id == "package-management" &&
+            $0.title.contains("safe mode") &&
+            $0.isInitialScope
+    })
 }
