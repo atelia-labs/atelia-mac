@@ -89,7 +89,7 @@ exceptions.
 ## Principle
 
 All user-facing Atelia surfaces must use the same Surface Protocol. Built-in
-packages and extension packages differ by distribution and trust level, not by a
+packages and user-selected / registry-verified packages differ by distribution and trust level, not by a
 private UI architecture.
 
 - presentation is semantic and host-rendered;
@@ -143,13 +143,13 @@ packages need to create first-class experiences.
 ## Surfaces And Packages
 
 Surfaces are hosted inside project space by the Surface Protocol Resolver. A
-surface may come from a built-in package or an extension package. The initial
+surface may come from a built-in package or a user-selected / registry-verified package. The initial
 built-in package set is deliberately small:
 
 - project home;
 - project conversation;
 - project selection and onboarding;
-- extension installation, inspection, disabling, rollback, and safe mode;
+- package installation, inspection, disabling, rollback, and safe mode;
 - settings;
 - permission, approval, audit, and recovery surfaces.
 
@@ -161,7 +161,7 @@ a bundled official package must not become built-in client core.
 
 Documents, browser, tasks, calendar, notes, media, GitHub, review, terminal,
 and similar product areas arrive as bundled official packages or
-third-party extension packages. They may feel native and central when installed,
+user-selected / registry-verified packages. They may feel native and central when installed,
 but they are not part of the minimal client baseline. The architectural point is
 distribution through the package model, not absence from the product.
 
@@ -364,7 +364,7 @@ Specialization must not include:
 - arbitrary rendering logic;
 - Turing-complete templates;
 - downloaded native, SwiftUI, JavaScript, or WebView code;
-- direct native API access;
+- direct platform API access;
 - hidden local state machines that mutate canonical data.
 
 Schema expressiveness for specialization must be bounded. Schemas must not
@@ -379,9 +379,9 @@ accessibility, reviewability, and platform safety under host control.
 ## Security Boundaries
 
 For iOS and general platform safety, Atelia must describe packages as
-structured data and brokered capabilities, not executable client plugins.
+structured data and brokered capabilities, not executable client modules.
 
-On iOS, every extension package must remain a non-executable structured
+On iOS, every package must remain a non-executable structured
 declaration. The host must be able to show that no package, regardless of source,
 can introduce or modify app functionality through downloaded code.
 
@@ -395,16 +395,16 @@ Packages must not:
 - cause Secretary to execute work outside declared action, permission, and
   service boundaries.
 
-The extension-to-Secretary boundary is as important as the presentation boundary.
+The package-to-Secretary boundary is as important as the presentation boundary.
 A package may request brokered operations only through declared actions and
 services; it must not turn Secretary into an unbounded computation or automation
 escape hatch.
 
 ## Non-Goals
 
-Atelia Mac is a workspace host, not a static dashboard with extension cards.
+Atelia Mac is a client shell, not a static dashboard of package cards.
 
-- Built-in packages are not a private UI system unavailable to extension
+- Built-in packages are not a private UI system unavailable to other
   packages.
 - Packages must not bypass host permissions by owning UI.
 - Protocol-first does not mean every surface must look the same.
@@ -420,7 +420,7 @@ Atelia Mac package resolution should not ship in beta until the host provides:
 - resolver rejection reason display;
 - audit inspection for install, update, rollback, and safe mode entry;
 - safe mode entry when package resolution fails;
-- extension inspector for installed, bundled official, and user-selected
+- package inspector for installed, bundled official, and user-selected
   packages.
 
 ## Architectural Prerequisites
@@ -464,8 +464,8 @@ These questions block implementation because they define protocol behavior:
 
 ## Open Design Questions
 
-- How does Atelia present package-provided navigation without degrading into a
-  generic plugin menu?
+- How does Atelia present package-provided navigation without degrading into an
+  add-on menu?
 - How far can presentation expressiveness go while remaining platform-safe?
 - Should vertical tree tabs, channel-like structures, or another navigation
   model become the default project-space metaphor?
