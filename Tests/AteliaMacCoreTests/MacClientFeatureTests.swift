@@ -1,10 +1,10 @@
 import Testing
 @testable import AteliaMacCore
 
-@Test func initialScopeMatchesDocumentedMacBaseline() {
+@Test func baselineFeaturesMatchDocumentedMacBaseline() {
     let initialIds = Set(MacClientFeature.initial.map(\.id))
 
-    #expect(initialIds == [
+    #expect(initialIds == Set([
         "project-space",
         "project-home",
         "project-conversation",
@@ -14,7 +14,7 @@ import Testing
         "package-management",
         "presentation-renderer",
         "settings"
-    ])
+    ]))
 }
 
 @Test func richProductAreasAreNotInitialClientCore() {

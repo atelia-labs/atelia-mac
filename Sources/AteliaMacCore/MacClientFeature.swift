@@ -1,13 +1,23 @@
 import AteliaKit
 import Foundation
 
-public struct MacClientFeature: Sendable, Equatable, Identifiable {
+public struct MacClientFeature: Sendable, Equatable, Hashable, Identifiable {
     public let id: String
     public let title: String
+
+    @available(*, deprecated, message: "MacClientFeature.initial contains baseline features only; future package scope is no longer represented here.")
+    public var isInitialScope: Bool {
+        true
+    }
 
     public init(id: String, title: String) {
         self.id = id
         self.title = title
+    }
+
+    @available(*, deprecated, message: "Use init(id:title:). MacClientFeature.initial contains baseline features only.")
+    public init(id: String, title: String, isInitialScope: Bool) {
+        self.init(id: id, title: title)
     }
 
     public static let initial: [MacClientFeature] = [
