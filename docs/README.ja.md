@@ -1,4 +1,4 @@
-# Atelia Mac Docs
+# Atelia Mac ドキュメント
 
 この directory は Atelia Mac client architecture documents を置きます。
 

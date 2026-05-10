@@ -24,6 +24,12 @@ graph, and permission model as every other package.
   capabilities, schemas, actions, resources, and permissions.
 - **Built-in package**: a package bundled inside the app binary. Built-in is a
   distribution fact, not a separate protocol model.
+- **Bundled official package**: an Atelia-distributed package that may be
+  installed by default or recommended during setup, but remains a package.
+- **Verified third-party package**: a registry-verified package with automated
+  validation, signatures, and compatibility metadata.
+- **Unverified third-party package**: a user-selected package from an external
+  source. User policy may enable it, but it cannot become `host-required`.
 - **Surface**: a protocol participant mounted inside project space. A surface
   belongs to a package, has lifecycle, may read or contribute context, may
   propose actions, and declares presentation.
@@ -129,6 +135,12 @@ product UI directly. The shell provides:
 - native component catalog implementation;
 - safe mode entry when package resolution fails.
 
+Safe mode is a host-level recovery profile entered when package resolution,
+manifest validation, or surface mounting fails. In safe mode, the resolver mounts
+only host-shipped built-in recovery surfaces, treats unresolved package surfaces
+as unavailable or degraded, and keeps package provenance, rejection reasons,
+context references, and audit evidence inspectable.
+
 The shell may expose unavoidable platform facts, such as code signing and app
 bundle membership, to the resolver as trust assertions. Those assertions are data
 fed into the protocol model, not hidden UI authority.
@@ -202,6 +214,9 @@ These classes are distribution paths, not separate UI architectures. The
 resolver must not grant a built-in or bundled official package a capability that
 is structurally unavailable to third-party packages on the same platform. Any
 exception must be recorded in host policy as a platform limitation.
+Structurally unavailable means there is no declared platform, protocol,
+component-catalog, or broker path for that capability; it must not mean that the
+publisher or trust label is merely preferred.
 
 Criticality is a lifecycle claim, not a distribution class. Distribution can
 make a claim eligible, but the resolver still validates it against host policy.
@@ -283,12 +298,13 @@ approval surface receives a resolver-created activation context for one decision
 session. Its response is valid only for that session and is audited by the
 resolver. The surface cannot create its own authority.
 
-Action proposals receive a resolver-assigned correlation id. Results are
-reported as context graph contributions carrying that correlation id in
-provenance. A surface that proposes an action tracks the result by subscribing to
-context contributions matching its correlation ids. The resolver, not the
-surface, decides whether a result is project-visible, requester-visible, or audit
-only.
+Action proposals receive a resolver-assigned correlation id. The resolver must
+mint collision-resistant correlation ids that are unique within the project event
+scope and reject duplicate or non-resolver-issued ids. Results are reported as
+context graph contributions carrying that correlation id in provenance. A
+surface that proposes an action tracks the result by subscribing to context
+contributions matching its correlation ids. The resolver, not the surface,
+decides whether a result is project-visible, requester-visible, or audit only.
 
 The resolver must deliver at least a requester-visible completion acknowledgment
 for every action it routes, regardless of result content visibility.
@@ -304,8 +320,9 @@ Editable regions must be declared in the presentation schema with input type,
 validation rules, permission scope, commit action, discard behavior, recovery
 behavior, and accessibility requirements. The resolver validates committed edits
 as action proposals. Intermediate keystrokes, cursor movement, and local draft
-changes do not become brokered actions unless the package explicitly declares a
-safe, rate-limited live update channel.
+changes must not become brokered actions in this profile. A future live update
+channel requires a separate protocol profile with explicit data minimization,
+rate limits, consent, redaction, and audit rules.
 
 Packages must not use provisional state to mutate canonical data, bypass
 permissions, or create an unbounded local state machine. If a surface is
@@ -367,9 +384,13 @@ Specialization must not include:
 - hidden local state machines that mutate canonical data.
 
 Schema expressiveness for specialization must be bounded. Schemas must not
-support conditional rendering logic, recursive nesting beyond a fixed depth, or
-computed fields derived from other fields. The resolver must reject packages
-whose presentation schemas exceed these bounds before mounting the surface.
+support Turing-complete or package-authored conditional rendering logic,
+recursive nesting beyond a fixed depth, or computed fields derived from other
+fields. Bounded declarative visibility rules over resolver-provided facts, such
+as permission state, lock state, or availability, may be allowed when the
+component catalog defines their inputs and fallback behavior. The resolver must
+reject packages whose presentation schemas exceed these bounds before mounting
+the surface.
 
 This is the core compromise: packages can produce rich, domain-specific surfaces
 through structured specialization, while Atelia keeps native rendering,
@@ -378,7 +399,10 @@ accessibility, reviewability, and platform safety under host control.
 ## Security Boundaries
 
 For iOS and general platform safety, Atelia must describe packages as
-structured data and brokered capabilities, not executable client modules.
+structured data and brokered capabilities, not executable client modules. This
+macOS architecture intentionally follows the same cross-platform protocol
+baseline so shared packages and Atelia Kit models do not depend on a weaker Mac
+surface profile.
 
 On iOS, every package must remain a non-executable structured
 declaration. The host must be able to show that no package, regardless of source,
@@ -405,13 +429,12 @@ Atelia Mac is a client shell, not a static dashboard of package cards.
 
 - Built-in packages are not a private UI system that is unavailable to other
   packages.
-- Packages must not bypass host permissions by owning UI.
 - Protocol-first does not mean every surface must look the same.
 - Channel, thread, or dashboard structures are not mandatory base metaphors.
 
 ## macOS Beta Launch Gate
 
-Atelia Mac package resolution should not ship in beta until the host provides:
+Atelia Mac package resolution must not ship in beta until the host provides:
 
 - package metadata display and source labeling;
 - permission consent and permission diff presentation;
@@ -419,8 +442,9 @@ Atelia Mac package resolution should not ship in beta until the host provides:
 - resolver rejection reason display;
 - audit inspection for install, update, rollback, and safe mode entry;
 - safe mode entry when package resolution fails;
-- package inspector for installed, bundled official, and user-selected
-  packages.
+- package inspector for installed packages across `host-shipped built-in`,
+  `bundled official`, `verified third-party`, and user-selected /
+  `unverified third-party` sources.
 
 ## Architectural Prerequisites
 

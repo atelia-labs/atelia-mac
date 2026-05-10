@@ -10,6 +10,9 @@ Atelia Mac は、固定されたアプリ本体にいくつかの extension slot
 - **Surface Protocol Resolver**: package manifest、surface declaration、context participation、action routing、lifecycle、trust、presentation を解釈する host-side resolver です。structured declaration を解釈するものであり、downloaded code execution runtime ではありません。
 - **Package**: 1つ以上の surface、capability、schema、action、resource、permission を宣言する distribution unit です。
 - **Built-in package**: app binary に同梱される package です。built-in は distribution fact であり、別の protocol model ではありません。
+- **Bundled official package**: Atelia が配布し、default installed または setup 時に recommended され得る package です。ただし package であることは変わりません。
+- **Verified third-party package**: automated validation、signature、compatibility metadata を持つ registry-verified package です。
+- **Unverified third-party package**: user が external source から選ぶ package です。user policy は enable できますが、`host-required` にはできません。
 - **Surface**: project space 内に mount される protocol participant です。surface は package に属し、lifecycle を持ち、context を読んだり contribute したりでき、action を propose し、presentation を宣言します。
 - **Presentation**: surface の semantic display layer です。presentation declaration は、validated data を host-provided component でどう render するかを表します。arbitrary client UI code ではありません。
 - **Context graph**: user、project Secretary、eligible surfaces が共有する、structured で permission-aware な project state です。
@@ -72,6 +75,8 @@ Shell は native app container です。surface ではなく、product UI を直
 - native component catalog implementation。
 - package resolution が失敗したときの safe mode entry。
 
+Safe mode は、package resolution、manifest validation、surface mounting が失敗したときに入る host-level recovery profile です。safe mode では、resolver は host-shipped built-in recovery surface だけを mount し、resolve できない package surface を unavailable または degraded として扱い、package provenance、rejection reason、context reference、audit evidence を inspect 可能な状態に保ちます。
+
 Shell は code signing や app bundle membership のような避けられない platform fact を、trust assertion として resolver に公開できます。その assertion は protocol model に入る data であり、hidden UI authority ではありません。
 
 client baseline は product-specific surface を所有しません。ただし package が一級の体験を作るために必要な shared primitives、native component catalog、platform permission bridge、context contract、action contract、brokered service boundary は提供してよいです。
@@ -123,7 +128,7 @@ Package distribution と criticality は別の軸です。
 | `verified third-party` | trusted registry で automated validation、signature、compatibility metadata を持って配布される | `user-removable` または `optional` |
 | `unverified third-party` | user が external source から明示的に install する | `optional`。user policy は enable できるが、`host-required` にはできない |
 
-これらの class は distribution path であり、別々の UI architecture ではありません。resolver は、同じ platform 上の third-party package が構造的に利用できない capability を built-in package や bundled official package に付与してはいけません。例外は trust preference ではなく platform limitation として host policy に記録しなければなりません。
+これらの class は distribution path であり、別々の UI architecture ではありません。resolver は、同じ platform 上の third-party package が構造的に利用できない capability を built-in package や bundled official package に付与してはいけません。例外は trust preference ではなく platform limitation として host policy に記録しなければなりません。構造的に利用できないとは、その capability に対する platform、protocol、component catalog、broker の declared path が存在しないことを意味します。publisher や trust label が単に preferred であることを意味してはいけません。
 
 Criticality は lifecycle claim であり、distribution class ではありません。Distribution は claim を eligible にできますが、resolver はそれでも host policy に照らして validate します。
 
@@ -178,13 +183,13 @@ surface は次のような action を propose できます。
 
 Permission と approval decision も protocol-mediated です。permission / approval surface は、ひとつの decision session のために resolver-created activation context を受け取ります。その response はその session に対してのみ valid であり、resolver によって audit されます。surface は自分で authority を作れません。
 
-Action proposal には resolver-assigned correlation id が付与されます。Result は、その correlation id を provenance に含む context graph contribution として報告されます。action を propose した surface は、自分の correlation id に一致する context contribution を subscribe して result を追跡します。result を project-visible、requester-visible、audit-only のどれにするかは surface ではなく resolver が決定します。resolver は、result content の visibility に関わらず、route したすべての action に対して最低でも requester-visible な completion acknowledgment を届けなければなりません。
+Action proposal には resolver-assigned correlation id が付与されます。resolver は project event scope 内で unique な collision-resistant correlation id を mint し、duplicate または resolver-issued ではない id を reject しなければなりません。Result は、その correlation id を provenance に含む context graph contribution として報告されます。action を propose した surface は、自分の correlation id に一致する context contribution を subscribe して result を追跡します。result を project-visible、requester-visible、audit-only のどれにするかは surface ではなく resolver が決定します。resolver は、result content の visibility に関わらず、route したすべての action に対して最低でも requester-visible な completion acknowledgment を届けなければなりません。
 
 ## Bounded Edit Model
 
 Interactive surface は、draft text、field focus、selection、incomplete form value など、declared editable region のための provisional local state を保持できます。Provisional state は context graph state ではなく、canonical data でも hidden authority でもありません。
 
-Editable region は presentation schema の中で input type、validation rule、permission scope、commit action、discard behavior、recovery behavior、accessibility requirement を宣言しなければなりません。resolver は committed edit を action proposal として validate します。Intermediate keystroke、cursor movement、local draft change は、package が safe で rate-limited な live update channel を明示的に宣言しない限り、brokered action にはなりません。
+Editable region は presentation schema の中で input type、validation rule、permission scope、commit action、discard behavior、recovery behavior、accessibility requirement を宣言しなければなりません。resolver は committed edit を action proposal として validate します。この profile では、intermediate keystroke、cursor movement、local draft change を brokered action にしてはいけません。将来の live update channel には、data minimization、rate limit、consent、redaction、audit rule を明示する別 protocol profile が必要です。
 
 Package は provisional state を使って canonical data を mutate したり、permission を bypass したり、unbounded local state machine を作ったりしてはいけません。surface が suspended、degraded、destroyed になった場合、resolver は declared recovery behavior に従って provisional state を preserve、discard、または user に確認できます。
 
@@ -227,13 +232,13 @@ Specialization には次を含めてはいけません。
 - direct platform API access。
 - canonical data を mutate する hidden local state machine。
 
-specialization の schema expressiveness には上限が必要です。schema は conditional rendering logic、固定深度を超える recursive nesting、他 field から導出される computed field を support してはいけません。resolver は、presentation schema がこの境界を超える package を surface mount 前に reject しなければなりません。
+specialization の schema expressiveness には上限が必要です。schema は Turing-complete または package-authored な conditional rendering logic、固定深度を超える recursive nesting、他 field から導出される computed field を support してはいけません。permission state、lock state、availability など resolver-provided fact に対する bounded declarative visibility rule は、component catalog が input と fallback behavior を定義する場合に限り許可できます。resolver は、presentation schema がこの境界を超える package を surface mount 前に reject しなければなりません。
 
 これは中心的な妥協点です。Package は structured specialization によって rich で domain-specific な surface を作れます。一方で Atelia は native rendering、accessibility、reviewability、platform safety を host control の下に保ちます。
 
 ## Security Boundaries
 
-Atelia は iOS と general platform safety のため、package を structured data と brokered capability として説明しなければなりません。
+Atelia は iOS と general platform safety のため、package を structured data と brokered capability として説明しなければなりません。この macOS architecture は cross-platform protocol baseline として同じ制約に従います。shared package と Atelia Kit model が、より弱い Mac surface profile に依存しないようにするためです。
 
 iOS では、すべての package は non-executable structured declaration でなければなりません。host は、source に関係なく package が downloaded code によって app functionality を導入または変更できないことを platform review に説明できる必要があります。
 
@@ -253,13 +258,12 @@ package-to-Secretary boundary は presentation boundary と同じくらい重要
 Atelia Mac は client shell であり、package card を並べる static dashboard ではありません。
 
 - Built-in packages は他の packages から利用できない private UI system ではない。
-- Package は UI を所有することで host permissions を bypass してはいけない。
 - Protocol-first は、すべての surface が同じ見た目であることを意味しない。
 - Channel、thread、dashboard structure は base metaphor として必須ではない。
 
 ## macOS Beta Launch Gate
 
-Atelia Mac package resolution は、host が次を提供するまでは beta で ship すべきではありません。
+Atelia Mac package resolution は、host が次を提供するまでは beta で ship してはいけません。
 
 - package metadata display と source labeling
 - permission consent と permission diff presentation
@@ -267,7 +271,7 @@ Atelia Mac package resolution は、host が次を提供するまでは beta で
 - resolver rejection reason display
 - install、update、rollback、safe mode entry の audit inspection
 - package resolution failure 時の safe mode entry
-- installed、bundled official、user-selected package の package inspector
+- `host-shipped built-in`、`bundled official`、`verified third-party`、user-selected / `unverified third-party` source を含む installed package の package inspector
 
 ## Architectural Prerequisites
 
