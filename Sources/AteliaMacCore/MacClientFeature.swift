@@ -20,6 +20,14 @@ public struct MacClientFeature: Sendable, Equatable, Hashable, Identifiable {
         self.init(id: id, title: title)
     }
 
+    public static func == (lhs: MacClientFeature, rhs: MacClientFeature) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
     public static let initial: [MacClientFeature] = [
         MacClientFeature(id: "project-space", title: "Atelia project space"),
         MacClientFeature(id: "project-home", title: "Project home surface"),

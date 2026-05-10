@@ -32,6 +32,21 @@ import Testing
 @Test func packageManagementIncludesSafeMode() {
     #expect(MacClientFeature.initial.contains {
         $0.id == "package-management" &&
-            $0.title.contains("safe mode")
+            $0.title == "Package installation, inspection, disabling, rollback, and safe mode"
     })
+}
+
+@Test func featureIdentityUsesIdOnly() {
+    let original = MacClientFeature(id: "settings", title: "Settings")
+    let renamed = MacClientFeature(id: "settings", title: "Preferences")
+
+    #expect(original == renamed)
+    #expect(Set([original, renamed]).count == 1)
+}
+
+@available(*, deprecated, message: "Exercises deprecated compatibility API.")
+@Test func deprecatedInitialScopeCompatibilityAlwaysReportsBaselineScope() {
+    let feature = MacClientFeature(id: "test", title: "Test", isInitialScope: false)
+
+    #expect(feature.isInitialScope)
 }
