@@ -50,7 +50,7 @@ graph, and permission model as every other package.
 
 This document defines the Surface Protocol architecture for Atelia Mac. The
 normative Surface Protocol specification lives in the AEP specification family:
-[Surface Protocol](../../atelia/docs/surface-protocol.md). Detailed declaration
+[Surface Protocol](https://github.com/atelia-labs/atelia/blob/main/docs/surface-protocol.md). Detailed declaration
 schemas, attachment point semantics, field bindings, lifecycle state machines,
 context subscription, action routing, and trust derivation must be defined
 there or in documents it references.
@@ -196,7 +196,7 @@ Package distribution and criticality are separate axes:
 | Package class | Distribution | Default criticality |
 | --- | --- | --- |
 | `host-shipped built-in` | bundled in the app binary and tied to platform code signing | may claim `host-required` when needed for baseline operation |
-| `bundled official` | distributed by Atelia, installed by default or recommended during setup | usually `user-removable`; may become non-removable only when explicit host policy records a baseline requirement |
+| `bundled official` | distributed by Atelia, installed by default or recommended during setup | `user-removable` by default; host policy may default-enable or recommend it, but cannot make it `host-required` |
 | `verified third-party` | distributed through a trusted registry with automated validation, signatures, and compatibility metadata | `user-removable` or `optional` |
 | `unverified third-party` | explicitly installed by the user from an external source | `optional`; user policy may enable it, but cannot make it `host-required` |
 
@@ -427,10 +427,10 @@ Atelia Mac package resolution should not ship in beta until the host provides:
 
 These questions block implementation because they define protocol behavior:
 
-- [Surface Protocol](../../atelia/docs/surface-protocol.md): normative client
+- [Surface Protocol](https://github.com/atelia-labs/atelia/blob/main/docs/surface-protocol.md): normative client
   surface contract for declaration, lifecycle, context, action routing, and
   trust derivation.
-- [Component Catalog Reference](../../atelia/docs/component-catalog.md): initial
+- [Component Catalog Reference](https://github.com/atelia-labs/atelia/blob/main/docs/component-catalog.md): initial
   component catalog and semantic contracts.
 - How much layout authority may a surface declare inside project space?
 - What is the navigation placement protocol, including conflict resolution and
@@ -442,24 +442,24 @@ These questions block implementation because they define protocol behavior:
   and criticality?
 - Host policy schema: trust thresholds, criticality eligibility, platform
   divergence records, default enablement, and platform profiles.
-- [iOS Package Distribution Profile](../../atelia/docs/ios-package-distribution.md):
+- [iOS Package Distribution Profile](https://github.com/atelia-labs/atelia/blob/main/docs/ios-package-distribution.md):
   creator/runtime environment boundary, native API limits, consent, indexing,
   moderation, source policy, and degradation for packages that exceed iOS policy.
-- [Context Graph Specification](../../atelia/docs/context-graph.md): node
+- [Context Graph Specification](https://github.com/atelia-labs/atelia/blob/main/docs/context-graph.md): node
   taxonomy, visibility classes, redaction, trust weighting, staleness,
   retraction, and Secretary reasoning eligibility.
-- [Broker Boundary Specification](../../atelia/docs/broker-boundary.md): Secretary,
+- [Broker Boundary Specification](https://github.com/atelia-labs/atelia/blob/main/docs/broker-boundary.md): Secretary,
   Resolver, Service Broker, and Policy Engine responsibilities.
-- [Package Resolution And Migration](../../atelia/docs/package-resolution-migration.md):
+- [Package Resolution And Migration](https://github.com/atelia-labs/atelia/blob/main/docs/package-resolution-migration.md):
   open surfaces, schema changes, draft state, context nodes, audit trail,
   downgrade, rollback, and safe mode.
-- [Package Sharing And Source Policy](../../atelia/docs/package-sharing-source-policy.md):
+- [Package Sharing And Source Policy](https://github.com/atelia-labs/atelia/blob/main/docs/package-sharing-source-policy.md):
   source classes, sharing boundary, and monetization gate.
-- [Content Safety And Moderation](../../atelia/docs/content-safety-moderation.md):
+- [Content Safety And Moderation](https://github.com/atelia-labs/atelia/blob/main/docs/content-safety-moderation.md):
   package metadata safety, reporting, blocking, and content policy.
-- [Agent-Authored Package Flow](../../atelia/docs/agent-authored-package-flow.md):
+- [Agent-Authored Package Flow](https://github.com/atelia-labs/atelia/blob/main/docs/agent-authored-package-flow.md):
   agent-created package proposal, consent, audit, and rollback.
-- [App Review Notes](../../atelia/docs/app-review-notes.md): App Store review
+- [App Review Notes](https://github.com/atelia-labs/atelia/blob/main/docs/app-review-notes.md): App Store review
   framing and launch gate.
 
 ## Open Design Questions

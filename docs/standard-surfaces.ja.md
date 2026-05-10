@@ -21,7 +21,7 @@ Atelia Mac は、固定されたアプリ本体にいくつかの extension slot
 
 ## Specification Home
 
-この文書は Atelia Mac の Surface Protocol architecture を定義します。normative な Surface Protocol specification は AEP specification family の [Surface Protocol](../../atelia/docs/surface-protocol.ja.md) に置きます。詳細な declaration schema、attachment point semantics、field binding、lifecycle state machine、context subscription、action routing、trust derivation は、そこで定義するか、その文書が参照する文書で定義しなければなりません。
+この文書は Atelia Mac の Surface Protocol architecture を定義します。normative な Surface Protocol specification は AEP specification family の [Surface Protocol](https://github.com/atelia-labs/atelia/blob/main/docs/surface-protocol.ja.md) に置きます。詳細な declaration schema、attachment point semantics、field binding、lifecycle state machine、context subscription、action routing、trust derivation は、そこで定義するか、その文書が参照する文書で定義しなければなりません。
 
 ## Protocol Layers
 
@@ -120,7 +120,7 @@ Package distribution と criticality は別の軸です。
 | Package class | Distribution | Default criticality |
 | --- | --- | --- |
 | `host-shipped built-in` | app binary に同梱され、platform code signing に紐付く | baseline operation に必要な場合のみ `host-required` を claim できる |
-| `bundled official` | Atelia が配布し、default installed または setup 時に recommended される | 通常は `user-removable`。明示的な host policy が baseline requirement を記録する場合のみ non-removable になり得る |
+| `bundled official` | Atelia が配布し、default installed または setup 時に recommended される | default は `user-removable`。host policy は default-enable または recommend できるが、`host-required` にはできない |
 | `verified third-party` | trusted registry で automated validation、signature、compatibility metadata を持って配布される | `user-removable` または `optional` |
 | `unverified third-party` | user が external source から明示的に install する | `optional`。user policy は enable できるが、`host-required` にはできない |
 
@@ -260,7 +260,7 @@ Atelia Mac は client shell であり、package card を並べる static dashboa
 
 ## macOS Beta Launch Gate
 
-Atelia Mac package resolution は、beta で ship する前に host が次を提供していなければなりません。
+Atelia Mac package resolution は、beta で ship する前に host が次を提供すべきです。
 
 - package metadata display と source labeling
 - permission consent と permission diff presentation
@@ -274,21 +274,21 @@ Atelia Mac package resolution は、beta で ship する前に host が次を提
 
 これらは protocol behavior を定義するため、implementation の前に決める必要があります。
 
-- [Surface Protocol](../../atelia/docs/surface-protocol.ja.md): declaration、lifecycle、context、action routing、trust derivation のための normative client surface contract。
-- [Component Catalog Reference](../../atelia/docs/component-catalog.ja.md): initial component catalog と semantic contract。
+- [Surface Protocol](https://github.com/atelia-labs/atelia/blob/main/docs/surface-protocol.ja.md): declaration、lifecycle、context、action routing、trust derivation のための normative client surface contract。
+- [Component Catalog Reference](https://github.com/atelia-labs/atelia/blob/main/docs/component-catalog.ja.md): initial component catalog と semantic contract。
 - surface は project space 内でどの程度 layout authority を宣言できるか。
 - navigation placement protocol は何か。conflict resolution と context graph representation を含む。
 - host slot、built-in-surface slot、context node type、composition mode、priority、conflict resolution のための first-class attachment point semantics は何か。
 - bundled official package は manifest、permission、trust class、criticality をどう宣言するか。
 - Host policy schema: trust threshold、criticality eligibility、platform divergence record、default enablement、platform profiles。
-- [iOS Package Distribution Profile](../../atelia/docs/ios-package-distribution.ja.md): creator/runtime environment boundary、native API limit、consent、indexing、moderation、source policy、iOS policy を超える package の degradation。
-- [Context Graph Specification](../../atelia/docs/context-graph.ja.md): node taxonomy、visibility class、redaction、trust weighting、staleness、retraction、Secretary reasoning eligibility。
-- [Broker Boundary Specification](../../atelia/docs/broker-boundary.ja.md): Secretary、Resolver、Service Broker、Policy Engine の責務。
-- [Package Resolution And Migration](../../atelia/docs/package-resolution-migration.ja.md): open surface、schema change、draft state、context node、audit trail、downgrade、rollback、safe mode。
-- [Package Sharing And Source Policy](../../atelia/docs/package-sharing-source-policy.ja.md): source class、sharing boundary、monetization gate。
-- [Content Safety And Moderation](../../atelia/docs/content-safety-moderation.ja.md): package metadata safety、reporting、blocking、content policy。
-- [Agent-Authored Package Flow](../../atelia/docs/agent-authored-package-flow.ja.md): agent-created package proposal、consent、audit、rollback。
-- [App Review Notes](../../atelia/docs/app-review-notes.ja.md): App Store review framing と launch gate。
+- [iOS Package Distribution Profile](https://github.com/atelia-labs/atelia/blob/main/docs/ios-package-distribution.ja.md): creator/runtime environment boundary、native API limit、consent、indexing、moderation、source policy、iOS policy を超える package の degradation。
+- [Context Graph Specification](https://github.com/atelia-labs/atelia/blob/main/docs/context-graph.ja.md): node taxonomy、visibility class、redaction、trust weighting、staleness、retraction、Secretary reasoning eligibility。
+- [Broker Boundary Specification](https://github.com/atelia-labs/atelia/blob/main/docs/broker-boundary.ja.md): Secretary、Resolver、Service Broker、Policy Engine の責務。
+- [Package Resolution And Migration](https://github.com/atelia-labs/atelia/blob/main/docs/package-resolution-migration.ja.md): open surface、schema change、draft state、context node、audit trail、downgrade、rollback、safe mode。
+- [Package Sharing And Source Policy](https://github.com/atelia-labs/atelia/blob/main/docs/package-sharing-source-policy.ja.md): source class、sharing boundary、monetization gate。
+- [Content Safety And Moderation](https://github.com/atelia-labs/atelia/blob/main/docs/content-safety-moderation.ja.md): package metadata safety、reporting、blocking、content policy。
+- [Agent-Authored Package Flow](https://github.com/atelia-labs/atelia/blob/main/docs/agent-authored-package-flow.ja.md): agent-created package proposal、consent、audit、rollback。
+- [App Review Notes](https://github.com/atelia-labs/atelia/blob/main/docs/app-review-notes.ja.md): App Store review framing と launch gate。
 
 ## Open Design Questions
 

@@ -7,8 +7,8 @@
 
 Normative な Surface Protocol documents は AEP specification family に置きます。
 
-- [Surface Protocol](../../atelia/docs/surface-protocol.ja.md)
-- [AEP Presentation](../../atelia/docs/aep-presentation.ja.md)
-- [Component Catalog Reference](../../atelia/docs/component-catalog.ja.md)
-- [Context Graph Specification](../../atelia/docs/context-graph.ja.md)
-- [Broker Boundary](../../atelia/docs/broker-boundary.ja.md)
+- [Surface Protocol](https://github.com/atelia-labs/atelia/blob/main/docs/surface-protocol.ja.md)
+- [AEP Presentation](https://github.com/atelia-labs/atelia/blob/main/docs/aep-presentation.ja.md)
+- [Component Catalog Reference](https://github.com/atelia-labs/atelia/blob/main/docs/component-catalog.ja.md)
+- [Context Graph Specification](https://github.com/atelia-labs/atelia/blob/main/docs/context-graph.ja.md)
+- [Broker Boundary](https://github.com/atelia-labs/atelia/blob/main/docs/broker-boundary.ja.md)

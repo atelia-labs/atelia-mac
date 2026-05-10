@@ -9,8 +9,8 @@ This directory contains Atelia Mac client architecture documents.
 
 Normative Surface Protocol documents live in the AEP specification family:
 
-- [Surface Protocol](../../atelia/docs/surface-protocol.md)
-- [AEP Presentation](../../atelia/docs/aep-presentation.md)
-- [Component Catalog Reference](../../atelia/docs/component-catalog.md)
-- [Context Graph Specification](../../atelia/docs/context-graph.md)
-- [Broker Boundary](../../atelia/docs/broker-boundary.md)
+- [Surface Protocol](https://github.com/atelia-labs/atelia/blob/main/docs/surface-protocol.md)
+- [AEP Presentation](https://github.com/atelia-labs/atelia/blob/main/docs/aep-presentation.md)
+- [Component Catalog Reference](https://github.com/atelia-labs/atelia/blob/main/docs/component-catalog.md)
+- [Context Graph Specification](https://github.com/atelia-labs/atelia/blob/main/docs/context-graph.md)
+- [Broker Boundary](https://github.com/atelia-labs/atelia/blob/main/docs/broker-boundary.md)
