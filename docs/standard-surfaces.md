@@ -291,6 +291,7 @@ provenance. A surface that proposes an action tracks the result by subscribing t
 context contributions matching its correlation ids. The resolver, not the
 surface, decides whether a result is project-visible, requester-visible, or audit
 only.
+
 The resolver must deliver at least a requester-visible completion acknowledgment
 for every action it routes, regardless of result content visibility.
 

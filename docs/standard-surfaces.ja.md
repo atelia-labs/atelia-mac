@@ -124,7 +124,7 @@ Package distribution と criticality は別の軸です。
 | `verified third-party` | trusted registry で automated validation、signature、compatibility metadata を持って配布される | `user-removable` または `optional` |
 | `unverified third-party` | user が external source から明示的に install する | `optional`。user policy は enable できるが、`host-required` にはできない |
 
-これらの class は distribution path であり、別々の UI architecture ではありません。resolver は、同じ platform 上の third-party package が構造的に利用できない capability を built-in package や bundled official package に付与してはいけません。例外は host policy に platform limitation として記録しなければなりません。
+これらの class は distribution path であり、別々の UI architecture ではありません。resolver は、同じ platform 上の third-party package が構造的に利用できない capability を built-in package や bundled official package に付与してはいけません。例外は trust preference ではなく platform limitation として host policy に記録しなければなりません。
 
 Criticality は lifecycle claim であり、distribution class ではありません。Distribution は claim を eligible にできますが、resolver はそれでも host policy に照らして validate します。
 
@@ -175,7 +175,7 @@ surface は次のような action を propose できます。
 - project settings を変更する。
 - installed packages を inspect する。
 - package-provided operation を依頼する。
-- package を install、update、disable、rollback する。
+- package を install、update、disable、roll back する。
 
 Permission と approval decision も protocol-mediated です。permission / approval surface は、ひとつの decision session のために resolver-created activation context を受け取ります。その response はその session に対してのみ valid であり、resolver によって audit されます。surface は自分で authority を作れません。
 
@@ -260,7 +260,7 @@ Atelia Mac は client shell であり、package card を並べる static dashboa
 
 ## macOS Beta Launch Gate
 
-Atelia Mac package resolution は、beta で ship する前に host が次を提供すべきです。
+Atelia Mac package resolution は、host が次を提供するまでは beta で ship すべきではありません。
 
 - package metadata display と source labeling
 - permission consent と permission diff presentation
