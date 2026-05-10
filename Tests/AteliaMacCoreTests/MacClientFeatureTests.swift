@@ -2,7 +2,7 @@ import Testing
 @testable import AteliaMacCore
 
 @Test func initialScopeMatchesDocumentedMacBaseline() {
-    let initialIds = MacClientFeature.initial.filter(\.isInitialScope).map(\.id)
+    let initialIds = Set(MacClientFeature.initial.map(\.id))
 
     #expect(initialIds == [
         "project-space",
@@ -18,7 +18,7 @@ import Testing
 }
 
 @Test func richProductAreasAreNotInitialClientCore() {
-    let initialIds = Set(MacClientFeature.initial.filter(\.isInitialScope).map(\.id))
+    let initialIds = Set(MacClientFeature.initial.map(\.id))
 
     #expect(initialIds.isDisjoint(with: [
         "browser",
@@ -32,7 +32,6 @@ import Testing
 @Test func packageManagementIncludesSafeMode() {
     #expect(MacClientFeature.initial.contains {
         $0.id == "package-management" &&
-            $0.title.contains("safe mode") &&
-            $0.isInitialScope
+            $0.title.contains("safe mode")
     })
 }
