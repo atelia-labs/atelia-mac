@@ -1,6 +1,6 @@
 # Atelia Mac ドキュメント
 
-この directory は Atelia Mac client architecture documents を置きます。
+このディレクトリには、Atelia Mac クライアントアーキテクチャの文書を収めます。
 
 - [Standard Surfaces](standard-surfaces.ja.md): Atelia Mac を native shell + Surface Protocol Resolver として定義し、default surface boundary、trust、context、presentation、security、beta launch gate を扱います。
 - [Standard Surfaces EN](standard-surfaces.md): English version。

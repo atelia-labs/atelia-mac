@@ -19,7 +19,7 @@ Atelia Mac は、固定されたアプリ本体にいくつかの extension slot
 - **Action**: resolver によって policy、permission、approval、audit、Secretary / service broker へ route される declared proposal です。
 - **Activation context**: prompt、approval、recovery、task flow のために resolver が mounted surface に付与する session data です。surface は自分で activation context を作れません。
 - **Trust level**: platform signing、bundle membership、registry verification、user install choice から resolver が導出する package provenance です。
-- **Host policy**: host binary と一緒に配布される resolver-readable policy です。criticality eligibility、trust threshold、default package enablement、default permission grant、platform-specific divergence record を定義します。host policy は host release と一緒に versioning されます。
+- **Host policy**: host binary と一緒に配布される resolver-readable policy です。criticality eligibility、trust thresholds、default package enablement、default permission grants、platform-specific divergence records を定義します。host policy は host release と一緒に versioning されます。
 
 ## Specification Home
 
@@ -257,7 +257,7 @@ package-to-Secretary boundary は presentation boundary と同じくらい重要
 
 Atelia Mac は client shell であり、package card を並べる static dashboard ではありません。
 
-- Built-in packages は他の packages から利用できない private UI system ではない。
+- Built-in packages は、他の packages から隠された private UI system を形成しない。
 - Protocol-first は、すべての surface が同じ見た目であることを意味しない。
 - Channel、thread、dashboard structure は base metaphor として必須ではない。
 
@@ -283,9 +283,9 @@ Atelia Mac package resolution は、host が次を提供するまでは beta で
 - navigation placement protocol は何か。conflict resolution と context graph representation を含む。
 - host slot、built-in-surface slot、context node type、composition mode、priority、conflict resolution のための first-class attachment point semantics は何か。
 - bundled official package は manifest、permission、trust class、criticality をどう宣言するか。
-- Host policy schema: trust threshold、criticality eligibility、platform divergence record、default enablement、platform profiles。
-- [iOS Package Distribution Profile](https://github.com/atelia-labs/atelia/blob/main/docs/ios-package-distribution.ja.md): creator/runtime environment boundary、native API limit、consent、indexing、moderation、source policy、iOS policy を超える package の degradation。
-- [Context Graph Specification](https://github.com/atelia-labs/atelia/blob/main/docs/context-graph.ja.md): node taxonomy、visibility class、redaction、trust weighting、staleness、retraction、Secretary reasoning eligibility。
+- Host policy schema: trust thresholds、criticality eligibility、platform divergence records、default enablement、platform profiles。
+- [iOS Package Distribution Profile](https://github.com/atelia-labs/atelia/blob/main/docs/ios-package-distribution.ja.md): creator/runtime environment boundary、native API limits、consent、indexing、moderation、source policy、iOS policy を超える package の degradation。
+- [Context Graph Specification](https://github.com/atelia-labs/atelia/blob/main/docs/context-graph.ja.md): node taxonomy、visibility classes、redaction、trust weighting、staleness、retraction、Secretary reasoning eligibility。
 - [Broker Boundary Specification](https://github.com/atelia-labs/atelia/blob/main/docs/broker-boundary.ja.md): Secretary、Resolver、Service Broker、Policy Engine の責務。
 - [Package Resolution And Migration](https://github.com/atelia-labs/atelia/blob/main/docs/package-resolution-migration.ja.md): open surface、schema change、draft state、context node、audit trail、downgrade、rollback、safe mode。
 - [Package Sharing And Source Policy](https://github.com/atelia-labs/atelia/blob/main/docs/package-sharing-source-policy.ja.md): source class、sharing boundary、monetization gate。

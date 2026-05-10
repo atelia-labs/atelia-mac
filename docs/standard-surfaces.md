@@ -215,7 +215,7 @@ resolver must not grant a built-in or bundled official package a capability that
 is structurally unavailable to third-party packages on the same platform. Any
 exception must be recorded in host policy as a platform limitation.
 Structurally unavailable means there is no declared platform, protocol,
-component-catalog, or broker path for that capability; it must not mean that the
+component catalog, or broker path for that capability; it must not mean that the
 publisher or trust label is merely preferred.
 
 Criticality is a lifecycle claim, not a distribution class. Distribution can
@@ -427,8 +427,7 @@ escape hatch.
 
 Atelia Mac is a client shell, not a static dashboard of package cards.
 
-- Built-in packages are not a private UI system that is unavailable to other
-  packages.
+- Built-in packages do not form a private UI system hidden from other packages.
 - Protocol-first does not mean every surface must look the same.
 - Channel, thread, or dashboard structures are not mandatory base metaphors.
 
