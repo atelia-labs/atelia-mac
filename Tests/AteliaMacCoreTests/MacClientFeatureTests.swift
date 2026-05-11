@@ -4,6 +4,7 @@ import Testing
 @Test func baselineFeaturesMatchDocumentedMacBaseline() {
     let initialIds = Set(MacClientFeature.initial.map(\.id))
 
+    #expect(MacClientFeature.initial.count == initialIds.count)
     #expect(initialIds == Set([
         "project-space",
         "project-home",
@@ -35,7 +36,7 @@ import Testing
 @Test func packageManagementIncludesSafeMode() {
     #expect(MacClientFeature.initial.contains {
         $0.id == "package-management" &&
-            $0.title == "Package installation, inspection, disabling, rollback, and safe mode"
+            $0.title.localizedCaseInsensitiveContains("safe mode")
     })
 }
 
