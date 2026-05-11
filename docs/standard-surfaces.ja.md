@@ -9,10 +9,10 @@ Atelia Mac は、固定されたアプリ本体にいくつかの extension slot
 - **Shell**: native macOS application container。window、platform integration、accessibility、secure storage、Surface Protocol Resolver を所有します。shell 自体は surface ではありません。
 - **Surface Protocol Resolver**: package manifest、surface declaration、context participation、action routing、lifecycle、trust、presentation を解釈する host-side resolver です。structured declaration を解釈するものであり、downloaded code execution runtime ではありません。
 - **Package**: 1つ以上の surface、capability、schema、action、resource、permission を宣言する distribution unit です。
-- **Built-in package**: app binary に同梱される package です。built-in は distribution fact であり、別の protocol model ではありません。
-- **Bundled official package**: Atelia が配布し、default installed または setup 時に recommended され得る package です。ただし package であることは変わりません。
-- **Verified third-party package**: automated validation、signature、compatibility metadata を持つ registry-verified package です。
-- **Unverified third-party package**: user が external source から選ぶ package です。user policy は enable できますが、`host-required` にはできません。
+- **`host-shipped-built-in` package**: app binary に同梱される package です。built-in は distribution fact であり、別の protocol model ではありません。
+- **`bundled-official` package**: Atelia が配布し、default installed または setup 時に recommended され得る package です。ただし package であることは変わりません。
+- **`verified-registry` package**: automated validation、signature、compatibility metadata を持つ registry package です。
+- **`user-selected` package**: user が external source から選ぶ package です。user policy は enable できますが、`host-required` にはできません。
 - **Surface**: project space 内に mount される protocol participant です。surface は package に属し、lifecycle を持ち、context を読んだり contribute したりでき、action を propose し、presentation を宣言します。
 - **Presentation**: surface の semantic display layer です。presentation declaration は、validated data を host-provided component でどう render するかを表します。arbitrary client UI code ではありません。
 - **Context graph**: user、project Secretary、eligible surfaces が共有する、structured で permission-aware な project state です。
@@ -48,7 +48,7 @@ Surface Protocol は次を含みます。
 
 ## 原則
 
-Atelia のすべての user-facing surface は同じ Surface Protocol を使わなければなりません。`host-shipped built-in`、`bundled official`、`verified third-party`、`unverified third-party` packages の違いは distribution と trust level であり、private UI architecture ではありません。
+Atelia のすべての user-facing surface は同じ Surface Protocol を使わなければなりません。`host-shipped-built-in`、`bundled-official`、`verified-registry`、`user-selected` packages の違いは distribution と trust level であり、private UI architecture ではありません。
 
 - presentation は semantic で host-rendered である。
 - state は provenance 付きで shared project context graph に入る。
@@ -75,7 +75,7 @@ Shell は native app container です。surface ではなく、product UI を直
 - native component catalog implementation。
 - package resolution が失敗したときの safe mode entry。
 
-Safe mode は、package resolution、manifest validation、surface mounting が失敗したときに入る host-level recovery profile です。safe mode では、resolver は host-shipped built-in recovery surfaces だけを mount し、resolve できない package surfaces を unavailable または degraded として扱い、package provenance、rejection reasons、context references、audit evidence を inspect 可能な状態に保ちます。
+Safe mode は、package resolution、manifest validation、surface mounting が失敗したときに入る host-level recovery profile です。safe mode では、resolver は `host-shipped-built-in` recovery surfaces だけを mount し、resolve できない package surfaces を unavailable または degraded として扱い、package provenance、rejection reasons、context references、audit evidence を inspect 可能な状態に保ちます。
 
 Shell は code signing や app bundle membership のような避けられない platform fact を、trust assertion として resolver に公開できます。その assertion は protocol model に入る data であり、hidden UI authority ではありません。
 
@@ -83,7 +83,7 @@ client baseline は product-specific surface を所有しません。ただし p
 
 ## サーフェスとパッケージ
 
-Surface は Surface Protocol Resolver によって project space 内に host されます。surface は `host-shipped built-in`、`bundled official`、`verified third-party`、`unverified third-party` package から来る場合があります。initial built-in package surface set は意図的に小さくします。
+Surface は Surface Protocol Resolver によって project space 内に host されます。surface は `host-shipped-built-in`、`bundled-official`、`verified-registry`、`user-selected` package から来る場合があります。initial built-in package surface set は意図的に小さくします。
 
 - project home。
 - project conversation。
@@ -94,9 +94,9 @@ Surface は Surface Protocol Resolver によって project space 内に host さ
 
 より広い client baseline には、package-owned surface ではない host primitive も含まれます。Atelia project space、minimal project navigation、Atelia Secretary daemon への connection management、AEP semantic presentation renderer subset です。これらの primitive は resolver が built-in surfaces を mount し route するためのものであり、hidden product-area UI ではありません。
 
-built-in set は厳しい条件を満たさなければなりません。fresh install 後に Atelia が usable state に到達するため不可欠な surface、または resolver が保証しなければならない trust、permission、recovery、package safety decision を媒介する surface だけが built-in に属します。user が bundled official package を enable することで合理的に得られる surface は、built-in client core にしてはいけません。
+built-in set は厳しい条件を満たさなければなりません。fresh install 後に Atelia が usable state に到達するため不可欠な surface、または resolver が保証しなければならない trust、permission、recovery、package safety decision を媒介する surface だけが built-in に属します。user が `bundled-official` package を enable することで合理的に得られる surface は、built-in client core にしてはいけません。
 
-documents、browser、tasks、calendar、notes、media、GitHub、review、terminal、automations などの product area は、`bundled official`、`verified third-party`、`unverified third-party` packages として提供されます。install された後は native で中心的に感じられてよいですが、minimal client baseline には含めません。architectural point は、それらを package model で配布することであり、product から不在にすることではありません。
+documents、browser、tasks、calendar、notes、media、GitHub、review、terminal、automations などの product area は、`bundled-official`、`verified-registry`、`user-selected` packages として提供されます。install された後は native で中心的に感じられてよいですが、minimal client baseline には含めません。architectural point は、それらを package model で配布することであり、product から不在にすることではありません。
 
 ## サーフェスライフサイクル
 
@@ -111,7 +111,7 @@ documents、browser、tasks、calendar、notes、media、GitHub、review、termi
 
 Surface は criticality を宣言します。
 
-- **host-required**: baseline operation に必要。project conversation、permission prompts、approvals、audit visibility、recovery など。`host-shipped built-in` package だけがこの tier を claim できます。
+- **host-required**: baseline operation に必要。project conversation、permission prompts、approvals、audit visibility、recovery など。`host-shipped-built-in` package だけがこの tier を claim できます。
 - **user-removable**: user が明示的に disable できる bundled / installed surface。
 - **optional**: enabled または requested されたときだけ現れる surface。
 
@@ -125,16 +125,16 @@ Package distribution と criticality は別の軸です。
 
 | Package class | Distribution | Default criticality |
 | --- | --- | --- |
-| `host-shipped built-in` | app binary に同梱され、platform code signing に紐付く | baseline operation に必要な場合のみ `host-required` を claim できる |
-| `bundled official` | Atelia が配布し、default installed または setup 時に recommended される | default は `user-removable`。host policy は default-enable または recommend できるが、`host-required` にはできない |
-| `verified third-party` | trusted registry で automated validation、signature、compatibility metadata を持って配布される | `user-removable` または `optional` |
-| `unverified third-party` | user が external source から明示的に install する | `optional`。user policy は enable できるが、`host-required` にはできない |
+| `host-shipped-built-in` | app binary に同梱され、platform code signing に紐付く | baseline operation に必要な場合のみ `host-required` を claim できる |
+| `bundled-official` | Atelia が配布し、default installed または setup 時に recommended される | default は `user-removable`。host policy は default-enable または recommend できるが、`host-required` にはできない |
+| `verified-registry` | trusted registry で automated validation、signature、compatibility metadata を持って配布される | `user-removable` または `optional` |
+| `user-selected` | user が external source から明示的に install する | `optional`。user policy は enable できるが、`host-required` にはできない |
 
-これらの class は distribution path であり、別々の UI architecture ではありません。resolver は、同じ platform 上の third-party package が構造的に利用できない capability を built-in package や bundled official package に付与してはいけません。例外は trust preference ではなく platform limitation として host policy に記録しなければなりません。構造的に利用できないとは、その capability に対する platform、protocol、component catalog、broker の declared path が存在しないことを意味します。publisher や trust label が単に preferred であることを意味してはいけません。
+これらの class は distribution path であり、別々の UI architecture ではありません。resolver は、同じ platform 上の third-party package が構造的に利用できない capability を built-in package や `bundled-official` package に付与してはいけません。例外は trust preference ではなく platform limitation として host policy に記録しなければなりません。構造的に利用できないとは、その capability に対する platform、protocol、component catalog、broker の declared path が存在しないことを意味します。publisher や trust label が単に preferred であることを意味してはいけません。
 
 Criticality は lifecycle claim であり、distribution class ではありません。Distribution は claim を eligible にできますが、resolver はそれでも host policy に照らして validate します。
 
-Distribution trust は、package がどのように bundle、sign、update、review、initially enable されるかに影響します。しかし use-time permission check、action routing、audit logging、degradation、inspection、context provenance を bypass するものではありません。platform constraint によって third-party package が built-in package や bundled official package と同じ扱いを受けられない場合、host policy はそれを trust preference ではなく platform limitation として記録しなければなりません。official package は trusted default であり得ますが、hidden client core にはなりません。
+Distribution trust は、package がどのように bundle、sign、update、review、initially enable されるかに影響します。しかし use-time permission check、action routing、audit logging、degradation、inspection、context provenance を bypass するものではありません。platform constraint によって third-party package が built-in package や `bundled-official` package と同じ扱いを受けられない場合、host policy はそれを trust preference ではなく platform limitation として記録しなければなりません。official package は trusted default であり得ますが、hidden client core にはなりません。
 
 ## デフォルト体験
 
@@ -274,7 +274,7 @@ Atelia Mac package resolution は、host が次を提供するまでは beta で
 - resolver rejection reason display
 - install、update、rollback、safe mode entry の audit inspection
 - package resolution failure 時の safe mode entry
-- `host-shipped built-in`、`bundled official`、`verified third-party`、user-selected / `unverified third-party` sources を含む installed package の package inspector
+- `host-shipped-built-in`、`bundled-official`、`verified-registry`、`user-selected` sources を含む installed package の package inspector
 
 ## アーキテクチャ前提条件
 
@@ -285,7 +285,7 @@ Atelia Mac package resolution は、host が次を提供するまでは beta で
 - surface は project space 内でどの程度 layout authority を宣言できるか。
 - navigation placement protocol は何か。conflict resolution と context graph representation を含む。
 - host slot、built-in-surface slot、context node type、composition mode、priority、conflict resolution のための first-class attachment point semantics は何か。
-- bundled official package は manifest、permission、trust class、criticality をどう宣言するか。
+- `bundled-official` package は manifest、permission、trust class、criticality をどう宣言するか。
 - Host policy schema: trust thresholds、criticality eligibility、platform divergence records、default enablement、platform profiles。
 - [iOS Package Distribution Profile](https://github.com/atelia-labs/atelia/blob/main/docs/ios-package-distribution.ja.md): creator/runtime environment boundary、native API limits、consent、indexing、moderation、source policy、iOS policy を超える package の degradation。
 - [Context Graph Specification](https://github.com/atelia-labs/atelia/blob/main/docs/context-graph.ja.md): node taxonomy、visibility classes、redaction、trust weighting、staleness、retraction、Secretary reasoning eligibility。

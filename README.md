@@ -10,8 +10,8 @@ This repository owns the macOS-native Atelia shell and Surface Protocol Resolver
 windowing, project space, built-in package resolution, presentation hosting,
 permissions, approvals, audit visibility, package inspection, and platform
 integration. Rich product areas such as documents, browser, tasks, calendar,
-notes, media, GitHub, review, terminal, and automations are delivered as bundled official
-packages or user-selected / registry-verified packages. Shared logic lives in
+notes, media, GitHub, review, terminal, and automations are delivered as
+`bundled-official`, `verified-registry`, or `user-selected` packages. Shared logic lives in
 `atelia-kit`.
 
 Within AEP, Atelia Mac is a reference presentation host. It renders semantic,
@@ -32,8 +32,8 @@ project selection, project conversation, package installation and inspection,
 settings, connection management, permissions, approvals, audit visibility, and
 recovery surfaces.
 
-Day-to-day work becomes rich through bundled official packages and
-user-selected / registry-verified packages that join the same project space. A
+Day-to-day work becomes rich through `bundled-official`, `verified-registry`,
+and `user-selected` packages that join the same project space. A
 Git or terminal experience may ship with Atelia as an official package, but it
 must still use the same presentation, context, permission, and action model
 rather than hidden client core.
@@ -53,7 +53,7 @@ rather than hidden client core.
 
 ## Future Scope
 
-- bundled official packages for documents, browser, tasks, calendar, notes,
+- `bundled-official` packages for documents, browser, tasks, calendar, notes,
   media, GitHub, review, terminal, automations, and other high-value workflows
 - package install, inspect, validate, remix, and GitHub-backed publication flows
 - registry search and trust-index review surfaces

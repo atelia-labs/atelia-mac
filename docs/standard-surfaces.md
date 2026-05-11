@@ -22,13 +22,13 @@ graph, and permission model as every other package.
   code execution runtime.
 - **Package**: the distribution unit that declares one or more surfaces,
   capabilities, schemas, actions, resources, and permissions.
-- **Built-in package**: a package bundled inside the app binary. Built-in is a
+- **`host-shipped-built-in` package**: a package bundled inside the app binary. Built-in is a
   distribution fact, not a separate protocol model.
-- **Bundled official package**: an Atelia-distributed package that may be
+- **`bundled-official` package**: an Atelia-distributed package that may be
   installed by default or recommended during setup, but remains a package.
-- **Verified third-party package**: a registry-verified package with automated
+- **`verified-registry` package**: a registry package with automated
   validation, signatures, and compatibility metadata.
-- **Unverified third-party package**: a user-selected package from an external
+- **`user-selected` package**: a package from an external
   source. User policy may enable it, but it cannot become `host-required`.
 - **Surface**: a protocol participant mounted inside project space. A surface
   belongs to a package, has lifecycle, may read or contribute context, may
@@ -92,10 +92,10 @@ exceptions.
 
 ## Principle
 
-All user-facing Atelia surfaces must use the same Surface Protocol. `host-shipped
-built-in`, `bundled official`, `verified third-party`, and `unverified
-third-party` packages differ by distribution and trust level, not by a private UI
-architecture.
+All user-facing Atelia surfaces must use the same Surface Protocol.
+`host-shipped-built-in`, `bundled-official`, `verified-registry`, and
+`user-selected` packages differ by distribution and trust level, not by a private
+UI architecture.
 
 - presentation is semantic and host-rendered;
 - state enters the shared project context graph with provenance;
@@ -138,7 +138,7 @@ product UI directly. The shell provides:
 
 Safe mode is a host-level recovery profile entered when package resolution,
 manifest validation, or surface mounting fails. In safe mode, the resolver mounts
-only host-shipped built-in recovery surfaces, treats unresolved package surfaces
+only `host-shipped-built-in` recovery surfaces, treats unresolved package surfaces
 as unavailable or degraded, and keeps package provenance, rejection reasons,
 context references, and audit evidence inspectable.
 
@@ -154,8 +154,8 @@ packages need to create first-class experiences.
 ## Surfaces And Packages
 
 Surfaces are hosted inside project space by the Surface Protocol Resolver. A
-surface may come from a `host-shipped built-in`, `bundled official`, `verified
-third-party`, or `unverified third-party` package. The initial built-in package
+surface may come from a `host-shipped-built-in`, `bundled-official`,
+`verified-registry`, or `user-selected` package. The initial built-in package
 surface set is deliberately small:
 
 - project home;
@@ -175,11 +175,11 @@ The built-in set must pass a strict test: a surface belongs there only when
 Atelia cannot reach a usable fresh-install state without it, or when the surface
 mediates trust, permission, recovery, or package safety decisions that the
 resolver must guarantee. Any surface a user could reasonably obtain by enabling
-a bundled official package must not become built-in client core.
+a `bundled-official` package must not become built-in client core.
 
 Documents, browser, tasks, calendar, notes, media, GitHub, review, terminal,
-automations, and similar product areas arrive as `bundled official`, `verified
-third-party`, or `unverified third-party` packages. They may feel native and central when installed,
+automations, and similar product areas arrive as `bundled-official`,
+`verified-registry`, or `user-selected` packages. They may feel native and central when installed,
 but they are not part of the minimal client baseline. The architectural point is
 distribution through the package model, not absence from the product.
 
@@ -198,7 +198,7 @@ Surfaces declare criticality:
 
 - **host-required**: required for baseline operation, such as project
   conversation, permission prompts, approvals, audit visibility, and recovery.
-  Only `host-shipped built-in` packages may claim this tier.
+  Only `host-shipped-built-in` packages may claim this tier.
 - **user-removable**: bundled or installed surfaces the user can disable.
 - **optional**: surfaces that appear only when enabled or requested.
 
@@ -213,13 +213,13 @@ Package distribution and criticality are separate axes:
 
 | Package class | Distribution | Default criticality |
 | --- | --- | --- |
-| `host-shipped built-in` | bundled in the app binary and tied to platform code signing | may claim `host-required` when needed for baseline operation |
-| `bundled official` | distributed by Atelia, installed by default or recommended during setup | `user-removable` by default; host policy may default-enable or recommend it, but cannot make it `host-required` |
-| `verified third-party` | distributed through a trusted registry with automated validation, signatures, and compatibility metadata | `user-removable` or `optional` |
-| `unverified third-party` | explicitly installed by the user from an external source | `optional`; user policy may enable it, but cannot make it `host-required` |
+| `host-shipped-built-in` | bundled in the app binary and tied to platform code signing | may claim `host-required` when needed for baseline operation |
+| `bundled-official` | distributed by Atelia, installed by default or recommended during setup | `user-removable` by default; host policy may default-enable or recommend it, but cannot make it `host-required` |
+| `verified-registry` | distributed through a trusted registry with automated validation, signatures, and compatibility metadata | `user-removable` or `optional` |
+| `user-selected` | explicitly installed by the user from an external source | `optional`; user policy may enable it, but cannot make it `host-required` |
 
 These classes are distribution paths, not separate UI architectures. The
-resolver must not grant a built-in or bundled official package a capability that
+resolver must not grant a built-in or `bundled-official` package a capability that
 is structurally unavailable to third-party packages on the same platform. Any
 exception must be recorded in host policy as a platform limitation.
 Structurally unavailable means there is no declared platform, protocol,
@@ -233,7 +233,7 @@ Distribution trust affects how a package is bundled, signed, updated, reviewed,
 and initially enabled. It does not bypass permission checks at use time, action
 routing, audit logging, degradation, inspection, or context provenance. If a
 platform constraint prevents a third-party package from receiving the same
-treatment as a built-in or bundled official package, host policy must record that
+treatment as a built-in or `bundled-official` package, host policy must record that
 as a platform limitation, not a trust preference. Official packages can be
 trusted defaults without becoming hidden client core.
 
@@ -449,9 +449,8 @@ Atelia Mac package resolution must not ship in beta until the host provides:
 - resolver rejection reason display;
 - audit inspection for install, update, rollback, and safe mode entry;
 - safe mode entry when package resolution fails;
-- package inspector for installed packages across `host-shipped built-in`,
-  `bundled official`, `verified third-party`, and user-selected /
-  `unverified third-party` sources.
+- package inspector for installed packages across `host-shipped-built-in`,
+  `bundled-official`, `verified-registry`, and `user-selected` sources.
 
 ## Architectural Prerequisites
 
@@ -468,7 +467,7 @@ These questions block implementation because they define protocol behavior:
 - What are the first-class attachment point semantics for host slots,
   built-in-surface slots, context node types, composition mode, priority, and
   conflict resolution?
-- How do bundled official packages declare manifests, permissions, trust class,
+- How do `bundled-official` packages declare manifests, permissions, trust class,
   and criticality?
 - Host policy schema: trust thresholds, criticality eligibility, platform
   divergence records, default enablement, and platform profiles.
