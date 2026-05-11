@@ -37,6 +37,7 @@ public struct MacClientFeature: Sendable, Equatable, Hashable, Identifiable {
         MacClientFeature(id: "project-space", title: "Atelia project space"),
         MacClientFeature(id: "project-home", title: "Project home surface"),
         MacClientFeature(id: "project-conversation", title: "Project conversation"),
+        MacClientFeature(id: "project-selection-onboarding", title: "Project selection and onboarding"),
         MacClientFeature(id: "project-navigation", title: "Minimal project navigation"),
         MacClientFeature(id: "secretary-connection", title: "Atelia Secretary daemon connection"),
         MacClientFeature(id: "permission-recovery", title: "Permission, approval, audit, and recovery surfaces"),

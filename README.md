@@ -43,6 +43,7 @@ rather than hidden client core.
 - Atelia project space (`project-space`)
 - Project home surface (`project-home`)
 - Project conversation (`project-conversation`)
+- Project selection and onboarding (`project-selection-onboarding`)
 - Minimal project navigation (`project-navigation`)
 - Connection management for the Atelia Secretary daemon (`secretary-connection`)
 - Permission, approval, audit, and recovery built-in package surfaces (`permission-recovery`)

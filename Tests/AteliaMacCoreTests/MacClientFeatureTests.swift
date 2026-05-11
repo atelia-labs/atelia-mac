@@ -8,6 +8,7 @@ import Testing
         "project-space",
         "project-home",
         "project-conversation",
+        "project-selection-onboarding",
         "project-navigation",
         "secretary-connection",
         "permission-recovery",
