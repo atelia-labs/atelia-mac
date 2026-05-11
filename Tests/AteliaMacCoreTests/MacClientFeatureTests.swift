@@ -22,7 +22,9 @@ import Testing
     let initialIds = Set(MacClientFeature.initial.map(\.id))
 
     #expect(initialIds.isDisjoint(with: [
+        "atelia",
         "browser",
+        "projects",
         "git",
         "terminal",
         "voice",
@@ -54,8 +56,10 @@ import Testing
 
 @available(*, deprecated, message: "Exercises deprecated compatibility API.")
 @Test func deprecatedInitialScopeCompatibilityPreservesReadWriteSemantics() {
+    let baselineFeature = MacClientFeature(id: "settings", title: "Settings")
     var feature = MacClientFeature(id: "test", title: "Test", isInitialScope: false)
 
+    #expect(baselineFeature.isInitialScope)
     #expect(!feature.isInitialScope)
 
     feature.isInitialScope = true
