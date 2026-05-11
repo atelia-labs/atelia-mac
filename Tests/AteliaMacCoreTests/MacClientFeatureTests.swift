@@ -37,6 +37,13 @@ import Testing
     })
 }
 
+@Test func baselineInitSetsIdAndTitle() {
+    let feature = MacClientFeature(id: "settings", title: "Settings")
+
+    #expect(feature.id == "settings")
+    #expect(feature.title == "Settings")
+}
+
 @Test func featureIdentityUsesIdOnly() {
     let original = MacClientFeature(id: "settings", title: "Settings")
     let renamed = MacClientFeature(id: "settings", title: "Preferences")
@@ -46,10 +53,15 @@ import Testing
 }
 
 @available(*, deprecated, message: "Exercises deprecated compatibility API.")
-@Test func deprecatedInitialScopeCompatibilityAlwaysReportsBaselineScope() {
+@Test func deprecatedInitialScopeCompatibilityPreservesReadWriteSemantics() {
     var feature = MacClientFeature(id: "test", title: "Test", isInitialScope: false)
+
+    #expect(!feature.isInitialScope)
+
+    feature.isInitialScope = true
+    #expect(feature.isInitialScope)
 
     feature.isInitialScope = false
 
-    #expect(feature.isInitialScope)
+    #expect(!feature.isInitialScope)
 }

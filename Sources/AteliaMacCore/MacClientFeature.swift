@@ -4,25 +4,29 @@ import Foundation
 public struct MacClientFeature: Sendable, Equatable, Hashable, Identifiable {
     public var id: String
     public var title: String
+    private var storedInitialScope: Bool
 
     @available(*, deprecated, message: "MacClientFeature.initial contains baseline features only; future package scope is no longer represented here.")
     public var isInitialScope: Bool {
-        get { true }
-        set { }
+        get { storedInitialScope }
+        set { storedInitialScope = newValue }
     }
 
     /// Creates a baseline Mac client feature.
     public init(id: String, title: String) {
         self.id = id
         self.title = title
+        self.storedInitialScope = true
     }
 
     /// Compatibility initializer for the previous mixed initial/future scope model.
-    /// The `isInitialScope` argument is ignored because `MacClientFeature.initial`
-    /// now contains baseline features only.
+    /// The `isInitialScope` argument is retained only for source compatibility;
+    /// new baseline features should use `init(id:title:)`.
     @available(*, deprecated, message: "Use init(id:title:). MacClientFeature.initial contains baseline features only.")
     public init(id: String, title: String, isInitialScope: Bool) {
-        self.init(id: id, title: title)
+        self.id = id
+        self.title = title
+        self.storedInitialScope = isInitialScope
     }
 
     public static func == (lhs: MacClientFeature, rhs: MacClientFeature) -> Bool {
