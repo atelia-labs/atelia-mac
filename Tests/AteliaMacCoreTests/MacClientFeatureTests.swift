@@ -36,7 +36,10 @@ import Testing
 @Test func packageManagementIncludesSafeMode() {
     #expect(MacClientFeature.initial.contains {
         $0.id == "package-management" &&
-            $0.title.localizedCaseInsensitiveContains("safe mode")
+            $0.title.range(
+                of: #"(?i)\bsafe mode\b"#,
+                options: .regularExpression
+            ) != nil
     })
 }
 
@@ -74,4 +77,5 @@ import Testing
     feature.isInitialScope = false
 
     #expect(!feature.isInitialScope)
+    #expect(feature == futureFeature)
 }
