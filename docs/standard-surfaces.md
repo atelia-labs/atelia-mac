@@ -92,9 +92,10 @@ exceptions.
 
 ## Principle
 
-All user-facing Atelia surfaces must use the same Surface Protocol. Built-in
-packages and user-selected / registry-verified packages differ by distribution and trust level, not by a
-private UI architecture.
+All user-facing Atelia surfaces must use the same Surface Protocol. `host-shipped
+built-in`, `bundled official`, `verified third-party`, and `unverified
+third-party` packages differ by distribution and trust level, not by a private UI
+architecture.
 
 - presentation is semantic and host-rendered;
 - state enters the shared project context graph with provenance;
@@ -153,8 +154,9 @@ packages need to create first-class experiences.
 ## Surfaces And Packages
 
 Surfaces are hosted inside project space by the Surface Protocol Resolver. A
-surface may come from a built-in package or a user-selected / registry-verified package. The initial
-built-in package set is deliberately small:
+surface may come from a `host-shipped built-in`, `bundled official`, `verified
+third-party`, or `unverified third-party` package. The initial built-in package
+surface set is deliberately small:
 
 - project home;
 - project conversation;
@@ -163,6 +165,12 @@ built-in package set is deliberately small:
 - settings;
 - permission, approval, audit, and recovery surfaces.
 
+The broader client baseline also includes host primitives that are not
+package-owned surfaces: Atelia project space, minimal project navigation,
+connection management for the Atelia Secretary daemon, and the AEP semantic
+presentation renderer subset. These primitives let the resolver mount and route
+the built-in surfaces; they are not hidden product-area UI.
+
 The built-in set must pass a strict test: a surface belongs there only when
 Atelia cannot reach a usable fresh-install state without it, or when the surface
 mediates trust, permission, recovery, or package safety decisions that the
@@ -170,8 +178,8 @@ resolver must guarantee. Any surface a user could reasonably obtain by enabling
 a bundled official package must not become built-in client core.
 
 Documents, browser, tasks, calendar, notes, media, GitHub, review, terminal,
-automations, and similar product areas arrive as bundled official packages or
-user-selected / registry-verified packages. They may feel native and central when installed,
+automations, and similar product areas arrive as `bundled official`, `verified
+third-party`, or `unverified third-party` packages. They may feel native and central when installed,
 but they are not part of the minimal client baseline. The architectural point is
 distribution through the package model, not absence from the product.
 

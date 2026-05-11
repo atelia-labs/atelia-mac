@@ -48,7 +48,7 @@ Surface Protocol は次を含みます。
 
 ## 原則
 
-Atelia のすべての user-facing surface は同じ Surface Protocol を使わなければなりません。built-in package と user-selected / registry-verified package の違いは distribution と trust level であり、private UI architecture ではありません。
+Atelia のすべての user-facing surface は同じ Surface Protocol を使わなければなりません。`host-shipped built-in`、`bundled official`、`verified third-party`、`unverified third-party` packages の違いは distribution と trust level であり、private UI architecture ではありません。
 
 - presentation は semantic で host-rendered である。
 - state は provenance 付きで shared project context graph に入る。
@@ -83,7 +83,7 @@ client baseline は product-specific surface を所有しません。ただし p
 
 ## サーフェスとパッケージ
 
-Surface は Surface Protocol Resolver によって project space 内に host されます。surface は built-in package から来る場合も user-selected / registry-verified package から来る場合もあります。initial built-in package set は意図的に小さくします。
+Surface は Surface Protocol Resolver によって project space 内に host されます。surface は `host-shipped built-in`、`bundled official`、`verified third-party`、`unverified third-party` package から来る場合があります。initial built-in package surface set は意図的に小さくします。
 
 - project home。
 - project conversation。
@@ -92,9 +92,11 @@ Surface は Surface Protocol Resolver によって project space 内に host さ
 - settings。
 - permission、approval、audit、recovery surfaces。
 
+より広い client baseline には、package-owned surface ではない host primitive も含まれます。Atelia project space、minimal project navigation、Atelia Secretary daemon への connection management、AEP semantic presentation renderer subset です。これらの primitive は resolver が built-in surfaces を mount し route するためのものであり、hidden product-area UI ではありません。
+
 built-in set は厳しい条件を満たさなければなりません。fresh install 後に Atelia が usable state に到達するため不可欠な surface、または resolver が保証しなければならない trust、permission、recovery、package safety decision を媒介する surface だけが built-in に属します。user が bundled official package を enable することで合理的に得られる surface は、built-in client core にしてはいけません。
 
-documents、browser、tasks、calendar、notes、media、GitHub、review、terminal、automations などの product area は、bundled official package または user-selected / registry-verified package として提供されます。install された後は native で中心的に感じられてよいですが、minimal client baseline には含めません。architectural point は、それらを package model で配布することであり、product から不在にすることではありません。
+documents、browser、tasks、calendar、notes、media、GitHub、review、terminal、automations などの product area は、`bundled official`、`verified third-party`、`unverified third-party` packages として提供されます。install された後は native で中心的に感じられてよいですが、minimal client baseline には含めません。architectural point は、それらを package model で配布することであり、product から不在にすることではありません。
 
 ## サーフェスライフサイクル
 
@@ -207,6 +209,7 @@ Presentation layer は、適用される場合の iOS / App Store compliance と
 - component が unavailable な場合に graceful fallback する。
 
 State と logic は context graph、Secretary、services、action brokers に属します。Presentation は validated snapshot を render し、declared action を propose します。
+
 baseline job / work visibility は generic host-baseline container で render できなければなりません。package-specific view はそれらの container を specialize できますが、baseline は domain-specific な agent / job component に依存してはいけません。
 
 ## コンポーネントカタログと特殊化

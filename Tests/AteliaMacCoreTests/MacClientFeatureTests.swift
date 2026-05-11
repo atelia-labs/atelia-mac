@@ -46,24 +46,29 @@ import Testing
     #expect(feature.title == "Settings")
 }
 
-@Test func featureIdentityUsesIdOnly() {
+@Test func valueEqualityIncludesTitleAndDeprecatedScope() {
     let original = MacClientFeature(id: "settings", title: "Settings")
     let renamed = MacClientFeature(id: "settings", title: "Preferences")
 
-    #expect(original == renamed)
-    #expect(Set([original, renamed]).count == 1)
+    #expect(original != renamed)
+    #expect(Set([original, renamed]).count == 2)
+    #expect(original.sameIdentity(as: renamed))
 }
 
 @available(*, deprecated, message: "Exercises deprecated compatibility API.")
 @Test func deprecatedInitialScopeCompatibilityPreservesReadWriteSemantics() {
     let baselineFeature = MacClientFeature(id: "settings", title: "Settings")
     var feature = MacClientFeature(id: "test", title: "Test", isInitialScope: false)
+    let futureFeature = MacClientFeature(id: "test", title: "Test", isInitialScope: false)
+    let initialFeature = MacClientFeature(id: "test", title: "Test", isInitialScope: true)
 
     #expect(baselineFeature.isInitialScope)
     #expect(!feature.isInitialScope)
+    #expect(futureFeature != initialFeature)
 
     feature.isInitialScope = true
     #expect(feature.isInitialScope)
+    #expect(feature == initialFeature)
 
     feature.isInitialScope = false
 

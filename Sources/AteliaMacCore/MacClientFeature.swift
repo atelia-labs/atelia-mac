@@ -29,12 +29,20 @@ public struct MacClientFeature: Sendable, Equatable, Hashable, Identifiable {
         self.storedInitialScope = isInitialScope
     }
 
+    public func sameIdentity(as other: MacClientFeature) -> Bool {
+        id == other.id
+    }
+
     public static func == (lhs: MacClientFeature, rhs: MacClientFeature) -> Bool {
         lhs.id == rhs.id
+            && lhs.title == rhs.title
+            && lhs.storedInitialScope == rhs.storedInitialScope
     }
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+        hasher.combine(title)
+        hasher.combine(storedInitialScope)
     }
 
     public static let initial: [MacClientFeature] = [
