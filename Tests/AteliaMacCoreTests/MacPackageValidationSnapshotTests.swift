@@ -53,25 +53,25 @@ private let packageValidationFixtureResponse = AteliaPackageValidationResponse(
     #expect(snapshot.manifest["id"] == .string("com.example.review.extension"))
 }
 
-/// Verifies legacy top-level fields still populate snapshot labels when provenance is absent.
-@Test func mapLegacyFlatProvenanceFieldsToSnapshotLabels() {
+/// Verifies top-level provenance fields are ignored when the provenance object is absent.
+@Test func ignoresFlatProvenanceFieldsOutsideProvenanceObject() {
     let snapshot = MacPackageValidationSnapshot(response: AteliaPackageValidationResponse(
         metadata: packageValidationFixtureResponse.metadata,
         manifest: AteliaPackageManifest(fields: [
-            "id": .string("com.example.legacy.extension"),
-            "source": .string("legacy-source"),
-            "manifest_digest": .string("sha256:legacy-manifest"),
-            "artifact_digest": .string("sha256:legacy-artifact"),
-            "permissions": .array([.string("legacy.permission"), .string("legacy.permission.two")])
+            "id": .string("com.example.flat.package"),
+            "source": .string("flat-source"),
+            "manifest_digest": .string("sha256:flat-manifest"),
+            "artifact_digest": .string("sha256:flat-artifact"),
+            "permissions": .array([.string("package.permission"), .string("package.permission.two")])
         ]),
         boundary: .official
     ))
 
-    #expect(snapshot.id == "com.example.legacy.extension")
-    #expect(snapshot.sourceLabel == "Source: legacy-source")
-    #expect(snapshot.manifestDigestLabel == "Manifest digest: sha256:legacy-manifest")
-    #expect(snapshot.artifactDigestLabel == "Artifact digest: sha256:legacy-artifact")
-    #expect(snapshot.permissionsLabel == "Permissions: legacy.permission, legacy.permission.two")
+    #expect(snapshot.id == "com.example.flat.package")
+    #expect(snapshot.sourceLabel == nil)
+    #expect(snapshot.manifestDigestLabel == nil)
+    #expect(snapshot.artifactDigestLabel == nil)
+    #expect(snapshot.permissionsLabel == "Permissions: package.permission, package.permission.two")
 }
 
 /// Verifies missing manifest identifiers use a unique fallback ID.

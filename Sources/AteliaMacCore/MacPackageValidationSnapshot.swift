@@ -13,11 +13,11 @@ public struct MacPackageValidationSnapshot: Sendable, Equatable, Identifiable {
     public let versionLabel: String?
     /// Human-readable trust boundary for the validated package.
     public let boundaryLabel: String
-    /// Source label from the validated manifest.
+    /// Source label from the validated manifest provenance.
     public let sourceLabel: String?
-    /// Manifest-digest label if the manifest carried one.
+    /// Manifest-digest label if the manifest provenance carried one.
     public let manifestDigestLabel: String?
-    /// Artifact-digest label if the manifest carried one.
+    /// Artifact-digest label if the manifest provenance carried one.
     public let artifactDigestLabel: String?
     /// Human-readable permissions summary if present.
     public let permissionsLabel: String?
@@ -86,12 +86,15 @@ public struct MacPackageValidationSnapshot: Sendable, Equatable, Identifiable {
         return "unknown-\(UUID().uuidString)"
     }
 
-    /// Reads a provenance field from nested manifest fields and falls back to top-level fields when missing.
+    /// Reads canonical provenance fields from `manifest.provenance` only.
+    ///
+    /// Secretary validation normalizes source and digest facts under the
+    /// provenance object before clients render inspection labels.
     private static func provenanceValue(from manifest: AteliaPackageManifest, key: String) -> AteliaPackageManifestValue? {
         if case .object(let provenance) = manifest["provenance"], let value = provenance[key] {
             return value
         }
-        return manifest[key]
+        return nil
     }
 
     /// Builds a comma-separated permission summary from a manifest permission list or map.
