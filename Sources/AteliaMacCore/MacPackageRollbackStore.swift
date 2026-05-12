@@ -48,7 +48,8 @@ public actor MacPackageRollbackStore {
         nextRollbackGeneration += 1
         let rollbackGeneration = nextRollbackGeneration
         let response = try await client.packageRollbackResponse(for: session, packageId: packageId)
-        guard rollbackGeneration > latestAppliedGeneration,
+        guard rollbackGeneration == nextRollbackGeneration,
+              rollbackGeneration > latestAppliedGeneration,
               rollbackGeneration > clearGeneration else {
             return
         }

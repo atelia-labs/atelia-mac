@@ -37,6 +37,37 @@ private actor PackageRollbackClientFixture: AteliaClient {
     }
 }
 
+private actor ControllablePackageRollbackClientFixture: AteliaClient {
+    private var continuations: [CheckedContinuation<AteliaPackageRollbackResponse, any Error>] = []
+    private var callCount = 0
+    private var requestedPackageIDList: [String] = []
+
+    func packageRollbackResponse(
+        for session: AteliaSession,
+        packageId: String
+    ) async throws -> AteliaPackageRollbackResponse {
+        _ = session
+        callCount += 1
+        requestedPackageIDList.append(packageId)
+
+        return try await withCheckedThrowingContinuation { continuation in
+            continuations.append(continuation)
+        }
+    }
+
+    func calls() -> Int {
+        callCount
+    }
+
+    func requestedPackageIds() -> [String] {
+        requestedPackageIDList
+    }
+
+    func respond(to index: Int, with result: Result<AteliaPackageRollbackResponse, any Error>) {
+        continuations[index].resume(with: result)
+    }
+}
+
 private let packageRollbackFixtureResponse = AteliaPackageRollbackResponse(
     metadata: AteliaProtocolMetadata(
         protocolVersion: "1.0.0",
@@ -98,6 +129,39 @@ private let packageRollbackFixtureResponse = AteliaPackageRollbackResponse(
     #expect(await client.calls() == 2)
     #expect(await store.snapshot == MacPackageRollbackSnapshot(record: packageRollbackFixtureResponse.record))
     #expect(await store.record == packageRollbackFixtureResponse.record)
+}
+
+@Test func olderRollbackCompletionDoesNotOverwriteNewerFailedRequest() async throws {
+    let client = ControllablePackageRollbackClientFixture()
+    let store = MacPackageRollbackStore(client: client, session: AteliaSession())
+
+    let olderRollback = Task {
+        try await store.rollback(packageId: "com.example.older")
+    }
+    while await client.calls() < 1 {
+        await Task.yield()
+    }
+
+    let newerRollback = Task {
+        try await store.rollback(packageId: "com.example.newer")
+    }
+    while await client.calls() < 2 {
+        await Task.yield()
+    }
+
+    await client.respond(to: 1, with: .failure(AteliaClientError.packageRollbackUnavailable))
+    await #expect(throws: AteliaClientError.packageRollbackUnavailable) {
+        try await newerRollback.value
+    }
+
+    await client.respond(to: 0, with: .success(packageRollbackFixtureResponse))
+    try await olderRollback.value
+
+    #expect(await client.calls() == 2)
+    #expect(await client.requestedPackageIds() == ["com.example.older", "com.example.newer"])
+    #expect(await store.metadata == nil)
+    #expect(await store.snapshot == nil)
+    #expect(await store.record == nil)
 }
 
 @Test func clearResetsDerivedRollbackSnapshot() async throws {
