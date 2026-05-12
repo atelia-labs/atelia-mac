@@ -458,6 +458,7 @@ private let updateRequest = AteliaPackageLifecycleRequest(
         installResponses: [.success(installResponse)],
         statusResponses: [.success(statusResponse)],
         listResponses: [.success(listResponse)],
+        blocklistApplyResponses: [.success(blocklistApplyResponse)],
         blocklistListResponses: [.success(blocklistListResponse)]
     )
     let store = MacPackageLifecycleStore(client: client, session: AteliaSession())
@@ -465,6 +466,7 @@ private let updateRequest = AteliaPackageLifecycleRequest(
     try await store.install(request: installRequest)
     try await store.status(packageId: "com.example.status")
     try await store.list()
+    try await store.applyBlocklist(request: AteliaPackageBlocklistRequest(entry: blocklistApplyResponse.entry))
     try await store.listBlocklist()
     await store.clear()
 
