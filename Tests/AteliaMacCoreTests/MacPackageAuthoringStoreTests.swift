@@ -13,14 +13,22 @@ private actor PackageAuthoringStoreClientFixture: AteliaClient {
     /// Queued registry-submission responses returned by the fixture.
     private var registrySubmissionResponses: [Result<AteliaPackageRegistrySubmissionResponse, any Error>]
 
+    /// Session observed for the latest authoring-flow request.
     private var lastAuthoringFlowSession: AteliaSession?
+    /// Session observed for the latest remix request.
     private var lastRemixSession: AteliaSession?
+    /// Session observed for the latest publication request.
     private var lastPublicationSession: AteliaSession?
+    /// Session observed for the latest registry-submission request.
     private var lastRegistrySession: AteliaSession?
 
+    /// Latest authoring-flow request observed by the fixture.
     private var lastAuthoringFlowRequest: AteliaPackageAuthoringFlowRequest?
+    /// Latest remix request observed by the fixture.
     private var lastRemixRequest: AteliaPackageRemixRequest?
+    /// Latest publication request observed by the fixture.
     private var lastPublicationRequest: AteliaPackagePublicationRequest?
+    /// Latest registry-submission request observed by the fixture.
     private var lastRegistrySubmissionRequest: AteliaPackageRegistrySubmissionRequest?
 
     /// Creates a fixture with response queues for each operation.
@@ -79,38 +87,47 @@ private actor PackageAuthoringStoreClientFixture: AteliaClient {
         )
     }
 
+    /// Returns the recorded authoring-flow session.
     func recordedAuthoringFlowSession() -> AteliaSession? {
         lastAuthoringFlowSession
     }
 
+    /// Returns the recorded remix session.
     func recordedRemixSession() -> AteliaSession? {
         lastRemixSession
     }
 
+    /// Returns the recorded publication session.
     func recordedPublicationSession() -> AteliaSession? {
         lastPublicationSession
     }
 
+    /// Returns the recorded registry-submission session.
     func recordedRegistrySubmissionSession() -> AteliaSession? {
         lastRegistrySession
     }
 
+    /// Returns the recorded authoring-flow request.
     func recordedAuthoringFlowRequest() -> AteliaPackageAuthoringFlowRequest? {
         lastAuthoringFlowRequest
     }
 
+    /// Returns the recorded remix request.
     func recordedRemixRequest() -> AteliaPackageRemixRequest? {
         lastRemixRequest
     }
 
+    /// Returns the recorded publication request.
     func recordedPublicationRequest() -> AteliaPackagePublicationRequest? {
         lastPublicationRequest
     }
 
+    /// Returns the recorded registry-submission request.
     func recordedRegistrySubmissionRequest() -> AteliaPackageRegistrySubmissionRequest? {
         lastRegistrySubmissionRequest
     }
 
+    /// Removes and returns the next queued fixture response.
     private func dequeue<T>(
         _ queue: inout [Result<T, any Error>],
         fallback: Error
@@ -122,16 +139,19 @@ private actor PackageAuthoringStoreClientFixture: AteliaClient {
     }
 }
 
+/// Decodes a JSON-like dictionary into a typed fixture value.
 private func decodableValue<T: Decodable>(_ object: [String: Any]) -> T {
     let data = try! JSONSerialization.data(withJSONObject: object, options: [])
     return try! JSONDecoder().decode(T.self, from: data)
 }
 
+/// Encodes a typed fixture value into a JSON-like dictionary.
 private func encodableObject<T: Encodable>(_ value: T) -> [String: Any] {
     let data = try! JSONEncoder().encode(value)
     return (try! JSONSerialization.jsonObject(with: data, options: [])) as! [String: Any]
 }
 
+/// Builds an authoring-flow response fixture.
 private func makeAuthoringFlowResponse(
     metadata: AteliaProtocolMetadata,
     flow: AteliaPackageAuthoringFlow
@@ -142,6 +162,7 @@ private func makeAuthoringFlowResponse(
     ])
 }
 
+/// Builds a remix response fixture.
 private func makeRemixResponse(
     metadata: AteliaProtocolMetadata,
     flow: AteliaPackageAuthoringFlow
@@ -152,6 +173,7 @@ private func makeRemixResponse(
     ])
 }
 
+/// Builds a publication response fixture.
 private func makePublicationResponse(
     metadata: AteliaProtocolMetadata,
     flow: AteliaPackageAuthoringFlow
@@ -162,6 +184,7 @@ private func makePublicationResponse(
     ])
 }
 
+/// Builds a registry-submission response fixture.
 private func makeRegistrySubmissionResponse(
     metadata: AteliaProtocolMetadata,
     packageId: String,
@@ -191,6 +214,7 @@ private func makeRegistrySubmissionResponse(
     return decodableValue(object)
 }
 
+/// Builds protocol metadata for a package-authoring capability.
 private func packageAuthoringMetadata(_ capability: String) -> AteliaProtocolMetadata {
     AteliaProtocolMetadata(
         protocolVersion: "1.0.0",
@@ -200,6 +224,7 @@ private func packageAuthoringMetadata(_ capability: String) -> AteliaProtocolMet
     )
 }
 
+/// Builds a GitHub source reference fixture.
 private func sourceReference() -> AteliaPackageGitHubSourceReference {
     AteliaPackageGitHubSourceReference(
         repository: "github.com/atelia-labs/atelia",
@@ -212,6 +237,7 @@ private func sourceReference() -> AteliaPackageGitHubSourceReference {
     )
 }
 
+/// Builds a package authoring flow fixture.
 private func authoringFlow(
     packageId: String = "com.example.review.extension",
     sourceClass: AteliaPackageSourceClass = .workspaceLocal,
