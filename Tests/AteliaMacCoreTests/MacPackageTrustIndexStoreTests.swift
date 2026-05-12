@@ -63,6 +63,7 @@ private let packageTrustIndexFixtureResponse = AteliaPackageTrustIndexResponse(
     #expect(await client.calls() == 1)
     #expect(await store.metadata == packageTrustIndexFixtureResponse.metadata)
     #expect(await store.rows == expectedRows)
+    #expect(await store.rowsRequiringAttention == [expectedRows[1]])
     #expect(await store.row(id: "com.example.alpha") == expectedRows[0])
     #expect(await store.row(id: "com.example.beta") == expectedRows[1])
     #expect(await store.row(id: "com.example.missing") == nil)
@@ -77,5 +78,6 @@ private let packageTrustIndexFixtureResponse = AteliaPackageTrustIndexResponse(
 
     #expect(await store.metadata == nil)
     #expect(await store.rows.isEmpty)
+    #expect(await store.rowsRequiringAttention.isEmpty)
     #expect(await store.row(id: "com.example.alpha") == nil)
 }

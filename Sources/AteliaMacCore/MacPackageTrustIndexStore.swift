@@ -25,6 +25,14 @@ public actor MacPackageTrustIndexStore {
         }
     }
 
+    /// Returns the package trust-index rows that require attention.
+    public var rowsRequiringAttention: [MacPackageTrustIndexRow] {
+        get async {
+            let packages = await store.packagesRequiringAttention
+            return packages.map(MacPackageTrustIndexRow.init(entry:))
+        }
+    }
+
     /// Returns the trust-index row for the given package identifier.
     public func row(id packageId: String) async -> MacPackageTrustIndexRow? {
         await store.package(id: packageId).map(MacPackageTrustIndexRow.init(entry:))
