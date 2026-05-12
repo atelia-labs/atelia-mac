@@ -21,6 +21,9 @@ import Testing
     #expect(row.versionLabel == "1.2.3")
     #expect(row.statusLabel == "Installed")
     #expect(row.reviewState == .available)
+    #expect(row.attentionState == .clear)
+    #expect(row.attentionReason == nil)
+    #expect(row.requiresAttention == false)
     #expect(row.boundaryLabel == "Third-party")
     #expect(row.sourceLabel == "https://github.com/example/review-package @ refs/tags/v1.2.3")
     #expect(row.blockReasonLabel == nil)
@@ -41,6 +44,9 @@ import Testing
 
     #expect(row.statusLabel == "Blocked")
     #expect(row.reviewState == .blocked)
+    #expect(row.attentionState == .attentionNeeded(reason: .blockReason(.policyViolation)))
+    #expect(row.attentionReason == .blockReason(.policyViolation))
+    #expect(row.requiresAttention == true)
     #expect(row.sourceLabel == "Source unknown")
     #expect(row.blockReasonLabel == "Policy violation")
 }
@@ -69,9 +75,24 @@ import Testing
 
     #expect(row.statusLabel == "Unknown status: quarantined_elsewhere")
     #expect(row.reviewState == .unknown)
+    #expect(row.attentionState == .attentionNeeded(reason: .blockReason(.unknown("future_reason"))))
+    #expect(row.attentionReason == .blockReason(.unknown("future_reason")))
+    #expect(row.requiresAttention == true)
     #expect(row.boundaryLabel == "Unknown boundary: partner_registry")
     #expect(row.sourceLabel == "Registry: registry.example/com.example.future | Source: future_source | https://github.com/example/future-package @ refs/heads/main | Manifest: packages/future/aep.yaml | Commit: abc1234")
     #expect(row.blockReasonLabel == "Unknown block reason: future_reason")
+}
+
+/// Verifies an unknown status without a block maps to the unknown-status attention reason.
+@Test func unknownStatusWithoutBlockUsesUnknownStatusAttentionReason() {
+    let row = MacPackageTrustIndexRow(entry: .init(
+        packageId: "com.example.future.status",
+        status: .unknown("quarantined_elsewhere")
+    ))
+
+    #expect(row.attentionState == .attentionNeeded(reason: .unknownStatus("quarantined_elsewhere")))
+    #expect(row.attentionReason == .unknownStatus("quarantined_elsewhere"))
+    #expect(row.requiresAttention == true)
 }
 
 /// Verifies a source ref without repository context is not dropped.
@@ -99,4 +120,8 @@ import Testing
 
     #expect(updating.reviewState == .inProgress)
     #expect(rollingBack.reviewState == .inProgress)
+    #expect(updating.attentionState == .attentionNeeded(reason: .updating))
+    #expect(rollingBack.attentionState == .attentionNeeded(reason: .rollbackInProgress))
+    #expect(updating.requiresAttention == true)
+    #expect(rollingBack.requiresAttention == true)
 }

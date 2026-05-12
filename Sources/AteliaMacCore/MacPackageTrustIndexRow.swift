@@ -24,6 +24,12 @@ public struct MacPackageTrustIndexRow: Sendable, Equatable, Identifiable {
     public let statusLabel: String
     /// Trust-index state used by Mac package review UI.
     public let reviewState: ReviewState
+    /// Typed package-attention state from AteliaKit.
+    public let attentionState: AteliaPackageTrustIndexEntry.AttentionState
+    /// Typed package-attention reason from AteliaKit, when present.
+    public let attentionReason: AteliaPackageTrustIndexEntry.AttentionReason?
+    /// Whether the package requires attention.
+    public let requiresAttention: Bool
     /// Human-readable trust boundary label.
     public let boundaryLabel: String?
     /// Human-readable package source label.
@@ -37,6 +43,9 @@ public struct MacPackageTrustIndexRow: Sendable, Equatable, Identifiable {
         self.versionLabel = entry.version
         self.statusLabel = Self.statusLabel(for: entry.status)
         self.reviewState = Self.reviewState(for: entry.status)
+        self.attentionState = entry.attentionState
+        self.attentionReason = entry.attentionReason
+        self.requiresAttention = entry.requiresAttention
         self.boundaryLabel = entry.boundary.map(Self.boundaryLabel)
         self.sourceLabel = Self.sourceLabel(for: entry.source)
         self.blockReasonLabel = entry.block.map { Self.blockReasonLabel(for: $0.reason) }
