@@ -2,6 +2,7 @@
 import Testing
 @testable import AteliaMacCore
 
+/// Test client that records package lifecycle requests and returns queued responses.
 private actor PackageLifecycleClientFixture: AteliaClient {
     private var installResponses: [Result<AteliaPackageLifecycleResponse, Error>]
     private var updateResponses: [Result<AteliaPackageLifecycleResponse, Error>]
@@ -24,6 +25,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
     private var listRequests: [AteliaPackageListRequest] = []
     private var blocklistApplyRequests: [AteliaPackageBlocklistRequest] = []
 
+    /// Creates a fixture with per-operation response queues.
     init(
         installResponses: [Result<AteliaPackageLifecycleResponse, Error>] = [],
         updateResponses: [Result<AteliaPackageLifecycleResponse, Error>] = [],
@@ -48,6 +50,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         self.blocklistListResponses = blocklistListResponses
     }
 
+    /// Records an install request and returns the next install response.
     func packageInstallResponse(
         for session: AteliaSession,
         request: AteliaPackageLifecycleRequest
@@ -57,6 +60,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         return try dequeue(&installResponses, fallback: AteliaClientError.packageInstallUnavailable)
     }
 
+    /// Records an update request and returns the next update response.
     func packageUpdateResponse(
         for session: AteliaSession,
         request: AteliaPackageLifecycleRequest
@@ -66,6 +70,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         return try dequeue(&updateResponses, fallback: AteliaClientError.packageUpdateUnavailable)
     }
 
+    /// Records a rollback package identifier and returns the next rollback response.
     func packageRollbackResponse(
         for session: AteliaSession,
         packageId: String
@@ -75,6 +80,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         return try dequeue(&rollbackResponses, fallback: AteliaClientError.packageRollbackUnavailable)
     }
 
+    /// Records a disable package identifier and returns the next disable response.
     func packageDisableResponse(
         for session: AteliaSession,
         packageId: String
@@ -84,6 +90,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         return try dequeue(&disableResponses, fallback: AteliaClientError.packageDisableUnavailable)
     }
 
+    /// Records an enable package identifier and returns the next enable response.
     func packageEnableResponse(
         for session: AteliaSession,
         packageId: String
@@ -93,6 +100,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         return try dequeue(&enableResponses, fallback: AteliaClientError.packageEnableUnavailable)
     }
 
+    /// Records a remove package identifier and returns the next remove response.
     func packageRemoveResponse(
         for session: AteliaSession,
         packageId: String
@@ -102,6 +110,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         return try dequeue(&removeResponses, fallback: AteliaClientError.packageRemoveUnavailable)
     }
 
+    /// Records a status package identifier and returns the next status response.
     func packageStatusResponse(
         for session: AteliaSession,
         packageId: String
@@ -111,6 +120,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         return try dequeue(&statusResponses, fallback: AteliaClientError.packageStatusUnavailable)
     }
 
+    /// Records a list request and returns the next list response.
     func packageListResponse(
         for session: AteliaSession,
         request: AteliaPackageListRequest
@@ -120,6 +130,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         return try dequeue(&listResponses, fallback: AteliaClientError.packageListUnavailable)
     }
 
+    /// Records a blocklist apply request and returns the next apply response.
     func packageBlocklistApplyResponse(
         for session: AteliaSession,
         request: AteliaPackageBlocklistRequest
@@ -129,6 +140,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         return try dequeue(&blocklistApplyResponses, fallback: AteliaClientError.packageBlocklistUnavailable)
     }
 
+    /// Returns the next blocklist list response.
     func packageBlocklistListResponse(
         for session: AteliaSession
     ) async throws -> AteliaPackageBlocklistListResponse {
@@ -136,42 +148,52 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         return try dequeue(&blocklistListResponses, fallback: AteliaClientError.packageBlocklistUnavailable)
     }
 
+    /// Returns install requests observed by the fixture.
     func installRequestHistory() -> [AteliaPackageLifecycleRequest] {
         installRequests
     }
 
+    /// Returns update requests observed by the fixture.
     func updateRequestHistory() -> [AteliaPackageLifecycleRequest] {
         updateRequests
     }
 
+    /// Returns rollback package identifiers observed by the fixture.
     func rollbackPackageIdHistory() -> [String] {
         rollbackPackageIds
     }
 
+    /// Returns disable package identifiers observed by the fixture.
     func disablePackageIdHistory() -> [String] {
         disablePackageIds
     }
 
+    /// Returns enable package identifiers observed by the fixture.
     func enablePackageIdHistory() -> [String] {
         enablePackageIds
     }
 
+    /// Returns remove package identifiers observed by the fixture.
     func removePackageIdHistory() -> [String] {
         removePackageIds
     }
 
+    /// Returns status package identifiers observed by the fixture.
     func statusPackageIdHistory() -> [String] {
         statusPackageIds
     }
 
+    /// Returns list requests observed by the fixture.
     func listRequestHistory() -> [AteliaPackageListRequest] {
         listRequests
     }
 
+    /// Returns blocklist apply requests observed by the fixture.
     func blocklistApplyRequestHistory() -> [AteliaPackageBlocklistRequest] {
         blocklistApplyRequests
     }
 
+    /// Removes and returns the next queued response or throws the fallback error.
     private func dequeue<T>(
         _ queue: inout [Result<T, Error>],
         fallback: Error
@@ -391,6 +413,7 @@ private let updateRequest = AteliaPackageLifecycleRequest(
     ])
 )
 
+/// Verifies lifecycle operations forward requests, return payloads, and update cached state.
 @Test func lifecycleStoreForwardsOperationsAndTracksDerivedState() async throws {
     let client = PackageLifecycleClientFixture(
         installResponses: [.success(installResponse)],
@@ -453,6 +476,7 @@ private let updateRequest = AteliaPackageLifecycleRequest(
     #expect(await store.blocklistEntries == blocklistListResponse.entries)
 }
 
+/// Verifies clear removes lifecycle, status, package, and blocklist cache state.
 @Test func clearResetsLifecycleDerivedState() async throws {
     let client = PackageLifecycleClientFixture(
         installResponses: [.success(installResponse)],
