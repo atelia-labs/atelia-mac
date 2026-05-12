@@ -78,23 +78,11 @@ public struct MacPackageValidationSnapshot: Sendable, Equatable, Identifiable {
             return id
         }
 
-        return Self.fallbackIdentifier(from: manifest)
+        return Self.fallbackIdentifier()
     }
 
-    /// Builds a stable fallback ID from manifest digests before using a random value.
-    private static func fallbackIdentifier(from manifest: AteliaPackageManifest) -> String {
-        if let manifestDigest = Self.stringValue(from: Self.provenanceValue(from: manifest, key: "manifest_digest"))?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-           !manifestDigest.isEmpty {
-            return "unknown-\(manifestDigest)"
-        }
-
-        if let artifactDigest = Self.stringValue(from: Self.provenanceValue(from: manifest, key: "artifact_digest"))?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-           !artifactDigest.isEmpty {
-            return "unknown-\(artifactDigest)"
-        }
-
+    /// Builds a unique fallback ID for manifests that do not declare a usable package ID.
+    private static func fallbackIdentifier() -> String {
         return "unknown-\(UUID().uuidString)"
     }
 

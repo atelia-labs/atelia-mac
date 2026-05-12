@@ -1,4 +1,5 @@
 import AteliaKit
+import Foundation
 import Testing
 @testable import AteliaMacCore
 
@@ -73,7 +74,7 @@ private let packageValidationFixtureResponse = AteliaPackageValidationResponse(
     #expect(snapshot.permissionsLabel == "Permissions: legacy.permission, legacy.permission.two")
 }
 
-/// Verifies missing manifest identifiers use a stable digest fallback ID.
+/// Verifies missing manifest identifiers use a unique fallback ID.
 @Test func mapMissingManifestIdToUnknown() {
     let snapshot = MacPackageValidationSnapshot(response: AteliaPackageValidationResponse(
         metadata: packageValidationFixtureResponse.metadata,
@@ -84,13 +85,14 @@ private let packageValidationFixtureResponse = AteliaPackageValidationResponse(
         boundary: .thirdParty
     ))
 
-    #expect(snapshot.id == "unknown-sha256:unidentified")
+    #expect(snapshot.id.hasPrefix("unknown-"))
+    #expect(UUID(uuidString: String(snapshot.id.dropFirst("unknown-".count))) != nil)
     #expect(snapshot.nameLabel == "Name: Unidentified package")
     #expect(snapshot.boundaryLabel == "Third-party")
     #expect(snapshot.versionLabel == nil)
 }
 
-/// Verifies blank manifest identifiers use the same stable fallback path.
+/// Verifies blank manifest identifiers use the same unique fallback path.
 @Test func mapBlankManifestIdToUnknown() {
     let snapshot = MacPackageValidationSnapshot(response: AteliaPackageValidationResponse(
         metadata: packageValidationFixtureResponse.metadata,
@@ -101,10 +103,11 @@ private let packageValidationFixtureResponse = AteliaPackageValidationResponse(
         boundary: .thirdParty
     ))
 
-    #expect(snapshot.id == "unknown-sha256:blank")
+    #expect(snapshot.id.hasPrefix("unknown-"))
+    #expect(UUID(uuidString: String(snapshot.id.dropFirst("unknown-".count))) != nil)
 }
 
-/// Verifies blank digest fields are ignored when building a fallback identifier.
+/// Verifies blank digest fields do not affect fallback identifiers.
 @Test func mapWhitespaceManifestDigestIgnoredForFallback() {
     let snapshot = MacPackageValidationSnapshot(response: AteliaPackageValidationResponse(
         metadata: packageValidationFixtureResponse.metadata,
@@ -116,7 +119,8 @@ private let packageValidationFixtureResponse = AteliaPackageValidationResponse(
         boundary: .thirdParty
     ))
 
-    #expect(snapshot.id == "unknown-sha256:from-artifact")
+    #expect(snapshot.id.hasPrefix("unknown-"))
+    #expect(UUID(uuidString: String(snapshot.id.dropFirst("unknown-".count))) != nil)
 }
 
 /// Verifies unknown trust boundaries remain visible in the snapshot.
