@@ -44,9 +44,15 @@ public struct MacProjectStatusSnapshot: Sendable, Equatable {
         private static func requesterLabel(for requester: AteliaActor) -> String {
             switch requester {
             case .user(_, let displayName):
-                return displayName ?? "User"
+                if let displayName, !displayName.isEmpty {
+                    return displayName
+                }
+                return "User"
             case .agent(_, let displayName):
-                return displayName ?? "Agent"
+                if let displayName, !displayName.isEmpty {
+                    return displayName
+                }
+                return "Agent"
             case .extension(let id):
                 return "Extension \(id)"
             case .system(let id):
