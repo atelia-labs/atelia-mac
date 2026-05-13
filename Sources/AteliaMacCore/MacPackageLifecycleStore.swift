@@ -44,6 +44,20 @@ public actor MacPackageLifecycleStore {
         }
     }
 
+    /// Returns the latest package inspect response, when one has completed.
+    public var inspectResponse: AteliaPackageInspectResponse? {
+        get async {
+            await store.inspectResponse
+        }
+    }
+
+    /// Returns the latest package inspect payload, when one has completed.
+    public var inspectPayload: AteliaPackageInspect? {
+        get async {
+            await store.inspectResponse?.inspect
+        }
+    }
+
     /// Returns the latest package list response, when one has completed.
     public var listResponse: AteliaPackageListResponse? {
         get async {
@@ -124,6 +138,12 @@ public actor MacPackageLifecycleStore {
     @discardableResult
     public func status(packageId: String) async throws -> AteliaPackageStatus {
         try await store.status(packageId: packageId)
+    }
+
+    /// Loads a package inspect payload and updates cached inspect state.
+    @discardableResult
+    public func inspect(packageId: String) async throws -> AteliaPackageInspect {
+        try await store.inspect(packageId: packageId)
     }
 
     /// Loads package status entries and updates cached package state.
