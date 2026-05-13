@@ -11,6 +11,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
     private var enableResponses: [Result<AteliaPackageLifecycleResponse, Error>]
     private var removeResponses: [Result<AteliaPackageLifecycleResponse, Error>]
     private var statusResponses: [Result<AteliaPackageStatusResponse, Error>]
+    private var inspectResponses: [Result<AteliaPackageInspectResponse, Error>]
     private var listResponses: [Result<AteliaPackageListResponse, Error>]
     private var blocklistApplyResponses: [Result<AteliaPackageBlocklistApplyResponse, Error>]
     private var blocklistListResponses: [Result<AteliaPackageBlocklistListResponse, Error>]
@@ -22,6 +23,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
     private var enablePackageIds: [String] = []
     private var removePackageIds: [String] = []
     private var statusPackageIds: [String] = []
+    private var inspectPackageIds: [String] = []
     private var listRequests: [AteliaPackageListRequest] = []
     private var blocklistApplyRequests: [AteliaPackageBlocklistRequest] = []
 
@@ -34,6 +36,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         enableResponses: [Result<AteliaPackageLifecycleResponse, Error>] = [],
         removeResponses: [Result<AteliaPackageLifecycleResponse, Error>] = [],
         statusResponses: [Result<AteliaPackageStatusResponse, Error>] = [],
+        inspectResponses: [Result<AteliaPackageInspectResponse, Error>] = [],
         listResponses: [Result<AteliaPackageListResponse, Error>] = [],
         blocklistApplyResponses: [Result<AteliaPackageBlocklistApplyResponse, Error>] = [],
         blocklistListResponses: [Result<AteliaPackageBlocklistListResponse, Error>] = []
@@ -45,6 +48,7 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         self.enableResponses = enableResponses
         self.removeResponses = removeResponses
         self.statusResponses = statusResponses
+        self.inspectResponses = inspectResponses
         self.listResponses = listResponses
         self.blocklistApplyResponses = blocklistApplyResponses
         self.blocklistListResponses = blocklistListResponses
@@ -120,6 +124,16 @@ private actor PackageLifecycleClientFixture: AteliaClient {
         return try dequeue(&statusResponses, fallback: AteliaClientError.packageStatusUnavailable)
     }
 
+    /// Records an inspect package identifier and returns the next inspect response.
+    func packageInspectResponse(
+        for session: AteliaSession,
+        packageId: String
+    ) async throws -> AteliaPackageInspectResponse {
+        _ = session
+        inspectPackageIds.append(packageId)
+        return try dequeue(&inspectResponses, fallback: AteliaClientError.packageInspectUnavailable)
+    }
+
     /// Records a list request and returns the next list response.
     func packageListResponse(
         for session: AteliaSession,
@@ -181,6 +195,11 @@ private actor PackageLifecycleClientFixture: AteliaClient {
     /// Returns status package identifiers observed by the fixture.
     func statusPackageIdHistory() -> [String] {
         statusPackageIds
+    }
+
+    /// Returns inspect package identifiers observed by the fixture.
+    func inspectPackageIdHistory() -> [String] {
+        inspectPackageIds
     }
 
     /// Returns list requests observed by the fixture.
@@ -399,6 +418,38 @@ private let blocklistListResponse = AteliaPackageBlocklistListResponse(
     ]
 )
 
+private let inspectResponse = AteliaPackageInspectResponse(
+    metadata: AteliaProtocolMetadata(
+        protocolVersion: "1.0.0",
+        daemonVersion: "0.2.0",
+        storageVersion: "0.2.0",
+        capabilities: ["package_inspect.v1"]
+    ),
+    packageId: "com.example.inspect",
+    package: AteliaPackageStatus(
+        packageId: "com.example.inspect",
+        record: AteliaPackageLifecycleRecord(
+            packageId: "com.example.inspect",
+            version: "2.2.0",
+            manifestDigest: "sha256:1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff",
+            artifactDigest: "sha256:2222333344445555666677778888999900001111aaaabbbbccccddddeeeeffff",
+            source: .init(source: "registry"),
+            boundary: .official,
+            status: .installed
+        )
+    ),
+    manifest: AteliaPackageManifest(fields: [
+        "id": .string("com.example.inspect"),
+        "schema": .string("atelia.extension.v1"),
+        "name": .string("Inspectable extension")
+    ]),
+    source: .init(
+        source: "registry",
+        repository: "https://github.com/example/inspect",
+        sourceRef: "refs/tags/v2.2.0"
+    )
+)
+
 private let installRequest = AteliaPackageLifecycleRequest(
     manifest: AteliaPackageManifest(fields: [
         "id": .string("com.example.install"),
@@ -423,6 +474,7 @@ private let updateRequest = AteliaPackageLifecycleRequest(
         enableResponses: [.success(enableResponse)],
         removeResponses: [.success(removeResponse)],
         statusResponses: [.success(statusResponse)],
+        inspectResponses: [.success(inspectResponse)],
         listResponses: [.success(listResponse)],
         blocklistApplyResponses: [.success(blocklistApplyResponse)],
         blocklistListResponses: [.success(blocklistListResponse)]
@@ -436,6 +488,7 @@ private let updateRequest = AteliaPackageLifecycleRequest(
     let enableRecord = try await store.enable(packageId: "com.example.enable")
     let removeRecord = try await store.remove(packageId: "com.example.remove")
     let status = try await store.status(packageId: "com.example.status")
+    let inspectPayload = try await store.inspect(packageId: "com.example.inspect")
     let packages = try await store.list()
     let appliedEntry = try await store.applyBlocklist(
         request: AteliaPackageBlocklistRequest(entry: blocklistApplyResponse.entry)
@@ -449,6 +502,7 @@ private let updateRequest = AteliaPackageLifecycleRequest(
     #expect(enableRecord == enableResponse.record)
     #expect(removeRecord == removeResponse.record)
     #expect(status == statusResponse.package)
+    #expect(inspectPayload == inspectResponse.inspect)
     #expect(packages == listResponse.packages)
     #expect(appliedEntry == blocklistApplyResponse.entry)
     #expect(blocklistEntries == blocklistListResponse.entries)
@@ -460,6 +514,7 @@ private let updateRequest = AteliaPackageLifecycleRequest(
     #expect(await client.enablePackageIdHistory() == ["com.example.enable"])
     #expect(await client.removePackageIdHistory() == ["com.example.remove"])
     #expect(await client.statusPackageIdHistory() == ["com.example.status"])
+    #expect(await client.inspectPackageIdHistory() == ["com.example.inspect"])
     #expect(await client.listRequestHistory() == [AteliaPackageListRequest()])
     #expect(await client.blocklistApplyRequestHistory() == [AteliaPackageBlocklistRequest(entry: blocklistApplyResponse.entry)])
 
@@ -468,6 +523,8 @@ private let updateRequest = AteliaPackageLifecycleRequest(
     #expect(await store.lifecycleResponse == removeResponse)
     #expect(await store.rollbackResponse == rollbackResponse)
     #expect(await store.statusResponse == statusResponse)
+    #expect(await store.inspectResponse == inspectResponse)
+    #expect(await store.inspectPayload == inspectResponse.inspect)
     #expect(await store.listResponse == listResponse)
     #expect(await store.blocklistApplyResponse == blocklistApplyResponse)
     #expect(await store.blocklistListResponse == blocklistListResponse)
@@ -481,6 +538,7 @@ private let updateRequest = AteliaPackageLifecycleRequest(
     let client = PackageLifecycleClientFixture(
         installResponses: [.success(installResponse)],
         statusResponses: [.success(statusResponse)],
+        inspectResponses: [.success(inspectResponse)],
         listResponses: [.success(listResponse)],
         blocklistApplyResponses: [.success(blocklistApplyResponse)],
         blocklistListResponses: [.success(blocklistListResponse)]
@@ -489,6 +547,7 @@ private let updateRequest = AteliaPackageLifecycleRequest(
 
     try await store.install(request: installRequest)
     try await store.status(packageId: "com.example.status")
+    try await store.inspect(packageId: "com.example.inspect")
     try await store.list()
     try await store.applyBlocklist(request: AteliaPackageBlocklistRequest(entry: blocklistApplyResponse.entry))
     try await store.listBlocklist()
@@ -499,6 +558,8 @@ private let updateRequest = AteliaPackageLifecycleRequest(
     #expect(await store.lifecycleResponse == nil)
     #expect(await store.rollbackResponse == nil)
     #expect(await store.statusResponse == nil)
+    #expect(await store.inspectResponse == nil)
+    #expect(await store.inspectPayload == nil)
     #expect(await store.listResponse == nil)
     #expect(await store.blocklistApplyResponse == nil)
     #expect(await store.blocklistListResponse == nil)
