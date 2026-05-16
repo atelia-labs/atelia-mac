@@ -27,6 +27,7 @@ struct ClientShellView: View {
             SidebarView(
                 activeSelection: sidebarProjection.activeSelection,
                 activeNavigationItemID: sidebarProjection.activeNavigationItemID,
+                activePrimaryCommandID: sidebarProjection.activePrimaryCommandID,
                 projectSectionHeader: sidebarProjection.projectSectionHeader,
                 projectAddCandidateLabel: sidebarProjection.projectAddCandidateLabel,
                 groups: sidebarProjection.workspaceGroups,
@@ -47,6 +48,7 @@ struct ClientShellView: View {
     var conversationView: ConversationView {
         ConversationView(
             conversation: AteliaConversation(fixture: state.conversation),
+            activeConversationTitle: sidebarProjection.activeConversationTitle,
             activeProjectTitle: sidebarProjection.activeProjectTitle,
             goal: state.goal,
             composer: state.composer,

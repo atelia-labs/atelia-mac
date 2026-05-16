@@ -2,8 +2,8 @@ import AteliaMacClientModels
 import SwiftUI
 
 enum SidebarAction {
-    case command(id: String, surface: MockSurfaceReference, action: MockActionReference)
-    case chatItem(id: String, projectID: String, resourceID: String, surface: MockSurfaceReference, action: MockActionReference)
+    case command(id: String, title: String, surface: MockSurfaceReference, action: MockActionReference)
+    case chatItem(id: String, projectID: String, resourceID: String, title: String, surface: MockSurfaceReference, action: MockActionReference)
     case projectSectionHeaderAction(ProjectSectionHeaderActionViewData)
     case dismissProjectAddCandidate
 }
@@ -11,6 +11,7 @@ enum SidebarAction {
 struct SidebarView: View {
     let activeSelection: ClientMockActiveSelection
     let activeNavigationItemID: String
+    let activePrimaryCommandID: String?
     let projectSectionHeader: ProjectSectionHeaderViewData
     let projectAddCandidateLabel: String?
     let groups: [WorkspaceGroup]
@@ -27,7 +28,7 @@ struct SidebarView: View {
             SidebarToolbar()
                 .frame(height: 48)
 
-            PrimaryNavigation(onAction: onAction)
+            PrimaryNavigation(activePrimaryCommandID: activePrimaryCommandID, onAction: onAction)
                 .padding(.top, 0)
                 .padding(.bottom, 8)
 
@@ -55,7 +56,7 @@ struct SidebarView: View {
                 .padding(.bottom, 20)
             }
 
-            SettingsRow(onAction: onAction)
+            SettingsRow(isSelected: activeNavigationItemID == "global:settings", onAction: onAction)
                 .padding(.horizontal, 14)
                 .frame(height: 54)
         }
@@ -221,20 +222,21 @@ private struct SidebarGlyph: View {
 }
 
 private struct PrimaryNavigation: View {
+    let activePrimaryCommandID: String?
     let onAction: (SidebarAction) -> Void
 
     private let commands = [
         SidebarCommand(
             id: "primary:new-thread",
-            icon: SidebarGlyph.Kind.compose,
             title: "新しいスレッド",
+            icon: SidebarGlyph.Kind.compose,
             surface: .projectConversation,
             action: .startNewThread
         ),
         SidebarCommand(
             id: "primary:global-search",
-            icon: .search,
             title: "検索",
+            icon: .search,
             surface: .globalSearch,
             action: .searchAllProjects
         )
@@ -243,7 +245,11 @@ private struct PrimaryNavigation: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(commands) { command in
-                SidebarCommandRow(command: command, onAction: onAction)
+                SidebarCommandRow(
+                    command: command,
+                    isSelected: activePrimaryCommandID == command.id,
+                    onAction: onAction
+                )
             }
         }
     }
@@ -317,20 +323,21 @@ private struct WorkspaceGroupView: View {
 
 private struct SidebarCommand: Identifiable {
     let id: String
-    let icon: SidebarGlyph.Kind
     let title: String
+    let icon: SidebarGlyph.Kind
     let surface: MockSurfaceReference
     let action: MockActionReference?
 }
 
 private struct SidebarCommandRow: View {
     let command: SidebarCommand
+    let isSelected: Bool
     let onAction: (SidebarAction) -> Void
 
     var body: some View {
         if let action = command.action {
             Button {
-                onAction(.command(id: command.id, surface: command.surface, action: action))
+                onAction(.command(id: command.id, title: command.title, surface: command.surface, action: action))
             } label: {
                 rowContent
             }
@@ -361,6 +368,12 @@ private struct SidebarCommandRow: View {
         .padding(.leading, 14)
         .padding(.trailing, 8)
         .padding(.horizontal, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(isSelected ? Color.clientSidebarSelected : .clear)
+        )
+        .padding(.leading, 6)
+        .padding(.trailing, 8)
     }
 }
 
@@ -376,6 +389,7 @@ private struct SidebarChatRow: View {
                     id: item.id,
                     projectID: item.projectID,
                     resourceID: item.resourceID,
+                    title: item.title,
                     surface: item.surface,
                     action: action
                 ))
@@ -614,17 +628,18 @@ private struct ProjectAddCandidateView: View {
 }
 
 private struct SettingsRow: View {
+    let isSelected: Bool
     let onAction: (SidebarAction) -> Void
 
     private let command = SidebarCommand(
         id: "global:settings",
-        icon: .gear,
         title: "設定",
+        icon: .gear,
         surface: .settings,
         action: .openProjectSettings
     )
 
     var body: some View {
-        SidebarCommandRow(command: command, onAction: onAction)
+        SidebarCommandRow(command: command, isSelected: isSelected, onAction: onAction)
     }
 }
