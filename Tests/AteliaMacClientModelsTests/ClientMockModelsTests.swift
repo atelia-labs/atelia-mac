@@ -299,6 +299,7 @@ import AteliaMacClientModels
     ])
     #expect(state.composer.contextReferences.map(\.kind) == [.file, .packageExtension])
     #expect(state.composer.attachmentPreview?.id == "attachment:standard-surfaces")
+    #expect(state.composer.attachmentPreview?.contextReferenceID == "context:file:standard-surfaces")
     #expect(state.composer.attachmentPreview?.title == "standard-surfaces.md")
 }
 

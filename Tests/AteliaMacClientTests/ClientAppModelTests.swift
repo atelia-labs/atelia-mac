@@ -528,6 +528,25 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientSidebarProjectionProjectMenuItemsUseActiveProjectGroup() throws {
+    var state = ClientMockState.ateliaReference
+    let activeProjectGroup = try #require(state.workspaceGroups.first { $0.id == "project:atelia-secretary" })
+    let activeProjectItem = try #require(activeProjectGroup.items.first)
+
+    state.activeSelection = ClientMockActiveSelection(
+        projectID: activeProjectItem.projectID,
+        surfacePackageID: activeProjectItem.surface.packageID,
+        surfaceID: activeProjectItem.surface.surfaceID,
+        resourceID: activeProjectItem.resourceID
+    )
+
+    let projection = ClientSidebarProjection(mockState: state)
+
+    #expect(projection.projectMenuItems.map(\.id) == (activeProjectGroup.items + activeProjectGroup.settings).map(\.id))
+    #expect(projection.projectMenuItems.map(\.id) != (state.workspaceGroups.first?.items.map(\.id) ?? []))
+}
+
+@MainActor
 @Test func clientAppModelKeepsExistingProjectionWhenReloadFails() async throws {
     let client = ProjectStatusClientFixture(error: ProjectStatusClientFixtureError.failed)
     let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")

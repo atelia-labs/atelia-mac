@@ -32,6 +32,7 @@ struct ComposerView: View {
         self.hasAttachment = hasAttachment || configuration.attachmentPreview != nil
         self.onIntent = onIntent
         _draftText = State(initialValue: text)
+        _selectedContexts = State(initialValue: configuration.visibleContextSelections)
     }
 
     private var isSendEnabled: Bool {
@@ -155,7 +156,11 @@ private struct ComposerBody: View {
     let onIntent: (ComposerIntent) -> Void
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
+        VStack(alignment: .leading, spacing: 8) {
+            if hasAttachment {
+                ComposerAttachmentPreviewView(attachment: attachmentPreview)
+            }
+
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "scope")
@@ -215,16 +220,9 @@ private struct ComposerBody: View {
                     }
                 }
             }
-            .padding(.top, 8)
-            .padding(.leading, 14)
-            .padding(.trailing, 14)
-
-            if hasAttachment {
-                ComposerAttachmentPreviewView(attachment: attachmentPreview)
-                    .padding(.top, 10)
-                    .padding(.leading, 13)
-            }
         }
+        .padding(.top, hasAttachment ? 10 : 8)
+        .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
@@ -382,10 +380,27 @@ private extension ComposerContextReference {
     }
 }
 
+extension ComposerConfiguration {
+    var visibleContextSelections: [ComposerContextSelection] {
+        var selections = contextReferences.map { ComposerContextSelection(id: $0.id, kind: $0.kind) }
+
+        if let attachmentPreview {
+            let attachmentContextID = attachmentPreview.contextReferenceID ?? attachmentPreview.id
+            let attachmentContextKind = contextReferences.first { $0.id == attachmentContextID }?.kind ?? ComposerContextKind.file
+            selections.upsert(ComposerContextSelection(id: attachmentContextID, kind: attachmentContextKind))
+        }
+
+        return selections
+    }
+}
+
 private extension Array where Element == ComposerContextSelection {
     mutating func upsert(_ selection: ComposerContextSelection) {
-        removeAll { $0.id == selection.id }
-        append(selection)
+        if let existingIndex = firstIndex(where: { $0.id == selection.id }) {
+            self[existingIndex] = selection
+        } else {
+            append(selection)
+        }
     }
 }
 

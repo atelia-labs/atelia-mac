@@ -307,6 +307,7 @@ public struct ClientMockState: Sendable {
             ],
             attachmentPreview: ComposerAttachmentPreview(
                 id: "attachment:standard-surfaces",
+                contextReferenceID: "context:file:standard-surfaces",
                 title: "standard-surfaces.md",
                 subtitle: "ファイル / 拡張機能の文脈を保持"
             )
@@ -839,11 +840,18 @@ public struct ComposerContextSelection: Equatable, Sendable {
 
 public struct ComposerAttachmentPreview: Identifiable, Equatable, Sendable {
     public var id: String
+    public var contextReferenceID: String?
     public var title: String
     public var subtitle: String
 
-    public init(id: String, title: String, subtitle: String) {
+    public init(
+        id: String,
+        contextReferenceID: String? = nil,
+        title: String,
+        subtitle: String
+    ) {
         self.id = id
+        self.contextReferenceID = contextReferenceID
         self.title = title
         self.subtitle = subtitle
     }

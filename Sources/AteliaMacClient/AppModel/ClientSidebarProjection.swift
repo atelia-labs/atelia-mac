@@ -150,10 +150,16 @@ struct ClientSidebarProjection {
     }
 
     var projectMenuItems: [ChatListItem] {
-        guard let projectGroup = workspaceGroups.first else {
+        if let activeProjectGroup = workspaceGroups.first(where: { $0.id == activeSelection.projectID }) {
+            return activeProjectGroup.items + activeProjectGroup.settings
+        }
+
+        guard workspaceGroups.count == 1, let onlyProjectGroup = workspaceGroups.first else {
+            assertionFailure("ClientSidebarProjection.projectMenuItems requires an active project group for multi-project data.")
             return []
         }
-        return projectGroup.items + projectGroup.settings
+
+        return onlyProjectGroup.items + onlyProjectGroup.settings
     }
 
     init(
