@@ -18,6 +18,8 @@ import AteliaMacClientModels
     #expect(navigationItems.allSatisfy { !$0.surface.surfaceID.isEmpty })
     #expect(navigationItems.allSatisfy { $0.action?.declaredByPackageID == $0.surface.packageID })
     #expect(navigationItems.allSatisfy { $0.action?.declaredBySurfaceID == $0.surface.surfaceID })
+    #expect(state.activeNavigationItemID == "nav:mac-atelia:project-conversation")
+    #expect(state.activeSurfaceID == MockSurfaceReference.projectConversation.id)
 }
 
 @Test func packageProvidedAreasAreOptionalBundledSurfaces() {
@@ -112,8 +114,18 @@ import AteliaMacClientModels
     )
     let goal = GoalStatus(title: "Goal", elapsed: "1s")
     let composer = ComposerConfiguration(
-        selectedModel: ComposerModelSelection(displayName: "Test model"),
-        permissionMode: ComposerPermissionMode(displayName: "Test access")
+        routeKey: "composer:test",
+        selectedModel: ComposerModelSelection(
+            id: "model:test",
+            routeKey: "models/test",
+            displayName: "Test model"
+        ),
+        permissionMode: ComposerPermissionMode(
+            id: "permission:test",
+            routeKey: "permissions/test",
+            permissionScope: "test.write",
+            displayName: "Test access"
+        )
     )
     let state = ClientMockState(
         activeConversationTitle: "Conversation",
@@ -143,7 +155,13 @@ import AteliaMacClientModels
 @Test func mockComposerConfigurationKeepsModelDisplayInState() {
     let state = ClientMockState.codexReference
 
+    #expect(state.composer.routeKey == "composer:project-conversation:follow-up")
+    #expect(state.composer.selectedModel.id == "model:atelia-balanced")
+    #expect(state.composer.selectedModel.routeKey == "models/atelia-balanced")
     #expect(state.composer.selectedModel.displayName == "5.5 中")
+    #expect(state.composer.permissionMode.id == "permission:full-access")
+    #expect(state.composer.permissionMode.routeKey == "permissions/full-access")
+    #expect(state.composer.permissionMode.permissionScope == "workspace.full-access")
     #expect(state.composer.permissionMode.displayName == "フルアクセス")
 }
 
@@ -206,6 +224,20 @@ import AteliaMacClientModels
     #expect(projectedItems.first { $0.leadingAffordance == .packageInstall }?.leadingPresentation == .addGlyph)
 }
 
+@Test func selectedNavigationIsDerivedFromActiveSelectionNotTitles() {
+    let state = ClientMockState.codexReference
+    let navigationItems = state.workspaceGroups.flatMap { $0.items + $0.settings } + state.recentChats
+    let selectedByItemID = navigationItems.filter { $0.id == state.activeNavigationItemID }
+    let selectedBySurfaceID = navigationItems.filter { $0.surface.id == state.activeSurfaceID }
+
+    #expect(selectedByItemID.map(\.title) == ["Secretary"])
+    #expect(selectedByItemID.count == 1)
+    #expect(selectedBySurfaceID.count == 3)
+    #expect(Set(selectedBySurfaceID.map(\.title)) == Set(["Secretary", "Project conversation"]))
+    #expect(state.activeNavigationItemID != state.activeConversationTitle)
+    #expect(state.activeSurfaceID != state.activeConversationTitle)
+}
+
 @Test func baselineItemsStayWithinDocumentedHostSurfaces() {
     let state = ClientMockState.ateliaReference
     let navigationItems = state.workspaceGroups.flatMap { $0.items + $0.settings } + state.recentChats
@@ -224,6 +256,18 @@ import AteliaMacClientModels
     ]))
 }
 
+@Test func primaryNavigationActionsUseRouteMetadata() {
+    let newThread = MockActionReference.startNewThread
+    let search = MockActionReference.searchAllProjects
+
+    #expect(MockSurfaceReference.newThread.id == "host.bootstrap.macos#new-thread")
+    #expect(MockSurfaceReference.globalSearch.id == "host.bootstrap.macos#global-search")
+    #expect(newThread.declaredBySurfaceID == MockSurfaceReference.newThread.surfaceID)
+    #expect(search.declaredBySurfaceID == MockSurfaceReference.globalSearch.surfaceID)
+    #expect(newThread.permissionScope == "project.conversation.write")
+    #expect(search.permissionScope == "workspace.search.read")
+}
+
 @Test func mockCopyDoesNotEmbedInternalModelRoutingNames() {
     let state = ClientMockState.ateliaReference
     let searchableText = [
@@ -235,7 +279,13 @@ import AteliaMacClientModels
         state.activity.title,
         state.activity.bullets.joined(separator: " "),
         state.goal.title,
+        state.composer.routeKey,
+        state.composer.selectedModel.id,
+        state.composer.selectedModel.routeKey,
         state.composer.selectedModel.displayName,
+        state.composer.permissionMode.id,
+        state.composer.permissionMode.routeKey,
+        state.composer.permissionMode.permissionScope,
         state.composer.permissionMode.displayName
     ].joined(separator: " ")
 

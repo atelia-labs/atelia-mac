@@ -2,11 +2,17 @@ import AteliaMacClientModels
 import SwiftUI
 
 struct SidebarView: View {
-    let activeTitle: String
+    let activeNavigationItemID: String
+    let activeSurfaceID: String
     let groups: [WorkspaceGroup]
     let globalItems: [ChatListItem]
 
     var body: some View {
+        let selection = SidebarSelection(
+            activeNavigationItemID: activeNavigationItemID,
+            activeSurfaceID: activeSurfaceID
+        )
+
         VStack(alignment: .leading, spacing: 0) {
             SidebarToolbar()
                 .frame(height: 48)
@@ -17,12 +23,12 @@ struct SidebarView: View {
 
             FadingSidebarScroll {
                 VStack(alignment: .leading, spacing: 14) {
-                    GlobalSecretaryView(items: globalItems)
+                    GlobalSecretaryView(items: globalItems, selection: selection)
 
                     SidebarSectionLabel(title: "プロジェクト")
 
                     ForEach(groups) { group in
-                        WorkspaceGroupView(group: group)
+                        WorkspaceGroupView(group: group, selection: selection)
                     }
                 }
                 .padding(.horizontal, 6)
@@ -34,10 +40,22 @@ struct SidebarView: View {
                 .padding(.horizontal, 14)
                 .frame(height: 54)
         }
-        .frame(width: CodexLayout.sidebarWidth)
+        .frame(width: AteliaClientLayout.sidebarWidth)
         .background {
             SidebarBackground()
         }
+    }
+}
+
+private struct SidebarSelection {
+    let activeNavigationItemID: String
+    let activeSurfaceID: String
+
+    func contains(_ item: ChatListItem) -> Bool {
+        if !activeNavigationItemID.isEmpty {
+            return item.id == activeNavigationItemID
+        }
+        return item.surface.id == activeSurfaceID
     }
 }
 
@@ -192,15 +210,27 @@ private struct SidebarGlyph: View {
 }
 
 private struct PrimaryNavigation: View {
-    private let rows = [
-        (SidebarGlyph.Kind.compose, "新しいスレッド"),
-        (.search, "検索")
+    private let commands = [
+        SidebarCommand(
+            id: "primary:new-thread",
+            icon: SidebarGlyph.Kind.compose,
+            title: "新しいスレッド",
+            surface: .newThread,
+            action: .startNewThread
+        ),
+        SidebarCommand(
+            id: "primary:global-search",
+            icon: .search,
+            title: "検索",
+            surface: .globalSearch,
+            action: .searchAllProjects
+        )
     ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(rows, id: \.1) { icon, title in
-                SidebarRow(icon: icon, title: title)
+            ForEach(commands) { command in
+                SidebarCommandRow(command: command)
             }
         }
     }
@@ -208,6 +238,7 @@ private struct PrimaryNavigation: View {
 
 private struct WorkspaceGroupView: View {
     let group: WorkspaceGroup
+    let selection: SidebarSelection
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -241,7 +272,7 @@ private struct WorkspaceGroupView: View {
             .padding(.trailing, 8)
 
             ForEach(group.items) { item in
-                SidebarChatRow(item: item)
+                SidebarChatRow(item: item, isSelected: selection.contains(item))
             }
 
             if !group.settings.isEmpty {
@@ -261,7 +292,7 @@ private struct WorkspaceGroupView: View {
                         .frame(height: 29, alignment: .leading)
 
                     ForEach(group.settings) { item in
-                        SidebarChatRow(item: item)
+                        SidebarChatRow(item: item, isSelected: selection.contains(item))
                     }
                 }
                 .padding(.top, 2)
@@ -270,16 +301,38 @@ private struct WorkspaceGroupView: View {
     }
 }
 
-private struct SidebarRow: View {
+private struct SidebarCommand: Identifiable {
+    let id: String
     let icon: SidebarGlyph.Kind
     let title: String
+    let surface: MockSurfaceReference
+    let action: MockActionReference?
+}
+
+private struct SidebarCommandRow: View {
+    let command: SidebarCommand
 
     var body: some View {
+        if command.action != nil {
+            Button {} label: {
+                rowContent
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(command.title)
+            .accessibilityHint("surface \(command.surface.id)")
+        } else {
+            rowContent
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(command.title)
+        }
+    }
+
+    private var rowContent: some View {
         HStack(spacing: 9) {
-            SidebarGlyph(icon)
+            SidebarGlyph(command.icon)
                 .offset(y: -1.25)
 
-            Text(title)
+            Text(command.title)
                 .font(.atelia(13.25))
                 .tracking(0.25)
                 .foregroundStyle(Color.clientSidebarText)
@@ -291,23 +344,38 @@ private struct SidebarRow: View {
         .padding(.leading, 14)
         .padding(.trailing, 8)
         .padding(.horizontal, 6)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(title)
-        .accessibilityAddTraits(.isButton)
     }
 }
 
 private struct SidebarChatRow: View {
     let item: ChatListItem
+    let isSelected: Bool
 
     var body: some View {
+        if item.action != nil {
+            Button {} label: {
+                rowContent
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityValue(isSelected ? "選択中" : "")
+            .accessibilityHint("surface \(item.surface.id)")
+        } else {
+            rowContent
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(accessibilityLabel)
+                .accessibilityValue(isSelected ? "選択中" : "")
+        }
+    }
+
+    private var rowContent: some View {
         HStack(spacing: 9) {
-            if let leadingStatus = item.leadingStatus {
-                Image(systemName: symbolName(for: leadingStatus))
-                    .font(.system(size: symbolSize(for: leadingStatus), weight: .regular))
+            if let leadingPresentation = item.leadingAffordance?.presentation {
+                Image(systemName: symbolName(for: leadingPresentation))
+                    .font(.system(size: symbolSize(for: leadingPresentation), weight: .regular))
                     .foregroundStyle(Color.clientSidebarIcon)
                     .overlay(alignment: .bottomTrailing) {
-                        if leadingStatus == .green {
+                        if leadingPresentation == .statusDot {
                             Circle()
                                 .fill(Color(hex: 0x34c759))
                                 .frame(width: 5, height: 5)
@@ -321,7 +389,7 @@ private struct SidebarChatRow: View {
             Text(item.title)
                 .font(.atelia(13.25))
                 .tracking(0.25)
-                .foregroundStyle(item.isSelected ? Color.clientText : Color.clientSidebarText)
+                .foregroundStyle(isSelected ? Color.clientText : Color.clientSidebarText)
                 .lineLimit(1)
 
             Spacer(minLength: 8)
@@ -339,14 +407,10 @@ private struct SidebarChatRow: View {
         .padding(.trailing, 8)
         .background(
             RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(item.isSelected ? Color.clientSidebarSelected : .clear)
+                .fill(isSelected ? Color.clientSidebarSelected : .clear)
         )
         .padding(.leading, 6)
         .padding(.trailing, 8)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityValue(item.isSelected ? "選択中" : "")
-        .accessibilityAddTraits(.isButton)
     }
 
     private var accessibilityLabel: String {
@@ -357,26 +421,26 @@ private struct SidebarChatRow: View {
         }
     }
 
-    private func symbolName(for status: ChatListItem.LeadingStatus) -> String {
-        switch status {
-        case .green:
+    private func symbolName(for presentation: LeadingAffordancePresentation) -> String {
+        switch presentation {
+        case .statusDot:
             "point.3.connected.trianglepath.dotted"
-        case .secretary:
+        case .assistantMark:
             "sparkles"
-        case .branch:
+        case .branchGlyph:
             "arrow.triangle.branch"
-        case .plus:
+        case .addGlyph:
             "plus.circle"
         }
     }
 
-    private func symbolSize(for status: ChatListItem.LeadingStatus) -> CGFloat {
-        switch status {
-        case .green:
+    private func symbolSize(for presentation: LeadingAffordancePresentation) -> CGFloat {
+        switch presentation {
+        case .statusDot:
             10
-        case .secretary, .branch:
+        case .assistantMark, .branchGlyph:
             12.25
-        case .plus:
+        case .addGlyph:
             12
         }
     }
@@ -384,6 +448,7 @@ private struct SidebarChatRow: View {
 
 private struct GlobalSecretaryView: View {
     let items: [ChatListItem]
+    let selection: SidebarSelection
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -411,7 +476,7 @@ private struct GlobalSecretaryView: View {
                 .frame(height: 25, alignment: .leading)
 
             ForEach(items) { item in
-                SidebarChatRow(item: item)
+                SidebarChatRow(item: item, isSelected: selection.contains(item))
             }
         }
         .padding(.top, 2)
@@ -419,20 +484,15 @@ private struct GlobalSecretaryView: View {
 }
 
 private struct SettingsRow: View {
+    private let command = SidebarCommand(
+        id: "global:settings",
+        icon: .gear,
+        title: "設定",
+        surface: .settings,
+        action: .openProjectSettings
+    )
+
     var body: some View {
-        HStack(spacing: 9) {
-            SidebarGlyph(.gear)
-
-            Text("設定")
-                .font(.atelia(13.25))
-                .tracking(0.25)
-                .foregroundStyle(Color.clientSidebarText)
-
-            Spacer()
-        }
-        .frame(height: 32)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("設定")
-        .accessibilityAddTraits(.isButton)
+        SidebarCommandRow(command: command)
     }
 }

@@ -12,6 +12,14 @@ public struct ClientMockState: Sendable {
     public var goal: GoalStatus
     public var composer: ComposerConfiguration
 
+    public var activeNavigationItemID: String {
+        navigationItems.first { activeSelection.matches($0) }?.id ?? ""
+    }
+
+    public var activeSurfaceID: String {
+        "\(activeSelection.surfacePackageID)#\(activeSelection.surfaceID)"
+    }
+
     public init(
         activeConversationTitle: String,
         activeProjectTitle: String,
@@ -227,10 +235,26 @@ public struct ClientMockState: Sendable {
             elapsed: "33h 39m 21s"
         ),
         composer: ComposerConfiguration(
-            selectedModel: ComposerModelSelection(displayName: "5.5 中"),
-            permissionMode: ComposerPermissionMode(displayName: "フルアクセス")
+            routeKey: "composer:project-conversation:follow-up",
+            selectedModel: ComposerModelSelection(
+                id: "model:atelia-balanced",
+                routeKey: "models/atelia-balanced",
+                displayName: "5.5 中"
+            ),
+            permissionMode: ComposerPermissionMode(
+                id: "permission:full-access",
+                routeKey: "permissions/full-access",
+                permissionScope: "workspace.full-access",
+                displayName: "フルアクセス"
+            )
         )
     )
+
+    public static let codexReference = ateliaReference
+
+    private var navigationItems: [ChatListItem] {
+        workspaceGroups.flatMap { $0.items + $0.settings } + recentChats
+    }
 }
 
 public struct ClientMockActiveSelection: Hashable, Sendable {
@@ -390,27 +414,48 @@ public struct MockActionReference: Hashable, Sendable {
 }
 
 public struct ComposerConfiguration: Equatable, Sendable {
+    public var routeKey: String
     public var selectedModel: ComposerModelSelection
     public var permissionMode: ComposerPermissionMode
 
-    public init(selectedModel: ComposerModelSelection, permissionMode: ComposerPermissionMode) {
+    public init(
+        routeKey: String = "",
+        selectedModel: ComposerModelSelection,
+        permissionMode: ComposerPermissionMode
+    ) {
+        self.routeKey = routeKey
         self.selectedModel = selectedModel
         self.permissionMode = permissionMode
     }
 }
 
 public struct ComposerModelSelection: Equatable, Sendable {
+    public var id: String
+    public var routeKey: String
     public var displayName: String
 
-    public init(displayName: String) {
+    public init(id: String = "", routeKey: String = "", displayName: String) {
+        self.id = id
+        self.routeKey = routeKey
         self.displayName = displayName
     }
 }
 
 public struct ComposerPermissionMode: Equatable, Sendable {
+    public var id: String
+    public var routeKey: String
+    public var permissionScope: String
     public var displayName: String
 
-    public init(displayName: String) {
+    public init(
+        id: String = "",
+        routeKey: String = "",
+        permissionScope: String = "",
+        displayName: String
+    ) {
+        self.id = id
+        self.routeKey = routeKey
+        self.permissionScope = permissionScope
         self.displayName = displayName
     }
 }
@@ -455,6 +500,24 @@ public extension MockSurfaceReference {
     static let settings = MockSurfaceReference(
         packageID: hostPackageID,
         surfaceID: "settings",
+        lifecycle: .mounted,
+        trust: .hostShippedBuiltIn,
+        criticality: .hostRequired,
+        schemaVersion: "surface.mock.v1"
+    )
+
+    static let newThread = MockSurfaceReference(
+        packageID: hostPackageID,
+        surfaceID: "new-thread",
+        lifecycle: .mounted,
+        trust: .hostShippedBuiltIn,
+        criticality: .hostRequired,
+        schemaVersion: "surface.mock.v1"
+    )
+
+    static let globalSearch = MockSurfaceReference(
+        packageID: hostPackageID,
+        surfaceID: "global-search",
         lifecycle: .mounted,
         trust: .hostShippedBuiltIn,
         criticality: .hostRequired,
@@ -569,6 +632,42 @@ public extension MockActionReference {
         confirmationRequired: false,
         redactionProjection: "project_default",
         auditEvent: "project_settings.opened"
+    )
+
+    static let startNewThread = MockActionReference(
+        actionID: "action.new-thread.start",
+        label: "Start new thread",
+        packageID: MockSurfaceReference.hostPackageID,
+        surfaceID: "new-thread",
+        actionOwnerComponentID: "project-shell",
+        capabilityCallerComponentID: "host-navigation",
+        callerCapabilityID: "host_broker.open_surface",
+        componentProfile: "PrimaryNavigationCommand.v1",
+        requiredPermissions: ["project.conversation.write"],
+        risk: .r1,
+        invokes: .broker(family: "surface", operation: "open"),
+        executionPath: .hostBroker,
+        confirmationRequired: false,
+        redactionProjection: "project_default",
+        auditEvent: "project_conversation.started"
+    )
+
+    static let searchAllProjects = MockActionReference(
+        actionID: "action.global-search.open",
+        label: "Search all projects",
+        packageID: MockSurfaceReference.hostPackageID,
+        surfaceID: "global-search",
+        actionOwnerComponentID: "global-search",
+        capabilityCallerComponentID: "host-navigation",
+        callerCapabilityID: "host_broker.open_surface",
+        componentProfile: "PrimaryNavigationCommand.v1",
+        requiredPermissions: ["workspace.search.read"],
+        risk: .r1,
+        invokes: .broker(family: "surface", operation: "open"),
+        executionPath: .hostBroker,
+        confirmationRequired: false,
+        redactionProjection: "workspace_default",
+        auditEvent: "global_search.opened"
     )
 
     static let openAutomationsPackage = MockActionReference(

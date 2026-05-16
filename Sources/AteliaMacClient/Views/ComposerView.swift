@@ -13,7 +13,7 @@ struct ComposerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ComposerBody(hasAttachment: hasAttachment, text: text)
+            ComposerBody(goal: goal, hasAttachment: hasAttachment, text: text)
 
             HStack(spacing: 13) {
                 ComposerExtensionControl()
@@ -29,7 +29,7 @@ struct ComposerView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("権限モード: \(configuration.permissionMode.displayName)")
-                .accessibilityHint("権限モードを選択")
+                .accessibilityHint(configuration.permissionMode.permissionScope)
                 .font(.atelia(13))
                 .foregroundStyle(Color.clientWarning)
 
@@ -49,7 +49,7 @@ struct ComposerView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("モデル: \(configuration.selectedModel.displayName)")
-                .accessibilityHint("使用するモデルを選択")
+                .accessibilityHint(configuration.selectedModel.routeKey)
                 .font(.atelia(14))
                 .foregroundStyle(Color.clientText)
 
@@ -72,8 +72,8 @@ struct ComposerView: View {
             .padding(.horizontal, 12)
         }
         .frame(
-            width: CodexLayout.contentWidth,
-            height: hasAttachment ? CodexLayout.composerAttachmentHeight : CodexLayout.composerMinHeight
+            width: AteliaClientLayout.contentWidth,
+            height: hasAttachment ? AteliaClientLayout.composerAttachmentHeight : AteliaClientLayout.composerMinHeight
         )
         .background {
             ComposerSurface()
@@ -96,18 +96,32 @@ private struct ComposerSurface: View {
 }
 
 private struct ComposerBody: View {
+    let goal: GoalStatus
     let hasAttachment: Bool
     let text: String
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            if text.isEmpty {
-                Text("フォローアップの変更を求める")
-                    .font(.atelia(14))
-                    .foregroundStyle(Color.clientSubtleText)
-                    .padding(.top, 13)
-                    .padding(.leading, 14)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "scope")
+                        .font(.system(size: 12, weight: .regular))
+
+                    Text(goal.title)
+                        .font(.atelia(12))
+                        .lineLimit(1)
+                }
+                .foregroundStyle(Color.clientMutedText)
+
+                if text.isEmpty {
+                    Text("@Global Secretary にフォローアップの変更を求める")
+                        .font(.atelia(14))
+                        .foregroundStyle(Color.clientSubtleText)
+                }
             }
+            .padding(.top, 12)
+            .padding(.leading, 14)
+            .padding(.trailing, 14)
 
             if hasAttachment {
                 RoundedRectangle(cornerRadius: 8)
