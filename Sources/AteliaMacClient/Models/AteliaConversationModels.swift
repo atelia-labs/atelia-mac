@@ -1,3 +1,5 @@
+import AteliaMacClientModels
+import CoreGraphics
 import Foundation
 
 struct AteliaConversation: Identifiable {
@@ -5,101 +7,13 @@ struct AteliaConversation: Identifiable {
     var title: String
     var turns: [AteliaConversationTurn]
 
-    static let mdpRenderingReference = AteliaConversation(
-        id: "conversation.mdp-rendering.reference",
-        title: "Secretary による Package MDP 更新",
-        turns: [
-            AteliaConversationTurn(
-                id: "turn.user.package-mdp-request",
-                actor: .user,
-                blocks: [
-                    .message(
-                        AteliaMessageBlock(
-                            id: "message.user.package-mdp-request",
-                            text: "Package MDP のレンダリングを Mac client 側で確認できるようにしたい。Secretary の実行、activity、tool output、change set、diff が会話上で意味を持って読める状態まで寄せて。",
-                            attachmentName: "AGENTS.md"
-                        )
-                    )
-                ]
-            ),
-            AteliaConversationTurn(
-                id: "turn.secretary.audit",
-                actor: .secretary,
-                blocks: [
-                    .activity(
-                        AteliaActivityBlock(
-                            id: "activity.secretary.audit",
-                            duration: "36s",
-                            status: "完了",
-                            title: "Package MDP の差分表示を確認しました。",
-                            bullets: [
-                                "semantic renderer 用の deterministic conversation model を追加",
-                                "Secretary activity と tool output を時系列で表示",
-                                "change set は collapsed default、展開時に scrollable diff を表示"
-                            ]
-                        )
-                    ),
-                    .toolOutput(
-                        AteliaToolOutputBlock(
-                            id: "tool.output.swift-build",
-                            toolName: "swift build",
-                            command: "swift build --product AteliaMacClient",
-                            status: .succeeded,
-                            output: [
-                                "Building for debugging...",
-                                "Build complete! (semantic mock verified)"
-                            ]
-                        )
-                    ),
-                    .changeSet(
-                        AteliaChangeSetBlock(
-                            id: "change-set.conversation-mdp-rendering",
-                            title: "Conversation MDP semantic mock",
-                            summary: "Mac client conversation surface now renders Atelia-shaped activity, tool output, change set, and diff semantics.",
-                            files: [
-                                AteliaChangedFile(
-                                    id: "changed-file.models",
-                                    path: "Sources/AteliaMacClient/Models/AteliaConversationModels.swift",
-                                    additions: 156,
-                                    deletions: 0,
-                                    hunks: [
-                                        AteliaDiffHunk(
-                                            id: "diff-hunk.models.schema",
-                                            header: "@@ new semantic conversation schema @@",
-                                            lines: [
-                                                .added(id: "diff-line.models.schema.001", "struct AteliaConversation: Identifiable {"),
-                                                .added(id: "diff-line.models.schema.002", "    var id: String"),
-                                                .added(id: "diff-line.models.schema.003", "    var turns: [AteliaConversationTurn]"),
-                                                .context(id: "diff-line.models.schema.004", "}")
-                                            ]
-                                        )
-                                    ]
-                                ),
-                                AteliaChangedFile(
-                                    id: "changed-file.view",
-                                    path: "Sources/AteliaMacClient/Views/ConversationView.swift",
-                                    additions: 244,
-                                    deletions: 0,
-                                    hunks: [
-                                        AteliaDiffHunk(
-                                            id: "diff-hunk.view.renderer",
-                                            header: "@@ render activity, tool output, and change set @@",
-                                            lines: [
-                                                .added(id: "diff-line.view.renderer.001", "AteliaActivityView(activity: activity)"),
-                                                .added(id: "diff-line.view.renderer.002", "AteliaToolOutputView(toolOutput: toolOutput)"),
-                                                .added(id: "diff-line.view.renderer.003", "AteliaChangeSetView(changeSet: changeSet)"),
-                                                .context(id: "diff-line.view.renderer.004", "ComposerView(goal: goal)")
-                                            ]
-                                        )
-                                    ]
-                                )
-                            ]
-                        )
-                    )
-                ]
-            )
-        ]
-    )
+    init(fixture: ClientConversationFixture) {
+        id = fixture.id
+        title = fixture.title
+        turns = fixture.turns.map(AteliaConversationTurn.init(fixture:))
+    }
+
+    static let mdpRenderingReference = AteliaConversation(fixture: .mdpRenderingReference)
 }
 
 struct AteliaConversationTurn: Identifiable {
@@ -111,6 +25,23 @@ struct AteliaConversationTurn: Identifiable {
     var id: String
     var actor: Actor
     var blocks: [AteliaConversationBlock]
+
+    init(id: String, actor: Actor, blocks: [AteliaConversationBlock]) {
+        self.id = id
+        self.actor = actor
+        self.blocks = blocks
+    }
+
+    init(fixture: ClientConversationTurnFixture) {
+        id = fixture.id
+        switch fixture.actor {
+        case .user:
+            actor = .user
+        case .secretary:
+            actor = .secretary
+        }
+        blocks = fixture.blocks.map(AteliaConversationBlock.init(fixture:))
+    }
 }
 
 enum AteliaConversationBlock: Identifiable {
@@ -131,6 +62,25 @@ enum AteliaConversationBlock: Identifiable {
             block.id
         }
     }
+
+    init(fixture: ClientConversationBlockFixture) {
+        switch fixture {
+        case .message(let message):
+            self = .message(
+                AteliaMessageBlock(
+                    id: message.id,
+                    text: message.text,
+                    attachmentName: message.attachmentName
+                )
+            )
+        case .activity(let activity):
+            self = .activity(AteliaActivityBlock(fixture: activity))
+        case .toolOutput(let toolOutput):
+            self = .toolOutput(AteliaToolOutputBlock(fixture: toolOutput))
+        case .changeSet(let changeSet):
+            self = .changeSet(AteliaChangeSetBlock(fixture: changeSet))
+        }
+    }
 }
 
 struct AteliaMessageBlock: Identifiable {
@@ -145,6 +95,24 @@ struct AteliaActivityBlock: Identifiable {
     var status: String
     var title: String
     var bullets: [String]
+
+    init(id: String, duration: String, status: String, title: String, bullets: [String]) {
+        self.id = id
+        self.duration = duration
+        self.status = status
+        self.title = title
+        self.bullets = bullets
+    }
+
+    init(fixture: ClientConversationActivityFixture) {
+        self.init(
+            id: fixture.id,
+            duration: fixture.duration,
+            status: fixture.status,
+            title: fixture.title,
+            bullets: fixture.bullets
+        )
+    }
 }
 
 struct AteliaToolOutputBlock: Identifiable {
@@ -159,13 +127,65 @@ struct AteliaToolOutputBlock: Identifiable {
     var command: String
     var status: Status
     var output: [String]
+
+    init(id: String, toolName: String, command: String, status: Status, output: [String]) {
+        self.id = id
+        self.toolName = toolName
+        self.command = command
+        self.status = status
+        self.output = output
+    }
+
+    init(fixture: ClientConversationToolOutputFixture) {
+        let mappedStatus: Status
+        switch fixture.status {
+        case .succeeded:
+            mappedStatus = .succeeded
+        case .failed:
+            mappedStatus = .failed
+        case .running:
+            mappedStatus = .running
+        }
+        self.init(
+            id: fixture.id,
+            toolName: fixture.toolName,
+            command: fixture.command,
+            status: mappedStatus,
+            output: fixture.output
+        )
+    }
 }
 
 struct AteliaChangeSetBlock: Identifiable {
     var id: String
     var title: String
     var summary: String
+    var isExpandedByDefault: Bool
     var files: [AteliaChangedFile]
+
+    init(
+        id: String,
+        title: String,
+        summary: String,
+        isExpandedByDefault: Bool = false,
+        files: [AteliaChangedFile]
+    ) {
+        self.id = id
+        self.title = title
+        self.summary = summary
+        self.isExpandedByDefault = isExpandedByDefault
+        self.files = files
+    }
+
+    init(fixture: ClientConversationChangeSetFixture) {
+        self.init(
+            id: fixture.id,
+            title: fixture.title,
+            summary: fixture.summary,
+            isExpandedByDefault: fixture.isExpandedByDefault,
+            files: fixture.files.map(AteliaChangedFile.init(fixture:))
+        )
+    }
 
     var additions: Int {
         files.reduce(0) { $0 + $1.additions }
@@ -182,12 +202,44 @@ struct AteliaChangedFile: Identifiable {
     var additions: Int
     var deletions: Int
     var hunks: [AteliaDiffHunk]
+
+    init(id: String, path: String, additions: Int, deletions: Int, hunks: [AteliaDiffHunk]) {
+        self.id = id
+        self.path = path
+        self.additions = additions
+        self.deletions = deletions
+        self.hunks = hunks
+    }
+
+    init(fixture: ClientConversationChangedFileFixture) {
+        self.init(
+            id: fixture.id,
+            path: fixture.path,
+            additions: fixture.additions,
+            deletions: fixture.deletions,
+            hunks: fixture.hunks.map(AteliaDiffHunk.init(fixture:))
+        )
+    }
 }
 
 struct AteliaDiffHunk: Identifiable {
     var id: String
     var header: String
     var lines: [AteliaDiffLine]
+
+    init(id: String, header: String, lines: [AteliaDiffLine]) {
+        self.id = id
+        self.header = header
+        self.lines = lines
+    }
+
+    init(fixture: ClientConversationDiffHunkFixture) {
+        self.init(
+            id: fixture.id,
+            header: fixture.header,
+            lines: fixture.lines.map(AteliaDiffLine.init(fixture:))
+        )
+    }
 }
 
 struct AteliaDiffLine: Identifiable {
@@ -230,5 +282,47 @@ struct AteliaDiffLine: Identifiable {
         }
 
         return String(text.dropFirst())
+    }
+
+    init(id: String, kind: Kind, text: String) {
+        self.id = id
+        self.kind = kind
+        self.text = text
+    }
+
+    init(fixture: ClientConversationDiffLineFixture) {
+        let mappedKind: Kind
+        switch fixture.kind {
+        case .added:
+            mappedKind = .added
+        case .removed:
+            mappedKind = .removed
+        case .context:
+            mappedKind = .context
+        }
+        self.init(id: fixture.id, kind: mappedKind, text: fixture.text)
+    }
+}
+
+struct AteliaDiffScrollModel {
+    static let minimumContentWidth: CGFloat = 960
+    static let leadingChromeWidth: CGFloat = 44
+    static let estimatedCharacterWidth: CGFloat = 7
+
+    var files: [AteliaChangedFile]
+
+    var allowsHorizontalScrolling: Bool { true }
+    var allowsVerticalScrolling: Bool { true }
+    var wrapsLines: Bool { false }
+
+    var contentWidth: CGFloat {
+        let longestLine = files
+            .flatMap(\.hunks)
+            .flatMap(\.lines)
+            .map(\.text.count)
+            .max() ?? 0
+
+        let estimatedWidth = CGFloat(longestLine) * Self.estimatedCharacterWidth + Self.leadingChromeWidth
+        return max(Self.minimumContentWidth, estimatedWidth)
     }
 }

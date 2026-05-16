@@ -1,6 +1,37 @@
 import AppKit
+import AteliaMacClientModels
 import Testing
 @testable import AteliaMacClient
+
+@Test func clientMockStateConversationMapsIntoRenderableConversation() {
+    var state = ClientMockState.ateliaReference
+    state.conversation = ClientConversationFixture(
+        id: "conversation.test.real-data-ready",
+        title: "Real data conversation",
+        turns: [
+            ClientConversationTurnFixture(
+                id: "turn.test.user",
+                actor: .user,
+                blocks: [
+                    .message(
+                        ChatMessage(
+                            id: "message.test.user",
+                            text: "Use the state fixture, not the static app reference.",
+                            attachmentName: nil
+                        )
+                    )
+                ]
+            )
+        ]
+    )
+
+    let conversation = AteliaConversation(fixture: state.conversation)
+
+    #expect(conversation.id == "conversation.test.real-data-ready")
+    #expect(conversation.title == "Real data conversation")
+    #expect(conversation.turns.map(\.id) == ["turn.test.user"])
+    #expect(conversation.turns.first?.blocks.map(\.id) == ["message.test.user"])
+}
 
 @Test func conversationReferenceFixtureUsesStableIdsAndSemanticStatus() {
     let conversation = AteliaConversation.mdpRenderingReference
@@ -26,6 +57,47 @@ import Testing
         return
     }
     #expect(activity.status == "完了")
+}
+
+@Test func mappedReferenceChangeSetsDefaultToCollapsed() {
+    let conversation = AteliaConversation(fixture: ClientMockState.ateliaReference.conversation)
+    let changeSets = conversation.turns
+        .flatMap(\.blocks)
+        .compactMap { block -> AteliaChangeSetBlock? in
+            guard case .changeSet(let changeSet) = block else {
+                return nil
+            }
+            return changeSet
+        }
+
+    #expect(!changeSets.isEmpty)
+    #expect(changeSets.allSatisfy { !$0.isExpandedByDefault })
+}
+
+@Test func diffScrollModelKeepsLongLinesOnHorizontalAxis() {
+    let longLine = String(repeating: "let value = packageRenderingReference.", count: 40)
+    let file = AteliaChangedFile(
+        id: "file.long-line",
+        path: "Sources/LongLine.swift",
+        additions: 1,
+        deletions: 0,
+        hunks: [
+            AteliaDiffHunk(
+                id: "hunk.long-line",
+                header: "@@ long line @@",
+                lines: [
+                    .added(id: "line.long-line", longLine)
+                ]
+            )
+        ]
+    )
+
+    let model = AteliaDiffScrollModel(files: [file])
+
+    #expect(model.allowsHorizontalScrolling)
+    #expect(model.allowsVerticalScrolling)
+    #expect(!model.wrapsLines)
+    #expect(model.contentWidth > AteliaDiffScrollModel.minimumContentWidth)
 }
 
 @Test func conversationBlockIdsForwardWrappedModelIds() {

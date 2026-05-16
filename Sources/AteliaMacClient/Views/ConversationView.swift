@@ -247,7 +247,12 @@ private struct AteliaToolOutputView: View {
 
 private struct AteliaChangeSetView: View {
     let changeSet: AteliaChangeSetBlock
-    @State private var isExpanded = false
+    @State private var isExpanded: Bool
+
+    init(changeSet: AteliaChangeSetBlock) {
+        self.changeSet = changeSet
+        _isExpanded = State(initialValue: changeSet.isExpandedByDefault)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -287,17 +292,7 @@ private struct AteliaChangeSetView: View {
             .buttonStyle(.plain)
 
             if isExpanded {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        ForEach(changeSet.files) { file in
-                            AteliaDiffFileView(file: file)
-                        }
-                    }
-                    .padding(12)
-                }
-                .frame(maxHeight: 312)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                AteliaDiffCodeScroller(files: changeSet.files)
             }
         }
         .padding(12)
@@ -309,6 +304,29 @@ private struct AteliaChangeSetView: View {
                 .stroke(Color.clientLine, lineWidth: 1)
         }
         .padding(.leading, 33)
+    }
+}
+
+private struct AteliaDiffCodeScroller: View {
+    let files: [AteliaChangedFile]
+
+    private var scrollModel: AteliaDiffScrollModel {
+        AteliaDiffScrollModel(files: files)
+    }
+
+    var body: some View {
+        ClientCodeScrollView(contentWidth: scrollModel.contentWidth) {
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(files) { file in
+                    AteliaDiffFileView(file: file)
+                }
+            }
+            .padding(12)
+            .frame(width: scrollModel.contentWidth, alignment: .leading)
+        }
+        .frame(height: 312)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -338,6 +356,7 @@ private struct AteliaDiffFileView: View {
                     .font(.ateliaLatin(12, weight: .medium))
                     .foregroundStyle(Color.clientStrongText)
                     .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
 
                 Spacer()
 
@@ -390,6 +409,8 @@ private struct AteliaDiffLineView: View {
                 .foregroundStyle(markerColor)
 
             Text(line.text)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .foregroundStyle(Color.clientText)
         }
