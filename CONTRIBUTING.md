@@ -7,6 +7,5 @@ Atelia Mac is the native macOS surface for operating Atelia.
 - Keep changes focused.
 - Coordinate shared logic changes through `atelia-kit`.
 - Run `swift test` when available.
-- Include screenshots or interaction notes for UI changes once the app target
-  exists.
-
+- Include screenshots or interaction notes for visible `AteliaMacClient` UI
+  changes.

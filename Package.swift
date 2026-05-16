@@ -34,6 +34,10 @@ let package = Package(
         .testTarget(
             name: "AteliaMacCoreTests",
             dependencies: ["AteliaMacCore"]
+        ),
+        .testTarget(
+            name: "AteliaMacClientTests",
+            dependencies: ["AteliaMacClient"]
         )
     ]
 )

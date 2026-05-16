@@ -1,24 +1,20 @@
 import AppKit
 import SwiftUI
 
-struct CodexAttributedText: NSViewRepresentable {
+struct AteliaClientAttributedText: NSViewRepresentable {
     var text: String
     var maxWidth: CGFloat
     var fontName: String? = nil
     var fontSize: CGFloat = 14
     var lineHeight: CGFloat = 24
-    var color = NSColor(
-        calibratedRed: CGFloat(51) / 255,
-        green: CGFloat(51) / 255,
-        blue: CGFloat(51) / 255,
-        alpha: 1
-    )
+    var color = NSColor.clientText
+    var isSelectable = true
 
     func makeNSView(context: Context) -> NSTextField {
         let textField = NSTextField(labelWithString: "")
         textField.isBordered = false
         textField.isEditable = false
-        textField.isSelectable = false
+        textField.isSelectable = isSelectable
         textField.drawsBackground = false
         textField.lineBreakMode = .byWordWrapping
         textField.maximumNumberOfLines = 0
@@ -29,10 +25,11 @@ struct CodexAttributedText: NSViewRepresentable {
 
     func updateNSView(_ textField: NSTextField, context: Context) {
         textField.preferredMaxLayoutWidth = maxWidth
+        textField.isSelectable = isSelectable
         textField.attributedStringValue = attributedString()
     }
 
-    private func attributedString() -> NSAttributedString {
+    func attributedString() -> NSAttributedString {
         let paragraph = NSMutableParagraphStyle()
         paragraph.minimumLineHeight = lineHeight
         paragraph.maximumLineHeight = lineHeight

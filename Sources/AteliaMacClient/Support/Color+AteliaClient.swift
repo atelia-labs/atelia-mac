@@ -14,10 +14,6 @@ extension Font {
     static func atelia(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
         return Font(AteliaClientFont.nsFont(size: size, weight: weight))
     }
-
-    static func ateliaLatin(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        return Font(AteliaClientFont.nsFont(size: size, weight: weight))
-    }
 }
 
 enum AteliaClientFont {
@@ -56,7 +52,14 @@ enum AteliaClientFont {
     }
 }
 
-enum CodexLayout {
+enum AteliaClientDesign {
+    // Client support tokens are intentionally light-only in this PR. They are
+    // Atelia client tokens derived from the Codex App reference mock, not
+    // permanent Codex product semantics.
+    static let supportsLightColorSchemeOnly = true
+}
+
+enum AteliaClientLayout {
     static let sidebarWidth: CGFloat = 270
     static let contentWidth: CGFloat = 736
     static let userBubbleMaxWidth: CGFloat = 566
@@ -68,8 +71,23 @@ enum CodexLayout {
     static let composerFooterHeight: CGFloat = 190
 }
 
+enum AteliaClientColor {
+    static let text = nsColor(hex: 0x333333)
+
+    private static func nsColor(hex: UInt32, opacity: CGFloat = 1) -> NSColor {
+        let red = CGFloat((hex >> 16) & 0xff) / 255
+        let green = CGFloat((hex >> 8) & 0xff) / 255
+        let blue = CGFloat(hex & 0xff) / 255
+        return NSColor(srgbRed: red, green: green, blue: blue, alpha: opacity)
+    }
+}
+
+extension NSColor {
+    static let clientText = AteliaClientColor.text
+}
+
 extension Color {
-    static let clientText = Color(hex: 0x333333)
+    static let clientText = Color(nsColor: .clientText)
     static let clientStrongText = Color(hex: 0x222222)
     static let clientMutedText = Color(hex: 0x8a8a8a)
     static let clientSubtleText = Color(hex: 0xacacac)
