@@ -72,7 +72,7 @@ gradient、遊びの強い illustration は避けます。
 
 ## Composer
 
-- Composer width は 736 pt。通常 height は 112 pt、attachment preview ありでは
+- Composer width は 736 pt。通常 height は 112 pt、attachment preview がある場合は
   193 pt です。Reserved footer stack は 190 pt です。
 - Composer corner radius は 18 pt。Conversation 下部に dock された唯一の input
   surface として扱い、別 card の中に nest しないでください。
