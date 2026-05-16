@@ -1,5 +1,6 @@
 import AteliaKit
 import AteliaMacClientModels
+import Foundation
 import Testing
 @testable import AteliaMacClient
 @testable import AteliaMacCore
@@ -38,6 +39,24 @@ private actor ProjectStatusClientFixture: AteliaClient {
 
 private enum ProjectStatusClientFixtureError: Error {
     case failed
+}
+
+@MainActor
+private final class ProjectFolderSelectionClientFixture: ProjectFolderSelectionProviding {
+    var existingFolderURL: URL?
+    var newFolderURL: URL?
+    private(set) var existingFolderCallCount = 0
+    private(set) var newFolderCallCount = 0
+
+    func chooseExistingFolder() -> URL? {
+        existingFolderCallCount += 1
+        return existingFolderURL
+    }
+
+    func createNewFolder() -> URL? {
+        newFolderCallCount += 1
+        return newFolderURL
+    }
 }
 
 private let clientAppModelProjectStatusFixture = AteliaProjectStatus(
@@ -248,4 +267,57 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(model.projectStatusSnapshot == nil)
     #expect(model.sidebarProjection.activeProjectTitle == "プロジェクト未読込")
     #expect(model.lastErrorMessage != nil)
+}
+
+@MainActor
+@Test func clientAppModelRecordsExistingFolderSelectionAsPendingProjectAddSelection() {
+    let picker = ProjectFolderSelectionClientFixture()
+    picker.existingFolderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit")
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, projectFolderSelection: picker)
+
+    model.handleProjectSectionHeaderAction(ProjectSectionHeaderViewData.projectSectionHeader.actions[1])
+
+    #expect(picker.existingFolderCallCount == 1)
+    #expect(picker.newFolderCallCount == 0)
+    #expect(model.pendingProjectAddSelection?.source == .existingFolder)
+    #expect(model.pendingProjectAddSelection?.folderURL == URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit"))
+    #expect(model.sidebarProjection.projectAddCandidateLabel == "AteliaKit")
+}
+
+@MainActor
+@Test func clientAppModelRecordsNewFolderSelectionAsPendingProjectAddSelection() {
+    let picker = ProjectFolderSelectionClientFixture()
+    picker.newFolderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/NewAteliaProject")
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, projectFolderSelection: picker)
+
+    model.handleProjectSectionHeaderAction(ProjectSectionHeaderViewData.projectSectionHeader.actions[0])
+
+    #expect(picker.existingFolderCallCount == 0)
+    #expect(picker.newFolderCallCount == 1)
+    #expect(model.pendingProjectAddSelection?.source == .newFolder)
+    #expect(model.pendingProjectAddSelection?.folderURL == URL(fileURLWithPath: "/Users/yohaku/Projects/NewAteliaProject"))
+    #expect(model.sidebarProjection.projectAddCandidateLabel == "NewAteliaProject")
+}
+
+@Test func projectFolderCreationEnsuresDirectoryExists() throws {
+    let parentDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let folderURL = parentDirectory.appendingPathComponent("NewAteliaProject", isDirectory: true)
+
+    defer {
+        try? FileManager.default.removeItem(at: parentDirectory)
+    }
+
+    try FileManager.default.createDirectory(at: parentDirectory, withIntermediateDirectories: true)
+
+    let resultURL = try ProjectFolderCreation.ensureDirectory(at: folderURL)
+
+    #expect(resultURL == folderURL)
+    #expect(FileManager.default.fileExists(atPath: folderURL.path))
+    var isDirectory: ObjCBool = false
+    #expect(FileManager.default.fileExists(atPath: folderURL.path, isDirectory: &isDirectory))
+    #expect(isDirectory.boolValue)
 }

@@ -11,6 +11,7 @@ struct SidebarView: View {
     let activeSelection: ClientMockActiveSelection
     let activeNavigationItemID: String
     let projectSectionHeader: ProjectSectionHeaderViewData
+    let projectAddCandidateLabel: String?
     let groups: [WorkspaceGroup]
     let globalItems: [ChatListItem]
     var onAction: (SidebarAction) -> Void = { _ in }
@@ -37,6 +38,10 @@ struct SidebarView: View {
                         header: projectSectionHeader,
                         onAction: onAction
                     )
+
+                    if let projectAddCandidateLabel {
+                        ProjectAddCandidateView(label: projectAddCandidateLabel)
+                    }
 
                     ForEach(groups) { group in
                         WorkspaceGroupView(group: group, selection: selection, onAction: onAction)
@@ -542,6 +547,35 @@ private struct ProjectSectionHeaderView: View {
                 isHovered = hovered
             }
         }
+    }
+}
+
+private struct ProjectAddCandidateView: View {
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "folder.badge.plus")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundStyle(Color.clientSidebarIcon)
+                .frame(width: 18, height: 18)
+
+            Text("追加候補")
+                .font(.atelia(12.25))
+                .tracking(0.25)
+                .foregroundStyle(Color.clientMutedText)
+
+            Text(label)
+                .font(.atelia(12.25))
+                .tracking(0.25)
+                .foregroundStyle(Color.clientSidebarText)
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+        }
+        .frame(height: 26)
+        .padding(.leading, 14)
+        .padding(.trailing, 8)
     }
 }
 

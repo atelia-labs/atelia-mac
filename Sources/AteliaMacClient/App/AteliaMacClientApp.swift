@@ -68,17 +68,6 @@ struct AteliaMacClientApp: App {
 
     @MainActor
     private func handleProjectSectionHeaderAction(_ action: ProjectSectionHeaderActionViewData) {
-        switch action.kind {
-        case .createFolder:
-            // TODO(project-add): wire the new-project-folder creation flow once backend support exists.
-            break
-        case .useExistingFolder:
-            guard let folderURL = ProjectFolderPicker.chooseExistingFolder() else {
-                return
-            }
-
-            // TODO(project-add): hand the selected folder URL to real project registration state.
-            print("TODO(project-add): selected existing folder at \(folderURL.path)")
-        }
+        appModel.handleProjectSectionHeaderAction(action)
     }
 }

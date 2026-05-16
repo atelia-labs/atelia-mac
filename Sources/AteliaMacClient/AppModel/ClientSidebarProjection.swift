@@ -7,6 +7,7 @@ struct ClientSidebarProjection {
     var activeProjectTitle: String
     var activeSelection: ClientMockActiveSelection
     var projectSectionHeader: ProjectSectionHeaderViewData
+    var projectAddCandidateLabel: String?
     var workspaceGroups: [WorkspaceGroup]
     var globalItems: [ChatListItem]
 
@@ -18,7 +19,10 @@ struct ClientSidebarProjection {
         "\(activeSelection.surfacePackageID)#\(activeSelection.surfaceID)"
     }
 
-    init(snapshot: MacProjectStatusSnapshot?) {
+    init(
+        snapshot: MacProjectStatusSnapshot?,
+        pendingProjectAddSelection: ProjectAddSelection?
+    ) {
         guard let snapshot else {
             self.activeConversationTitle = "Secretary"
             self.activeProjectTitle = "プロジェクト未読込"
@@ -51,6 +55,7 @@ struct ClientSidebarProjection {
                 )
             ]
             self.globalItems = Self.globalItems()
+            self.projectAddCandidateLabel = pendingProjectAddSelection?.label
             return
         }
 
@@ -65,6 +70,7 @@ struct ClientSidebarProjection {
             resourceID: "conversation:\(snapshot.repositoryId):secretary"
         )
         self.projectSectionHeader = .projectSectionHeader
+        self.projectAddCandidateLabel = pendingProjectAddSelection?.label
         self.workspaceGroups = [
             WorkspaceGroup(
                 id: "project:\(snapshot.repositoryId)",
@@ -84,12 +90,13 @@ struct ClientSidebarProjection {
         self.activeProjectTitle = mockState.activeProjectTitle
         self.activeSelection = mockState.activeSelection
         self.projectSectionHeader = mockState.projection.projectSectionHeader
+        self.projectAddCandidateLabel = nil
         self.workspaceGroups = mockState.workspaceGroups
         self.globalItems = mockState.recentChats
     }
 
     static var empty: ClientSidebarProjection {
-        ClientSidebarProjection(snapshot: nil)
+        ClientSidebarProjection(snapshot: nil, pendingProjectAddSelection: nil)
     }
 
     private static func projectItems(for snapshot: MacProjectStatusSnapshot) -> [ChatListItem] {
