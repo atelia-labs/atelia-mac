@@ -75,7 +75,9 @@ gradient、遊びの強い illustration は避けます。
 ## Composer
 
 - Composer width は 736 pt。通常 height は 112 pt、attachment preview がある場合は
-  193 pt です。Reserved footer stack は 190 pt です。
+  193 pt です。現在の footer control row は 42 pt high です。
+  `composerFooterHeight` token は sketch / future spacing 用の reserve であり、
+  current implementation layout として扱ってはいけません。
 - Composer corner radius は 18 pt。Conversation 下部に dock された唯一の input
   surface として扱い、別 card の中に nest しないでください。
 - Placeholder copy は行動を促す contextual copy にします。現在の composer は
@@ -129,9 +131,11 @@ gradient、遊びの強い illustration は避けます。
 - Dynamic data に置き換えられる状態を維持します。Sidebar command / item は stable
   ID、必要な project/resource ID、surface metadata、action metadata を持ちます。
   Selection は display title ではなく、navigation item ID と
-  project/surface/resource ID から導出します。Composer control の label、route key、
-  permission scope、selected model は hard-code ではなく model/config state から
-  表示します。
+  project/surface/resource ID から導出します。現在の composer wiring は permission
+  mode の display と accessibility scope、selected model の display と route key を
+  config-backed にしています。Extension affordance label と empty placeholder copy は
+  まだ hard-coded mock string です。これらを model/config state に移すことは
+  follow-up model work とします。
 - Sidebar または composer の behavior を増やす PR では、この英語 document と日本語
   document の両方を同じ PR で更新してください。
 - 新しい surface token は既存 token で状態を表現できない場合だけ追加します。Token
@@ -141,5 +145,5 @@ gradient、遊びの強い illustration は避けます。
   か follow-up issue を明記します。
 - Code change がある場合は `swift build`、常に `git diff --check` を実行します。
   UI change がある場合は sidebar、composer、conversation state を visual review
-  してください。Expanded diff state は、その surface が実装された後に visual review
-  対象へ含めます。
+  してください。Conversation visual review では collapsed diff state と expanded
+  diff state の両方を対象にします。

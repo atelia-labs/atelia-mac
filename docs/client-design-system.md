@@ -75,7 +75,9 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 ## Composer
 
 - Composer width is 736 pt. Height is 112 pt normally and 193 pt with an
-  attachment preview. The reserved footer stack is 190 pt.
+  attachment preview. The current footer control row is 42 pt high. The
+  `composerFooterHeight` token is reserved sketch/future spacing and must not
+  be treated as current implementation layout.
 - Composer corner radius is 18 pt. Keep it as the only docked input surface at
   the bottom of the conversation; do not nest it inside another card.
 - Placeholder copy is action-oriented and contextual. The current composer
@@ -130,9 +132,11 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 - Keep the mock client ready for dynamic data. Sidebar commands and items need
   stable IDs, project/resource IDs where applicable, surface metadata, and
   action metadata. Selection must derive from navigation item ID plus
-  project/surface/resource IDs, not from display titles. Composer controls must
-  read their labels, route keys, permission scopes, and selected model from
-  model/config state rather than hard-coded display strings.
+  project/surface/resource IDs, not from display titles. Current composer
+  wiring config-backs permission mode display and accessibility scope plus
+  selected model display and route key. Extension affordance label and empty
+  placeholder copy remain hard-coded mock strings; moving those into
+  model/config state is follow-up model work.
 - New sidebar or composer behavior must update both this English document and
   the Japanese counterpart in the same PR.
 - New surface tokens should be added only when an existing token cannot express
@@ -142,5 +146,5 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
   document the follow-up issue.
 - Validate PRs with `swift build` when code changes, `git diff --check` always,
   and a visual review for sidebar, composer, and conversation states when UI
-  changes are present. Include expanded diff state in visual review once that
-  surface is implemented.
+  changes are present. Conversation visual review must include both collapsed
+  and expanded diff states.
