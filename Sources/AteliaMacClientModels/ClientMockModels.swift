@@ -250,8 +250,6 @@ public struct ClientMockState: Sendable {
         )
     )
 
-    public static let codexReference = ateliaReference
-
     private var navigationItems: [ChatListItem] {
         workspaceGroups.flatMap { $0.items + $0.settings } + recentChats
     }
@@ -506,24 +504,6 @@ public extension MockSurfaceReference {
         schemaVersion: "surface.mock.v1"
     )
 
-    static let newThread = MockSurfaceReference(
-        packageID: hostPackageID,
-        surfaceID: "new-thread",
-        lifecycle: .mounted,
-        trust: .hostShippedBuiltIn,
-        criticality: .hostRequired,
-        schemaVersion: "surface.mock.v1"
-    )
-
-    static let globalSearch = MockSurfaceReference(
-        packageID: hostPackageID,
-        surfaceID: "global-search",
-        lifecycle: .mounted,
-        trust: .hostShippedBuiltIn,
-        criticality: .hostRequired,
-        schemaVersion: "surface.mock.v1"
-    )
-
     static let officialAutomations = MockSurfaceReference(
         packageID: "dev.atelia.packages.official.automations",
         surfaceID: "automations-home",
@@ -635,10 +615,10 @@ public extension MockActionReference {
     )
 
     static let startNewThread = MockActionReference(
-        actionID: "action.new-thread.start",
+        actionID: "action.project-conversation.start-new-thread",
         label: "Start new thread",
         packageID: MockSurfaceReference.hostPackageID,
-        surfaceID: "new-thread",
+        surfaceID: "project-conversation",
         actionOwnerComponentID: "project-shell",
         capabilityCallerComponentID: "host-navigation",
         callerCapabilityID: "host_broker.open_surface",
@@ -653,11 +633,11 @@ public extension MockActionReference {
     )
 
     static let searchAllProjects = MockActionReference(
-        actionID: "action.global-search.open",
+        actionID: "action.project-home.search-all-projects",
         label: "Search all projects",
         packageID: MockSurfaceReference.hostPackageID,
-        surfaceID: "global-search",
-        actionOwnerComponentID: "global-search",
+        surfaceID: "project-home",
+        actionOwnerComponentID: "project-shell",
         capabilityCallerComponentID: "host-navigation",
         callerCapabilityID: "host_broker.open_surface",
         componentProfile: "PrimaryNavigationCommand.v1",

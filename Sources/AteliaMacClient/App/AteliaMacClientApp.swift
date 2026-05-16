@@ -10,8 +10,8 @@ struct AteliaMacClientApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ClientShellView(state: .ateliaReference)
-                .frame(minWidth: 960, minHeight: 640)
+            ClientShellView(state: .ateliaReference, onAction: { _ in })
+                .frame(minWidth: AteliaClientLayout.minimumWindowWidth, minHeight: 640)
                 .preferredColorScheme(AteliaClientDesign.supportsLightColorSchemeOnly ? .light : nil)
         }
         .windowStyle(.hiddenTitleBar)

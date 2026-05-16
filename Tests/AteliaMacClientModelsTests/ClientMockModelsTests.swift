@@ -36,7 +36,7 @@ import AteliaMacClientModels
 }
 
 @Test func globalItemsIncludeProjectedPackageRoutes() {
-    let state = ClientMockState.codexReference
+    let state = ClientMockState.ateliaReference
 
     #expect(state.recentChats.map(\.id) == [
         "recent:mac-atelia:project-conversation",
@@ -153,7 +153,7 @@ import AteliaMacClientModels
 }
 
 @Test func mockComposerConfigurationKeepsModelDisplayInState() {
-    let state = ClientMockState.codexReference
+    let state = ClientMockState.ateliaReference
 
     #expect(state.composer.routeKey == "composer:project-conversation:follow-up")
     #expect(state.composer.selectedModel.id == "model:atelia-balanced")
@@ -225,7 +225,7 @@ import AteliaMacClientModels
 }
 
 @Test func selectedNavigationIsDerivedFromActiveSelectionNotTitles() {
-    let state = ClientMockState.codexReference
+    let state = ClientMockState.ateliaReference
     let navigationItems = state.workspaceGroups.flatMap { $0.items + $0.settings } + state.recentChats
     let selectedByItemID = navigationItems.filter { $0.id == state.activeNavigationItemID }
     let selectedBySurfaceID = navigationItems.filter { $0.surface.id == state.activeSurfaceID }
@@ -260,10 +260,8 @@ import AteliaMacClientModels
     let newThread = MockActionReference.startNewThread
     let search = MockActionReference.searchAllProjects
 
-    #expect(MockSurfaceReference.newThread.id == "host.bootstrap.macos#new-thread")
-    #expect(MockSurfaceReference.globalSearch.id == "host.bootstrap.macos#global-search")
-    #expect(newThread.declaredBySurfaceID == MockSurfaceReference.newThread.surfaceID)
-    #expect(search.declaredBySurfaceID == MockSurfaceReference.globalSearch.surfaceID)
+    #expect(newThread.declaredBySurfaceID == MockSurfaceReference.projectConversation.surfaceID)
+    #expect(search.declaredBySurfaceID == MockSurfaceReference.projectHome.surfaceID)
     #expect(newThread.permissionScope == "project.conversation.write")
     #expect(search.permissionScope == "workspace.search.read")
 }

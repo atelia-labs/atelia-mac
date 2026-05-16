@@ -30,7 +30,9 @@ func fontFallsBackToSystemWhenPreferredNameIsMissing() {
 func layoutConstantsMatchClientSupportContract() {
     #expect(AteliaClientDesign.supportsLightColorSchemeOnly)
     #expect(AteliaClientLayout.sidebarWidth == 270)
+    #expect(AteliaClientLayout.sidebarDividerWidth == 1)
     #expect(AteliaClientLayout.contentWidth == 736)
+    #expect(AteliaClientLayout.minimumWindowWidth == 1007)
     #expect(AteliaClientLayout.userBubbleMaxWidth == 566)
     #expect(AteliaClientLayout.composerMinHeight == 112)
 }

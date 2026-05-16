@@ -7,16 +7,16 @@ enum SidebarAction {
 }
 
 struct SidebarView: View {
+    let activeSelection: ClientMockActiveSelection
     let activeNavigationItemID: String
-    let activeSurfaceID: String
     let groups: [WorkspaceGroup]
     let globalItems: [ChatListItem]
     var onAction: (SidebarAction) -> Void = { _ in }
 
     var body: some View {
         let selection = SidebarSelection(
-            activeNavigationItemID: activeNavigationItemID,
-            activeSurfaceID: activeSurfaceID
+            activeSelection: activeSelection,
+            activeNavigationItemID: activeNavigationItemID
         )
 
         VStack(alignment: .leading, spacing: 0) {
@@ -54,14 +54,14 @@ struct SidebarView: View {
 }
 
 private struct SidebarSelection {
+    let activeSelection: ClientMockActiveSelection
     let activeNavigationItemID: String
-    let activeSurfaceID: String
 
     func contains(_ item: ChatListItem) -> Bool {
         if !activeNavigationItemID.isEmpty {
             return item.id == activeNavigationItemID
         }
-        return item.surface.id == activeSurfaceID
+        return activeSelection.matches(item)
     }
 }
 
@@ -224,14 +224,14 @@ private struct PrimaryNavigation: View {
             id: "primary:new-thread",
             icon: SidebarGlyph.Kind.compose,
             title: "新しいスレッド",
-            surface: .newThread,
+            surface: .projectConversation,
             action: .startNewThread
         ),
         SidebarCommand(
             id: "primary:global-search",
             icon: .search,
             title: "検索",
-            surface: .globalSearch,
+            surface: .projectHome,
             action: .searchAllProjects
         )
     ]

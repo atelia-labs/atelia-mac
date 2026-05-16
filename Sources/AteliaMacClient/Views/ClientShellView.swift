@@ -3,6 +3,8 @@ import SwiftUI
 
 enum ClientShellAction {
     case openSettings
+    case sidebar(SidebarAction)
+    case composer(ComposerIntent)
 }
 
 struct ClientShellView: View {
@@ -12,15 +14,16 @@ struct ClientShellView: View {
     var body: some View {
         HStack(spacing: 0) {
             SidebarView(
+                activeSelection: state.activeSelection,
                 activeNavigationItemID: state.activeNavigationItemID,
-                activeSurfaceID: state.activeSurfaceID,
                 groups: state.workspaceGroups,
-                globalItems: state.recentChats
+                globalItems: state.recentChats,
+                onAction: { onAction(.sidebar($0)) }
             )
 
             Rectangle()
                 .fill(Color.clientSidebarRail)
-                .frame(width: 1)
+                .frame(width: AteliaClientLayout.sidebarDividerWidth)
 
             ConversationSurfaceView(state: state, onAction: onAction)
         }
@@ -53,7 +56,11 @@ private struct ConversationSurfaceView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
             }
 
-            ComposerDock(goal: state.goal, configuration: state.composer)
+            ComposerDock(
+                goal: state.goal,
+                configuration: state.composer,
+                onIntent: { onAction(.composer($0)) }
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
@@ -238,10 +245,11 @@ private struct PreviewPill: View {
 private struct ComposerDock: View {
     let goal: GoalStatus
     let configuration: ComposerConfiguration
+    let onIntent: (ComposerIntent) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
-            ComposerView(goal: goal, configuration: configuration)
+            ComposerView(goal: goal, configuration: configuration, onIntent: onIntent)
                 .padding(.bottom, 24)
         }
         .frame(height: AteliaClientLayout.composerFooterHeight)
