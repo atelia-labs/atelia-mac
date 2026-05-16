@@ -528,6 +528,98 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientAppModelReportsActiveProjectSecretaryTarget() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    #expect(model.activeConversationTarget() == .project(repositoryId: "repo_123"))
+
+    let globalSecretary = try #require(model.sidebarProjection.globalItems.first { $0.id == "global:secretary" })
+    model.handleSidebarAction(.chatItem(
+        id: globalSecretary.id,
+        projectID: globalSecretary.projectID,
+        resourceID: globalSecretary.resourceID,
+        title: globalSecretary.title,
+        surface: globalSecretary.surface,
+        action: try #require(globalSecretary.action)
+    ))
+
+    #expect(model.activeConversationTarget() == .global)
+}
+
+@MainActor
+@Test func clientAppModelBuildsProjectSecretarySubmitRequestFromComposerSend() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    let configuration = ComposerConfiguration(
+        routeKey: "composer:project-conversation:follow-up",
+        selectedModel: ComposerModelSelection(displayName: "5.5 中"),
+        permissionMode: ComposerPermissionMode(displayName: "フルアクセス"),
+        contextReferences: [
+            ComposerContextReference(
+                id: "context:file:standard-surfaces",
+                kind: .file,
+                title: "ファイル",
+                subtitle: "standard-surfaces.md",
+                systemImageName: "doc"
+            )
+        ]
+    )
+
+    model.handleComposerIntent(.send(
+        text: "  進捗を要約して  ",
+        configuration: configuration,
+        contexts: [
+            ComposerContextSelection(id: "context:file:standard-surfaces", kind: .file)
+        ]
+    ))
+
+    let request = try #require(model.lastComposerSubmissionRequest)
+
+    #expect(request.repositoryId == "repo_123")
+    #expect(request.message == "進捗を要約して")
+    #expect(request.goal == nil)
+    #expect(request.contextIDs == ["context:file:standard-surfaces"])
+    #expect(request.modelRouteKey == "composer:project-conversation:follow-up")
+    #expect(request.permissionModeRouteKey == "")
+}
+
+@MainActor
+@Test func clientAppModelRejectsComposerSendWhenGlobalConversationIsSelected() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    let globalSecretary = try #require(model.sidebarProjection.globalItems.first { $0.id == "global:secretary" })
+    model.handleSidebarAction(.chatItem(
+        id: globalSecretary.id,
+        projectID: globalSecretary.projectID,
+        resourceID: globalSecretary.resourceID,
+        title: globalSecretary.title,
+        surface: globalSecretary.surface,
+        action: try #require(globalSecretary.action)
+    ))
+
+    model.handleComposerIntent(.send(
+        text: "グローバル宛のメッセージ",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
+
+    #expect(model.lastComposerSubmissionRequest == nil)
+    #expect(model.lastErrorMessage == "プロジェクトを選択してください。")
+}
+
+@MainActor
 @Test func clientSidebarProjectionProjectMenuItemsUseActiveProjectGroup() throws {
     var state = ClientMockState.ateliaReference
     let activeProjectGroup = try #require(state.workspaceGroups.first { $0.id == "project:atelia-secretary" })

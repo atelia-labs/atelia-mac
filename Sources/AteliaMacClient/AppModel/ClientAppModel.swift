@@ -28,6 +28,7 @@ final class ClientAppModel {
     private(set) var sidebarProjection: ClientSidebarProjection
     private(set) var isReloading: Bool
     private(set) var lastErrorMessage: String?
+    private(set) var lastComposerSubmissionRequest: ComposerJobSubmissionRequest?
     private(set) var pendingProjectAddSelection: ProjectAddSelection?
     private(set) var sidebarSelectionState: ClientSidebarSelectionState?
 
@@ -47,6 +48,7 @@ final class ClientAppModel {
         )
         self.isReloading = false
         self.lastErrorMessage = nil
+        self.lastComposerSubmissionRequest = nil
     }
 
     func reloadProjectStatus() async throws {
@@ -70,6 +72,7 @@ final class ClientAppModel {
         projectStatusSnapshot = nil
         pendingProjectAddSelection = nil
         sidebarSelectionState = .unloaded()
+        lastComposerSubmissionRequest = nil
         syncSidebarProjection()
         lastErrorMessage = nil
     }
@@ -125,6 +128,36 @@ final class ClientAppModel {
             handleProjectSectionHeaderAction(headerAction)
         case .dismissProjectAddCandidate:
             clearPendingProjectAddSelection()
+        }
+    }
+
+    func activeConversationTarget() -> ComposerConversationTarget {
+        guard let snapshot = projectStatusSnapshot else {
+            return .unavailable
+        }
+
+        let activeProjectID = sidebarSelectionState?.activeSelection.projectID ?? sidebarProjection.activeSelection.projectID
+        if activeProjectID == "global" {
+            return .global
+        }
+
+        if activeProjectID == "project:\(snapshot.repositoryId)" {
+            return .project(repositoryId: snapshot.repositoryId)
+        }
+
+        return .unavailable
+    }
+
+    func handleComposerIntent(_ intent: ComposerIntent) {
+        switch intent {
+        case .send(let text, let configuration, let contexts):
+            handleComposerSend(
+                text: text,
+                configuration: configuration,
+                contexts: contexts
+            )
+        default:
+            break
         }
     }
 
@@ -239,6 +272,56 @@ final class ClientAppModel {
         return (
             projectID: "global",
             projectTitle: "全プロジェクト"
+        )
+    }
+
+    private func handleComposerSend(
+        text: String,
+        configuration: ComposerConfiguration,
+        contexts: [ComposerContextSelection]
+    ) {
+        lastComposerSubmissionRequest = nil
+        lastErrorMessage = nil
+
+        guard let request = makeComposerJobSubmissionRequest(
+            text: text,
+            configuration: configuration,
+            contexts: contexts,
+            target: activeConversationTarget()
+        ) else {
+            return
+        }
+
+        lastComposerSubmissionRequest = request
+    }
+
+    private func makeComposerJobSubmissionRequest(
+        text: String,
+        configuration: ComposerConfiguration,
+        contexts: [ComposerContextSelection],
+        target: ComposerConversationTarget
+    ) -> ComposerJobSubmissionRequest? {
+        guard case .project(let repositoryId) = target else {
+            lastErrorMessage = "プロジェクトを選択してください。"
+            return nil
+        }
+
+        guard let request = ComposerJobSubmissionRequest.fromSendIntent(
+            text: text,
+            configuration: configuration,
+            contexts: contexts
+        ) else {
+            return nil
+        }
+
+        return ComposerJobSubmissionRequest(
+            repositoryId: repositoryId,
+            message: request.message,
+            goal: request.goal,
+            modelRouteKey: request.modelRouteKey,
+            permissionModeRouteKey: request.permissionModeRouteKey,
+            contextIDs: request.contextIDs,
+            pathScope: request.pathScope
         )
     }
 }
