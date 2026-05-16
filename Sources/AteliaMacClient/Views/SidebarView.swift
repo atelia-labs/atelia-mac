@@ -154,6 +154,7 @@ private struct SidebarGlyph: View {
         case automation
         case phone
         case folder
+        case folderAdd
         case globe
         case gear
     }
@@ -193,6 +194,8 @@ private struct SidebarGlyph: View {
             "iphone"
         case .folder:
             "folder"
+        case .folderAdd:
+            "folder.badge.plus"
         case .globe:
             "globe"
         case .gear:
@@ -206,7 +209,7 @@ private struct SidebarGlyph: View {
             12.75
         case .sidebar:
             12.5
-        case .folder, .globe:
+        case .folder, .folderAdd, .globe:
             13.25
         default:
             13.75
@@ -526,11 +529,10 @@ private struct ProjectSectionHeaderView: View {
                         } label: {
                             Label(action.title, systemImage: action.symbolName)
                         }
+                        .accessibilityLabel(action.accessibilityLabel)
                     }
                 } label: {
-                    Image(systemName: "folder.badge.plus")
-                        .font(.system(size: 13.25, weight: .regular))
-                        .foregroundStyle(Color.clientSidebarIcon)
+                    SidebarGlyph(.folderAdd)
                         .frame(width: 22, height: 22)
                 }
                 .menuStyle(.borderlessButton)
@@ -555,10 +557,7 @@ private struct ProjectAddCandidateView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "folder.badge.plus")
-                .font(.system(size: 12, weight: .regular))
-                .foregroundStyle(Color.clientSidebarIcon)
-                .frame(width: 18, height: 18)
+            SidebarGlyph(.folderAdd)
 
             Text("追加候補")
                 .font(.atelia(12.25))
@@ -572,10 +571,16 @@ private struct ProjectAddCandidateView: View {
                 .lineLimit(1)
 
             Spacer(minLength: 0)
+
+            // TODO: wire a shell-level cancel action so the pending project-add selection can be dismissed here.
         }
         .frame(height: 26)
         .padding(.leading, 14)
         .padding(.trailing, 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("追加候補")
+        .accessibilityValue(label)
+        .accessibilityHint("選択中のフォルダ候補")
     }
 }
 

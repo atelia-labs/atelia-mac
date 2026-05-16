@@ -75,6 +75,25 @@ gradient、遊びの強い illustration は避けます。
 - Selected row は `clientSidebarSelected` と 9 pt corner radius を使います。
   Sidebar selection に高 contrast な fill を使わないでください。
 
+## Project Add Flow
+
+- project section の add menu は hover 時のみ表示します。section header に
+  hover したときだけ folder-with-badge-plus の trigger と 2 つの menu item、
+  `新規フォルダを作成` と `既存のフォルダを使用` を出してください。
+- menu item は custom modal chrome ではなく native panel を開きます。
+  `新規フォルダを作成` は `NSSavePanel` を使い、title は
+  `新規フォルダを作成`、message は `Atelia で使うフォルダ名と保存先を指定してください。`、
+  prompt は `作成` です。`既存のフォルダを使用` は `NSOpenPanel` を使い、
+  title は `既存のフォルダを使用`、message は
+  `Atelia で使うフォルダを選択してください。`、prompt は `選択` です。
+- フォルダが確定したら sidebar に compact な candidate row を出します。
+  row には `追加候補`、選択された folder name、そして shell が将来つなぐ
+  dismiss slot を置きます。選択中の folder name が自然に読み上げられるよう、
+  combined accessibility label と value を付けてください。
+- candidate row は transient です。panel の cancel は sidebar を変えず、
+  folder の confirm で candidate を表示し、project status を clear したら
+  pending candidate selection も同時に消します。
+
 ## Composer
 
 - Composer width は 736 pt。通常 height は 112 pt、attachment preview がある場合は
