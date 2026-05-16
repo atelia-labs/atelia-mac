@@ -20,10 +20,13 @@ gradient、遊びの強い illustration は避けます。
 - Font は shared helper を使います。場当たり的な system font stack を各 view に
   書かないでください。
 - Body、日本語 UI text、general prose は `Font.atelia` を使います。Latin label と
-  file path は `Font.ateliaLatin` を使います。これらの body / Latin helper は、
-  bundled text font が明示的に wire されるまでは system-font fallback に乗る
-  semantic wrapper です。Code と diff output は mono helper を使い、その surface を
-  render する時点で bundled `JetBrainsMono-Regular` を target します。
+  file path は `Font.ateliaLatin` を優先します。Current semantic text surface では、
+  mixed copy や legacy sidebar label が残る箇所で `Font.atelia` を使う場合があります。
+  visible な `Global Secretary` sidebar label は現在の transition exception です。
+  これらの body / Latin helper は、bundled text font が明示的に wire されるまでは
+  system-font fallback に乗る semantic wrapper です。Code と diff output は mono
+  helper を使い、その surface を render する時点で bundled `JetBrainsMono-Regular`
+  を target します。
 - Base content text は 14 pt。Top bar product title は 16 pt semibold です。
   Section と row label は 12.25 から 13.25 pt。Sidebar section header は
   14.25 pt です。
