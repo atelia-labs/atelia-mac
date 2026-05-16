@@ -171,6 +171,8 @@ private struct ConversationMenuItemButton: View {
                 Label(item.title, systemImage: symbolName)
             }
             .disabled(true)
+            .accessibilityLabel(item.title)
+            .accessibilityHint("利用できません")
         }
     }
 
@@ -197,7 +199,7 @@ private struct ConversationMenuItemButton: View {
             case "project-conversation":
                 return "message"
             default:
-                return "circle"
+                return "circle.questionmark"
             }
         }
     }
