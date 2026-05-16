@@ -113,12 +113,12 @@ private struct FadingSidebarScroll<Content: View>: View {
 
             VStack(spacing: 0) {
                 SidebarFadeOverlay(edge: .top)
-                .frame(height: 32)
+                    .frame(height: 32)
 
                 Spacer(minLength: 0)
 
                 SidebarFadeOverlay(edge: .bottom)
-                .frame(height: 34)
+                    .frame(height: 34)
             }
             .allowsHitTesting(false)
         }

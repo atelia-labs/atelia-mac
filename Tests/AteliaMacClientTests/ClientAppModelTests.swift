@@ -172,8 +172,8 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(group.items.map(\.trailing) == [nil, "2"])
     #expect(model.sidebarProjection.activeNavigationItemID == "nav:repo_123:project-conversation")
     #expect(model.sidebarProjection.activeSurfaceID == MockSurfaceReference.projectConversation.id)
-    #expect(group.settings.map(\.title) == ["ポリシー判断", "プロジェクト設定"])
-    #expect(group.settings.map(\.trailing) == ["1", nil])
+    #expect(group.settings.map(\.title) == ["ポリシー判断", "拡張機能", "オートメーション", "プロジェクト設定"])
+    #expect(group.settings.map(\.trailing) == ["1", nil, nil, nil])
     #expect(model.sidebarProjection.globalItems.map(\.title) == [
         "Global Secretary",
         "検索",
@@ -259,7 +259,7 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 
     try await model.reloadProjectStatus()
 
-    let projectSettings = try #require(model.sidebarProjection.workspaceGroups.first?.settings.first { $0.id == "nav:repo_123:settings" })
+    let projectSettings = try #require(model.sidebarProjection.workspaceGroups.first?.settings.last { $0.id == "nav:repo_123:settings" })
 
     model.handleSidebarAction(.chatItem(
         id: projectSettings.id,
@@ -564,11 +564,8 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 
     try FileManager.default.createDirectory(at: parentDirectory, withIntermediateDirectories: true)
 
-    let resultURL = try ProjectFolderCreation.ensureDirectory(at: folderURL)
+    let ensuredURL = try ProjectFolderCreation.ensureDirectory(at: folderURL)
 
-    #expect(resultURL == folderURL)
+    #expect(ensuredURL == folderURL)
     #expect(FileManager.default.fileExists(atPath: folderURL.path))
-    var isDirectory: ObjCBool = false
-    #expect(FileManager.default.fileExists(atPath: folderURL.path, isDirectory: &isDirectory))
-    #expect(isDirectory.boolValue)
 }

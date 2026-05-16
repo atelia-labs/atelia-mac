@@ -179,14 +179,14 @@ final class ClientAppModel {
         case .openProjectSettings:
             sidebarSelectionState = .globalSettings(title: title)
         default:
-            let fallbackScope = fallbackScope(for: surface)
+            let scope = fallbackScope(for: surface)
             sidebarSelectionState = .selectionState(
-                projectTitle: fallbackScope.projectTitle,
+                projectTitle: scope.projectTitle,
                 navigationItemID: nil,
                 primaryCommandID: id,
                 title: title,
                 surface: surface,
-                projectID: fallbackScope.projectID,
+                projectID: scope.projectID,
                 resourceID: "surface-command:\(id)"
             )
         }
