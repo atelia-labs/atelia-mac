@@ -21,8 +21,9 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 - Body, Japanese UI text, Latin labels, and file paths use `Font.atelia`.
   Code and diff output should use `JetBrainsMono-Regular` when those surfaces
   are rendered.
-- Base content text is 14 pt. Top bar title is 14 pt medium. Section and row
-  labels sit between 12.25 and 13.25 pt. Sidebar section headers use 14.25 pt.
+- Base content text is 14 pt. The top bar product title is 16 pt semibold.
+  Section and row labels sit between 12.25 and 13.25 pt. Sidebar section
+  headers use 14.25 pt.
 - Sidebar row text uses `tracking(0.25)`. Do not apply negative letter spacing.
 - Prefer regular and medium weights. Do not use bold as a substitute for
   hierarchy; hierarchy comes from placement, muted color, and compact spacing.

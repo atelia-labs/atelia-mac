@@ -22,8 +22,9 @@ gradient、遊びの強い illustration は避けます。
 - Body、日本語 UI text、Latin label、file path は `Font.atelia` を使います。
   Code と diff output は、その surface を render する時点で
   `JetBrainsMono-Regular` を使います。
-- Base content text は 14 pt。Top bar title は 14 pt medium。Section と row label
-  は 12.25 から 13.25 pt。Sidebar section header は 14.25 pt です。
+- Base content text は 14 pt。Top bar product title は 16 pt semibold です。
+  Section と row label は 12.25 から 13.25 pt。Sidebar section header は
+  14.25 pt です。
 - Sidebar row text は `tracking(0.25)` を使います。negative letter spacing は
   使いません。
 - Weight は regular と medium を基本にします。bold で階層を作らず、配置、muted
