@@ -12,26 +12,56 @@ extension Color {
 
 extension Font {
     static func atelia(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        switch weight {
-        case .ultraLight, .thin, .light:
-            return .custom("Inter-Light", fixedSize: size)
-        case .medium, .semibold, .bold, .heavy, .black:
-            return .custom("Inter-Medium", fixedSize: size)
-        default:
-            return .custom("Inter-Regular", fixedSize: size)
-        }
+        return Font(AteliaClientFont.nsFont(size: size, weight: weight))
     }
 
     static func ateliaLatin(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        return Font(AteliaClientFont.nsFont(size: size, weight: weight))
+    }
+}
+
+enum AteliaClientFont {
+    static func nsFont(
+        size: CGFloat,
+        weight: Font.Weight = .regular,
+        preferredName: String? = nil
+    ) -> NSFont {
+        let fontName = preferredName ?? interFontName(for: weight)
+        return NSFont(name: fontName, size: size)
+            ?? NSFont.systemFont(ofSize: size, weight: systemWeight(for: weight))
+    }
+
+    static func interFontName(for weight: Font.Weight) -> String {
         switch weight {
         case .ultraLight, .thin, .light:
-            .custom("Inter-Light", fixedSize: size)
-        case .semibold, .bold, .heavy, .black:
-            .custom("Inter-Medium", fixedSize: size)
-        case .medium:
-            .custom("Inter-Medium", fixedSize: size)
+            return "Inter-Light"
+        case .medium, .semibold, .bold, .heavy, .black:
+            return "Inter-Medium"
         default:
-            .custom("Inter-Regular", fixedSize: size)
+            return "Inter-Regular"
+        }
+    }
+
+    private static func systemWeight(for weight: Font.Weight) -> NSFont.Weight {
+        switch weight {
+        case .ultraLight:
+            return .ultraLight
+        case .thin:
+            return .thin
+        case .light:
+            return .light
+        case .medium:
+            return .medium
+        case .semibold:
+            return .semibold
+        case .bold:
+            return .bold
+        case .heavy:
+            return .heavy
+        case .black:
+            return .black
+        default:
+            return .regular
         }
     }
 }

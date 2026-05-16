@@ -4,7 +4,7 @@ import SwiftUI
 struct CodexAttributedText: NSViewRepresentable {
     var text: String
     var maxWidth: CGFloat
-    var fontName = "HiraginoSans-W3"
+    var fontName = AteliaClientFont.interFontName(for: .regular)
     var fontSize: CGFloat = 14
     var lineHeight: CGFloat = 24
     var color = NSColor(
@@ -42,8 +42,11 @@ struct CodexAttributedText: NSViewRepresentable {
         return NSAttributedString(
             string: text,
             attributes: [
-                .font: NSFont(name: fontName, size: fontSize)
-                    ?? NSFont.systemFont(ofSize: fontSize, weight: .light),
+                .font: AteliaClientFont.nsFont(
+                    size: fontSize,
+                    weight: .regular,
+                    preferredName: fontName
+                ),
                 .foregroundColor: color,
                 .paragraphStyle: paragraph,
                 .kern: 0
