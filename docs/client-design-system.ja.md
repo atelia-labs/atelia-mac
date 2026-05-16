@@ -19,8 +19,9 @@ gradient、遊びの強い illustration は避けます。
 
 - Font は bundled font と shared helper を使います。場当たり的な system font stack
   を各 view に書かないでください。
-- Body と日本語 UI text は `Font.atelia`、Latin label と file path は
-  `Font.ateliaLatin`、code と diff output は `JetBrainsMono-Regular` を使います。
+- Body、日本語 UI text、Latin label、file path は `Font.atelia` を使います。
+  Code と diff output は、その surface を render する時点で
+  `JetBrainsMono-Regular` を使います。
 - Base content text は 14 pt。Top bar title は 14 pt medium。Section と row label
   は 12.25 から 13.25 pt。Sidebar section header は 14.25 pt です。
 - Sidebar row text は `tracking(0.25)` を使います。negative letter spacing は
@@ -89,23 +90,24 @@ gradient、遊びの強い illustration は避けます。
 
 ## Conversation And Diff
 
-- Conversation content は 736 pt column に置き、top padding 34 pt、bottom padding
-  28 pt にします。Top bar height は 52 pt、bottom に soft hairline を置きます。
-- User message は右寄せ、`clientSurfaceSofter`、12 pt radius、14 pt text、
-  line spacing 3 pt、最大 width 566 pt です。
-- Secretary activity は左寄せです。Secretary mark は 24 pt の accent-tinted circle
-  と sparkle glyph です。Activity bullet は 5 pt success dot と 13 pt body text を
-  使います。
-- Tool output は screenshot ではなく semantic block として表示します。Tool name、
-  status、command、output lines を表示し、8 pt radius surface 内に
-  `JetBrainsMono-Regular` 12 pt で置きます。
-- Change set は collapsed default です。Collapsed row には title、2 line summary、
-  total additions、total deletions、file count を必ず表示します。
-- Expanded change set は scrollable diff area を使い、高さは 312 pt 上限です。
-  File header は 34 pt。Diff header は mono 11 pt、min height 28 pt。Diff line は
-  mono 11 pt、min height 22 pt です。
-- Addition は success text と success background 0.08 opacity。Removal は danger
-  text と danger background 0.08 opacity。Context line は white のままにします。
+- Current conversation content は 736 pt column に置きます。実装済み shell は、
+  表示される conversation stack の上下に 24 pt padding を使います。Top bar height
+  は 52 pt、bottom に soft hairline を置きます。
+- Current user message は右寄せ、`clientSurfaceSofter`、8 pt radius、14 pt text、
+  最大 width 566 pt です。
+- Current Secretary activity は、duration、title、checkmark bullet、document/review
+  preview pill を持つ activity card として表示します。
+- Intended follow-up: tool output は screenshot ではなく semantic block として表示
+  します。Tool name、status、command、output lines を表示し、8 pt radius surface
+  内に `JetBrainsMono-Regular` 12 pt で置きます。
+- Intended follow-up: change set は collapsed default にします。Collapsed row には
+  title、2 line summary、total additions、total deletions、file count を表示します。
+- Intended follow-up: expanded change set は scrollable diff area を使い、高さは
+  312 pt 上限にします。File header は 34 pt。Diff header は mono 11 pt、min height
+  28 pt。Diff line は mono 11 pt、min height 22 pt です。
+- Intended follow-up: addition は success text と success background 0.08 opacity。
+  Removal は danger text と danger background 0.08 opacity。Context line は white
+  のままにします。
 
 ## PR-Safe Implementation Rules
 
@@ -113,8 +115,9 @@ gradient、遊びの強い illustration は避けます。
   `Color+AteliaClient` などの Atelia client support token に置きます。View 内に
   magic number を散らさないでください。Codex App reference は compatibility /
   reference material に限り、Atelia API 名として固定してはいけません。
-- Conversation block は message、activity、tool output、change set という semantic
-  model を保ちます。Rendering は model に従い、文字列 parse で UI structure を推測
+- Conversation block の semantic model を保ちます。現在 render される block は
+  message と activity です。Tool output と change set rendering は follow-up
+  surface です。Rendering は model に従い、文字列 parse で UI structure を推測
   しないでください。
 - Dynamic data に置き換えられる状態を維持します。Sidebar command / item は stable
   ID、必要な project/resource ID、surface metadata、action metadata を持ちます。
@@ -130,5 +133,6 @@ gradient、遊びの強い illustration は避けます。
   contract、accessibility、package-surface decision を必要とする場合は、PR を分ける
   か follow-up issue を明記します。
 - Code change がある場合は `swift build`、常に `git diff --check` を実行します。
-  UI change がある場合は sidebar、composer、conversation、expanded diff state を
-  visual review してください。
+  UI change がある場合は sidebar、composer、conversation state を visual review
+  してください。Expanded diff state は、その surface が実装された後に visual review
+  対象へ含めます。

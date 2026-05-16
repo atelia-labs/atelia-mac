@@ -18,8 +18,9 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 ## Typography
 
 - Use bundled fonts through the shared helpers, not ad hoc system font stacks.
-- Body and Japanese UI text use `Font.atelia`; Latin labels and file paths use
-  `Font.ateliaLatin`; code and diff output use `JetBrainsMono-Regular`.
+- Body, Japanese UI text, Latin labels, and file paths use `Font.atelia`.
+  Code and diff output should use `JetBrainsMono-Regular` when those surfaces
+  are rendered.
 - Base content text is 14 pt. Top bar title is 14 pt medium. Section and row
   labels sit between 12.25 and 13.25 pt. Sidebar section headers use 14.25 pt.
 - Sidebar row text uses `tracking(0.25)`. Do not apply negative letter spacing.
@@ -89,24 +90,26 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 
 ## Conversation And Diff
 
-- Conversation content is centered in a 736 pt column with 34 pt top padding and
-  28 pt bottom padding. The top bar height is 52 pt with a soft bottom hairline.
-- User messages align right, use `clientSurfaceSofter`, 12 pt radius, 14 pt
-  text, 3 pt line spacing, and max width 566 pt.
-- Secretary activity aligns left. The Secretary mark is a 24 pt accent-tinted
-  circle with a sparkle glyph. Activity bullets use a 5 pt success dot and
-  13 pt body text.
-- Tool output is a semantic block, not a screenshot. Show tool name, status,
-  command, and output lines in `JetBrainsMono-Regular` 12 pt inside an 8 pt
-  radius surface.
-- Change sets are collapsed by default. The collapsed row must show title,
-  two-line summary, total additions, total deletions, and file count.
-- Expanded change sets use a scrollable diff area capped at 312 pt high. File
-  headers are 34 pt high. Diff headers use mono 11 pt and 28 pt minimum height;
-  diff lines use mono 11 pt and 22 pt minimum height.
-- Additions use success text and success background at 0.08 opacity. Removals
-  use danger text and danger background at 0.08 opacity. Context lines stay on
-  white.
+- Current conversation content is centered in a 736 pt column. The implemented
+  shell uses 24 pt top and bottom padding around the visible conversation stack.
+  The top bar height is 52 pt with a soft bottom hairline.
+- Current user messages align right, use `clientSurfaceSofter`, 8 pt radius,
+  14 pt text, and max width 566 pt.
+- Current Secretary activity is represented by an activity card with duration,
+  title, checkmark bullets, and document/review preview pills.
+- Intended follow-up: tool output should be rendered as a semantic block, not a
+  screenshot. Show tool name, status, command, and output lines in
+  `JetBrainsMono-Regular` 12 pt inside an 8 pt radius surface.
+- Intended follow-up: change sets should be collapsed by default. The collapsed
+  row should show title, two-line summary, total additions, total deletions, and
+  file count.
+- Intended follow-up: expanded change sets should use a scrollable diff area
+  capped at 312 pt high. File headers should be 34 pt high. Diff headers should
+  use mono 11 pt and 28 pt minimum height; diff lines should use mono 11 pt and
+  22 pt minimum height.
+- Intended follow-up: additions should use success text and success background
+  at 0.08 opacity. Removals should use danger text and danger background at
+  0.08 opacity. Context lines should stay on white.
 
 ## PR-Safe Implementation Rules
 
@@ -114,9 +117,10 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
   `AteliaClientLayout`, `AteliaClientDesign`, and `Color+AteliaClient`; do not
   scatter magic numbers across views. Any Codex App references are
   compatibility/reference material only and must not become Atelia API names.
-- Preserve semantic models for conversation blocks: message, activity, tool
-  output, and change set. Rendering should follow the model, not parse strings
-  to infer UI structure.
+- Preserve semantic models for conversation blocks. Current rendered blocks are
+  message and activity; tool output and change set rendering remain follow-up
+  surfaces. Rendering should follow the model, not parse strings to infer UI
+  structure.
 - Keep the mock client ready for dynamic data. Sidebar commands and items need
   stable IDs, project/resource IDs where applicable, surface metadata, and
   action metadata. Selection must derive from navigation item ID plus
@@ -131,5 +135,6 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
   requires a contract, accessibility, or package-surface decision, split it or
   document the follow-up issue.
 - Validate PRs with `swift build` when code changes, `git diff --check` always,
-  and a visual review for sidebar, composer, conversation, and expanded diff
-  states when UI changes are present.
+  and a visual review for sidebar, composer, and conversation states when UI
+  changes are present. Include expanded diff state in visual review once that
+  surface is implemented.
