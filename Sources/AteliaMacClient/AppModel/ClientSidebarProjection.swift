@@ -139,6 +139,6 @@ struct ClientSidebarProjection {
     }
 
     private static func status(for snapshot: MacProjectStatusSnapshot) -> WorkspaceGroup.Status? {
-        snapshot.daemonLabel.contains("| Ready") && snapshot.storageLabel.contains("| Ready") ? nil : .warning
+        snapshot.isReady ? nil : .warning
     }
 }

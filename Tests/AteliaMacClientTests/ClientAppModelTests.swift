@@ -92,6 +92,29 @@ private let clientAppModelProjectStatusFixture = AteliaProjectStatus(
     storageStatus: .migrating
 )
 
+private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
+    metadata: AteliaProtocolMetadata(
+        protocolVersion: "1.0.0",
+        daemonVersion: "0.2.0",
+        storageVersion: "0.2.0",
+        capabilities: ["project_status.v1"]
+    ),
+    repository: AteliaRepository(
+        repositoryId: "repo_ready",
+        displayName: "Ready Repo",
+        rootPath: "/workspace/ready-repo",
+        allowedScope: AteliaPathScope(kind: .repository),
+        trustState: .trusted,
+        createdAtUnixMilliseconds: 1710000000000,
+        updatedAtUnixMilliseconds: 1710000100000
+    ),
+    recentJobs: [],
+    recentPolicyDecisions: [],
+    latestCursor: nil,
+    daemonStatus: .ready,
+    storageStatus: .ready
+)
+
 @MainActor
 @Test func clientAppModelReloadProjectsStoreStateIntoSidebar() async throws {
     let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
@@ -128,6 +151,18 @@ private let clientAppModelProjectStatusFixture = AteliaProjectStatus(
         "オートメーション",
         "Atelia Mobile を設定"
     ])
+}
+
+@MainActor
+@Test func clientAppModelSidebarClearsWarningWhenDaemonAndStorageAreReady() async throws {
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    let group = try #require(model.sidebarProjection.workspaceGroups.first)
+    #expect(group.status == nil)
 }
 
 @MainActor

@@ -112,7 +112,10 @@ private let unknownProjectStatusSnapshotFixture = AteliaProjectStatus(
     #expect(snapshot.repositoryDisplayName == "Atelia Kit")
     #expect(snapshot.repositoryRootPath == "/workspace/atelia-kit")
     #expect(snapshot.daemonLabel == "Daemon 0.2.0 | Ready")
+    #expect(snapshot.isDaemonReady == true)
     #expect(snapshot.storageLabel == "Storage 0.2.0 | Migrating")
+    #expect(snapshot.isStorageReady == false)
+    #expect(snapshot.isReady == false)
     #expect(snapshot.latestCursor == AteliaEventCursor(sequence: 17, eventId: "evt_123"))
     #expect(snapshot.latestCursorLabel == "Sequence 17 | Event evt_123")
     #expect(snapshot.recentJobs.count == 2)
@@ -147,7 +150,10 @@ private let unknownProjectStatusSnapshotFixture = AteliaProjectStatus(
     let snapshot = MacProjectStatusSnapshot(status: unknownProjectStatusSnapshotFixture)
 
     #expect(snapshot.daemonLabel == "Daemon 0.2.0 | Unknown: warming_up")
+    #expect(snapshot.isDaemonReady == false)
     #expect(snapshot.storageLabel == "Storage 0.2.0 | Unknown: sealed")
+    #expect(snapshot.isStorageReady == false)
+    #expect(snapshot.isReady == false)
     #expect(snapshot.latestCursor == nil)
     #expect(snapshot.latestCursorLabel == nil)
     #expect(snapshot.recentJobs.count == 1)
@@ -211,6 +217,9 @@ private let unknownProjectStatusSnapshotFixture = AteliaProjectStatus(
 
     let snapshot = MacProjectStatusSnapshot(status: status)
 
+    #expect(snapshot.isDaemonReady == true)
+    #expect(snapshot.isStorageReady == true)
+    #expect(snapshot.isReady == true)
     #expect(snapshot.recentJobs[0].requesterLabel == "User")
     #expect(snapshot.recentJobs[1].requesterLabel == "Agent")
 }
