@@ -110,12 +110,13 @@ gradient、遊びの強い illustration は避けます。
 - Current mock shell は change set を collapsed default で表示します。Collapsed row
   には title、2 line summary、total additions、total deletions、file count を表示
   します。
-- Current mock shell の expanded change set は scrollable diff area を使い、高さは
-  312 pt 上限にします。File header は 34 pt。Diff header は mono 11 pt、min height
-  28 pt。Diff line は mono 11 pt、min height 22 pt です。
-- Current mock shell の addition は success text と success background 0.08
-  opacity。Removal は danger text と danger background 0.08 opacity。Context line
-  は white のままにします。
+- Current mock shell の expanded change set は fixed 312 pt scroll viewport を
+  使います。File header は 34 pt。Diff header は mono 11 pt、min height 28 pt。
+  Diff line は mono 11 pt、min height 22 pt です。
+- Current mock shell の addition marker は success semantic color、removal marker
+  は danger semantic color を使います。Addition/removal line background はそれぞれ
+  の semantic color を 0.08 opacity で使い、diff content text は `clientText` の
+  ままにします。Context line は white のままにします。
 
 ## PR-Safe Implementation Rules
 

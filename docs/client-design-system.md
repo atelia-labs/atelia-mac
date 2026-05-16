@@ -110,13 +110,14 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 - Current mock shell renders change sets collapsed by default. The collapsed row
   shows title, two-line summary, total additions, total deletions, and file
   count.
-- Current mock shell renders expanded change sets with a scrollable diff area
-  capped at 312 pt high. File headers should be 34 pt high. Diff headers should
-  use mono 11 pt and 28 pt minimum height; diff lines should use mono 11 pt and
-  22 pt minimum height.
-- Current mock shell renders additions with success text and success background
-  at 0.08 opacity. Removals use danger text and danger background at 0.08
-  opacity. Context lines stay on white.
+- Current mock shell renders expanded change sets with a fixed 312 pt scroll
+  viewport. File headers should be 34 pt high. Diff headers should use mono
+  11 pt and 28 pt minimum height; diff lines should use mono 11 pt and 22 pt
+  minimum height.
+- Current mock shell renders addition markers with success semantic color and
+  removal markers with danger semantic color. Addition and removal line
+  backgrounds use their semantic colors at 0.08 opacity, while diff content
+  text remains `clientText`. Context lines stay on white.
 
 ## PR-Safe Implementation Rules
 
