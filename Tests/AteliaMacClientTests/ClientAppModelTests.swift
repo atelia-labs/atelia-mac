@@ -1,4 +1,5 @@
 import AteliaKit
+import AteliaMacClientModels
 import Testing
 @testable import AteliaMacClient
 @testable import AteliaMacCore
@@ -141,7 +142,8 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(group.status == .warning)
     #expect(group.items.map(\.title) == ["Secretary", "ジョブ"])
     #expect(group.items.map(\.trailing) == [nil, "2"])
-    #expect(group.items.first?.isSelected == true)
+    #expect(model.sidebarProjection.activeNavigationItemID == "nav:repo_123:project-conversation")
+    #expect(model.sidebarProjection.activeSurfaceID == MockSurfaceReference.projectConversation.id)
     #expect(group.settings.map(\.title) == ["ポリシー判断", "プロジェクト設定"])
     #expect(group.settings.map(\.trailing) == ["1", nil])
     #expect(model.sidebarProjection.globalItems.map(\.title) == [
@@ -151,6 +153,15 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
         "オートメーション",
         "Atelia Mobile を設定"
     ])
+
+    let globalSecretary = try #require(model.sidebarProjection.globalItems.first { $0.id == "global:secretary" })
+    let globalSearch = try #require(model.sidebarProjection.globalItems.first { $0.id == "global:search" })
+    #expect(globalSecretary.projectID == "global")
+    #expect(globalSecretary.resourceID == "conversation:global:secretary")
+    #expect(globalSecretary.surface == .globalSecretary)
+    #expect(globalSecretary.action == .openGlobalSecretary)
+    #expect(globalSearch.surface == .globalSearch)
+    #expect(globalSearch.action == .searchAllProjects)
 }
 
 @MainActor
@@ -179,6 +190,33 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(model.sidebarProjection.workspaceGroups.first?.title == "プロジェクト未読込")
     #expect(model.lastErrorMessage == nil)
     #expect(await store.snapshot == nil)
+}
+
+@MainActor
+@Test func clientAppModelUnloadedProjectionUsesStableSelectionContract() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    #expect(model.sidebarProjection.activeNavigationItemID == "nav:unloaded:project-conversation")
+    #expect(model.sidebarProjection.activeSurfaceID == MockSurfaceReference.projectConversation.id)
+    #expect(model.sidebarProjection.workspaceGroups.first?.items.first?.resourceID == "conversation:unloaded:secretary")
+}
+
+@MainActor
+@Test func clientAppModelProjectionDoesNotReuseProjectMetadataForGlobalRows() async throws {
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    let globalRows = model.sidebarProjection.globalItems
+
+    #expect(globalRows.allSatisfy { $0.projectID == "global" })
+    #expect(globalRows.allSatisfy { $0.action?.declaredBySurfaceID == $0.surface.surfaceID })
+    #expect(globalRows.first { $0.id == "global:secretary" }?.surface != .projectConversation)
+    #expect(globalRows.first { $0.id == "global:search" }?.surface != .projectHome)
 }
 
 @MainActor

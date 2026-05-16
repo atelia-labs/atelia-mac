@@ -5,13 +5,28 @@ import Foundation
 struct ClientSidebarProjection {
     var activeConversationTitle: String
     var activeProjectTitle: String
+    var activeSelection: ClientMockActiveSelection
     var workspaceGroups: [WorkspaceGroup]
     var globalItems: [ChatListItem]
+
+    var activeNavigationItemID: String {
+        navigationItems.first { activeSelection.matches($0) }?.id ?? ""
+    }
+
+    var activeSurfaceID: String {
+        "\(activeSelection.surfacePackageID)#\(activeSelection.surfaceID)"
+    }
 
     init(snapshot: MacProjectStatusSnapshot?) {
         guard let snapshot else {
             self.activeConversationTitle = "Secretary"
             self.activeProjectTitle = "プロジェクト未読込"
+            self.activeSelection = ClientMockActiveSelection(
+                projectID: "project:unloaded",
+                surfacePackageID: MockSurfaceReference.hostPackageID,
+                surfaceID: MockSurfaceReference.projectConversation.surfaceID,
+                resourceID: "conversation:unloaded:secretary"
+            )
             self.workspaceGroups = [
                 WorkspaceGroup(
                     id: "project:unloaded",
@@ -21,10 +36,11 @@ struct ClientSidebarProjection {
                     items: [
                         ChatListItem(
                             id: "nav:unloaded:project-conversation",
+                            projectID: "project:unloaded",
+                            resourceID: "conversation:unloaded:secretary",
                             title: "Secretary",
                             trailing: nil,
-                            isSelected: true,
-                            leadingStatus: .secretary,
+                            leadingAffordance: .assistantConversation,
                             surface: .projectConversation,
                             action: .openProjectConversation
                         )
@@ -40,6 +56,12 @@ struct ClientSidebarProjection {
 
         self.activeConversationTitle = "Secretary"
         self.activeProjectTitle = projectTitle
+        self.activeSelection = ClientMockActiveSelection(
+            projectID: "project:\(snapshot.repositoryId)",
+            surfacePackageID: MockSurfaceReference.hostPackageID,
+            surfaceID: MockSurfaceReference.projectConversation.surfaceID,
+            resourceID: "conversation:\(snapshot.repositoryId):secretary"
+        )
         self.workspaceGroups = [
             WorkspaceGroup(
                 id: "project:\(snapshot.repositoryId)",
@@ -62,18 +84,21 @@ struct ClientSidebarProjection {
         [
             ChatListItem(
                 id: "nav:\(snapshot.repositoryId):project-conversation",
+                projectID: "project:\(snapshot.repositoryId)",
+                resourceID: "conversation:\(snapshot.repositoryId):secretary",
                 title: "Secretary",
                 trailing: nil,
-                isSelected: true,
-                leadingStatus: .secretary,
+                leadingAffordance: .assistantConversation,
                 surface: .projectConversation,
                 action: .openProjectConversation
             ),
             ChatListItem(
                 id: "nav:\(snapshot.repositoryId):delegated-work",
+                projectID: "project:\(snapshot.repositoryId)",
+                resourceID: "work:\(snapshot.repositoryId):delegated",
                 title: "ジョブ",
                 trailing: countLabel(snapshot.recentJobs.count),
-                leadingStatus: snapshot.recentJobs.isEmpty ? nil : .branch,
+                leadingAffordance: snapshot.recentJobs.isEmpty ? nil : .delegatedWork,
                 surface: .projectHome,
                 action: .inspectDelegatedWork
             )
@@ -84,14 +109,18 @@ struct ClientSidebarProjection {
         [
             ChatListItem(
                 id: "nav:\(snapshot.repositoryId):permission-recovery",
+                projectID: "project:\(snapshot.repositoryId)",
+                resourceID: "permissions:\(snapshot.repositoryId):audit",
                 title: "ポリシー判断",
                 trailing: countLabel(snapshot.recentPolicyDecisions.count),
-                leadingStatus: snapshot.recentPolicyDecisions.isEmpty ? nil : .plus,
+                leadingAffordance: snapshot.recentPolicyDecisions.isEmpty ? nil : .packageInstall,
                 surface: .permissionRecovery,
                 action: .reviewPermissions
             ),
             ChatListItem(
                 id: "nav:\(snapshot.repositoryId):settings",
+                projectID: "project:\(snapshot.repositoryId)",
+                resourceID: "settings:\(snapshot.repositoryId):project",
                 title: "プロジェクト設定",
                 trailing: nil,
                 surface: .settings,
@@ -104,15 +133,27 @@ struct ClientSidebarProjection {
         [
             ChatListItem(
                 id: "global:secretary",
+                projectID: "global",
+                resourceID: "conversation:global:secretary",
                 title: "Global Secretary",
                 trailing: nil,
-                leadingStatus: .secretary,
-                surface: .projectConversation,
-                action: .openProjectConversation
+                leadingAffordance: .assistantConversation,
+                surface: .globalSecretary,
+                action: .openGlobalSecretary
             ),
-            ChatListItem(id: "global:search", title: "検索", trailing: nil, surface: .projectHome),
+            ChatListItem(
+                id: "global:search",
+                projectID: "global",
+                resourceID: "search:global",
+                title: "検索",
+                trailing: nil,
+                surface: .globalSearch,
+                action: .searchAllProjects
+            ),
             ChatListItem(
                 id: "global:extensions",
+                projectID: "global",
+                resourceID: "packages:global:installed",
                 title: "拡張機能",
                 trailing: nil,
                 surface: .packageManagement,
@@ -120,13 +161,27 @@ struct ClientSidebarProjection {
             ),
             ChatListItem(
                 id: "global:automations",
+                projectID: "global",
+                resourceID: "package-surface:official-automations:home",
                 title: "オートメーション",
                 trailing: nil,
                 surface: .officialAutomations,
                 action: .openAutomationsPackage
             ),
-            ChatListItem(id: "global:mobile-setup", title: "Atelia Mobile を設定", trailing: nil, surface: .settings)
+            ChatListItem(
+                id: "global:mobile-setup",
+                projectID: "global",
+                resourceID: "settings:global:mobile",
+                title: "Atelia Mobile を設定",
+                trailing: nil,
+                surface: .mobileSetup,
+                action: .openMobileSetup
+            )
         ]
+    }
+
+    private var navigationItems: [ChatListItem] {
+        workspaceGroups.flatMap { $0.items + $0.settings } + globalItems
     }
 
     private static func repositorySubtitle(for rootPath: String) -> String? {

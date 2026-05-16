@@ -231,7 +231,7 @@ private struct PrimaryNavigation: View {
             id: "primary:global-search",
             icon: .search,
             title: "検索",
-            surface: .projectHome,
+            surface: .globalSearch,
             action: .searchAllProjects
         )
     ]

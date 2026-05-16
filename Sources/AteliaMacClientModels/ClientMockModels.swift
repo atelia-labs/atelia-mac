@@ -823,6 +823,33 @@ public extension MockSurfaceReference {
         schemaVersion: "surface.mock.v1"
     )
 
+    static let globalSecretary = MockSurfaceReference(
+        packageID: hostPackageID,
+        surfaceID: "global-secretary",
+        lifecycle: .mounted,
+        trust: .hostShippedBuiltIn,
+        criticality: .hostRequired,
+        schemaVersion: "surface.mock.v1"
+    )
+
+    static let globalSearch = MockSurfaceReference(
+        packageID: hostPackageID,
+        surfaceID: "global-search",
+        lifecycle: .mounted,
+        trust: .hostShippedBuiltIn,
+        criticality: .hostRequired,
+        schemaVersion: "surface.mock.v1"
+    )
+
+    static let mobileSetup = MockSurfaceReference(
+        packageID: hostPackageID,
+        surfaceID: "mobile-setup",
+        lifecycle: .mounted,
+        trust: .hostShippedBuiltIn,
+        criticality: .hostRequired,
+        schemaVersion: "surface.mock.v1"
+    )
+
     static let packageManagement = MockSurfaceReference(
         packageID: hostPackageID,
         surfaceID: "package-management",
@@ -978,12 +1005,30 @@ public extension MockActionReference {
         auditEvent: "project_conversation.started"
     )
 
+    static let openGlobalSecretary = MockActionReference(
+        actionID: "action.global-secretary.open",
+        label: "Open Global Secretary",
+        packageID: MockSurfaceReference.hostPackageID,
+        surfaceID: "global-secretary",
+        actionOwnerComponentID: "global-secretary",
+        capabilityCallerComponentID: "host-navigation",
+        callerCapabilityID: "host_broker.open_surface",
+        componentProfile: "GlobalNavigationListItem.v1",
+        requiredPermissions: ["workspace.secretary.read"],
+        risk: .r1,
+        invokes: .broker(family: "surface", operation: "open"),
+        executionPath: .hostBroker,
+        confirmationRequired: false,
+        redactionProjection: "workspace_default",
+        auditEvent: "global_secretary.opened"
+    )
+
     static let searchAllProjects = MockActionReference(
-        actionID: "action.project-home.search-all-projects",
+        actionID: "action.global-search.search-all-projects",
         label: "Search all projects",
         packageID: MockSurfaceReference.hostPackageID,
-        surfaceID: "project-home",
-        actionOwnerComponentID: "project-shell",
+        surfaceID: "global-search",
+        actionOwnerComponentID: "global-search",
         capabilityCallerComponentID: "host-navigation",
         callerCapabilityID: "host_broker.open_surface",
         componentProfile: "PrimaryNavigationCommand.v1",
@@ -994,6 +1039,24 @@ public extension MockActionReference {
         confirmationRequired: false,
         redactionProjection: "workspace_default",
         auditEvent: "global_search.opened"
+    )
+
+    static let openMobileSetup = MockActionReference(
+        actionID: "action.mobile-setup.open",
+        label: "Open mobile setup",
+        packageID: MockSurfaceReference.hostPackageID,
+        surfaceID: "mobile-setup",
+        actionOwnerComponentID: "mobile-setup",
+        capabilityCallerComponentID: "host-navigation",
+        callerCapabilityID: "host_broker.open_surface",
+        componentProfile: "GlobalNavigationListItem.v1",
+        requiredPermissions: ["workspace.mobile.setup"],
+        risk: .r1,
+        invokes: .broker(family: "surface", operation: "open"),
+        executionPath: .hostBroker,
+        confirmationRequired: false,
+        redactionProjection: "workspace_default",
+        auditEvent: "mobile_setup.opened"
     )
 
     static let openAutomationsPackage = MockActionReference(
