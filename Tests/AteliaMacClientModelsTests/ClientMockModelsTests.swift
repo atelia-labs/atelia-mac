@@ -1,5 +1,5 @@
 import Testing
-@testable import AteliaMacClientModels
+import AteliaMacClientModels
 
 @Test func mockNavigationUsesStableIdsAndSurfaceMetadata() {
     let state = ClientMockState.codexReference
@@ -16,6 +16,7 @@ import Testing
     #expect(navigationItems.allSatisfy { !$0.id.isEmpty })
     #expect(navigationItems.allSatisfy { !$0.surface.packageID.isEmpty })
     #expect(navigationItems.allSatisfy { !$0.surface.surfaceID.isEmpty })
+    #expect(navigationItems.allSatisfy { $0.action?.declaredByPackageID == $0.surface.packageID })
     #expect(navigationItems.allSatisfy { $0.action?.declaredBySurfaceID == $0.surface.surfaceID })
 }
 
@@ -27,9 +28,81 @@ import Testing
     }
 
     #expect(packageProvidedItems.count == 4)
-    #expect(packageProvidedItems.allSatisfy { $0.surface.lifecycle == .availableWhenEnabled })
+    #expect(packageProvidedItems.allSatisfy { $0.surface.lifecycle == .available })
     #expect(packageProvidedItems.allSatisfy { $0.surface.trust == .bundledOfficial })
     #expect(packageProvidedItems.allSatisfy { $0.surface.criticality == .userRemovable })
+}
+
+@Test func publicAPIIsConstructibleWithoutTestableImport() {
+    let surface = MockSurfaceReference(
+        packageID: "dev.atelia.test.package",
+        surfaceID: "test-surface",
+        lifecycle: .available,
+        trust: .bundledOfficial,
+        criticality: .optional,
+        schemaVersion: "surface.mock.v1"
+    )
+    let action = MockActionReference(
+        actionID: "action.test.open",
+        declaredByPackageID: surface.packageID,
+        declaredBySurfaceID: surface.surfaceID,
+        permissionScope: "test.read",
+        auditEvent: "test.opened"
+    )
+    let item = ChatListItem(
+        id: "nav:test",
+        title: "Test",
+        trailing: nil,
+        isSelected: true,
+        leadingStatus: .green,
+        surface: surface,
+        action: action
+    )
+    let group = WorkspaceGroup(
+        id: "group:test",
+        title: "Test Group",
+        subtitle: nil,
+        surface: surface,
+        items: [item],
+        settings: [],
+        status: .warning,
+        emptyText: "No items"
+    )
+    let changeSummary = ChangeSummary(
+        filePath: "Sources/Test.swift",
+        additions: 1,
+        deletions: 0,
+        collapsedFileCount: 0
+    )
+    let message = ChatMessage(
+        id: "message:test",
+        text: "Test message",
+        attachmentName: nil
+    )
+    let document = DocumentPreview(title: "Test.md", subtitle: "Markdown")
+    let review = ReviewPreview(title: "Review", additions: 1, deletions: 0)
+    let activity = ActivityBlock(
+        duration: "1s",
+        title: "Activity",
+        bullets: ["Done"],
+        document: document,
+        review: review
+    )
+    let goal = GoalStatus(title: "Goal", elapsed: "1s")
+    let state = ClientMockState(
+        activeConversationTitle: "Conversation",
+        activeProjectTitle: "Project",
+        workspaceGroups: [group],
+        recentChats: [item],
+        changeSummary: changeSummary,
+        messages: [message],
+        activity: activity,
+        goal: goal
+    )
+
+    #expect(state.workspaceGroups.first?.items.first?.action == action)
+    #expect(state.activity.document.title == document.title)
+    #expect(state.goal.elapsed == goal.elapsed)
 }
 
 @Test func baselineItemsStayWithinDocumentedHostSurfaces() {
