@@ -26,20 +26,10 @@ enum AteliaClientFont {
         weight: Font.Weight = .regular,
         preferredName: String? = nil
     ) -> NSFont {
-        let fontName = preferredName ?? interFontName(for: weight)
-        return NSFont(name: fontName, size: size)
-            ?? NSFont.systemFont(ofSize: size, weight: systemWeight(for: weight))
-    }
-
-    static func interFontName(for weight: Font.Weight) -> String {
-        switch weight {
-        case .ultraLight, .thin, .light:
-            return "Inter-Light"
-        case .medium, .semibold, .bold, .heavy, .black:
-            return "Inter-Medium"
-        default:
-            return "Inter-Regular"
+        if let preferredName, let font = NSFont(name: preferredName, size: size) {
+            return font
         }
+        return NSFont.systemFont(ofSize: size, weight: systemWeight(for: weight))
     }
 
     private static func systemWeight(for weight: Font.Weight) -> NSFont.Weight {

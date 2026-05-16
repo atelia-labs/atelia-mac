@@ -4,7 +4,7 @@ import SwiftUI
 struct CodexAttributedText: NSViewRepresentable {
     var text: String
     var maxWidth: CGFloat
-    var fontName = AteliaClientFont.interFontName(for: .regular)
+    var fontName: String? = nil
     var fontSize: CGFloat = 14
     var lineHeight: CGFloat = 24
     var color = NSColor(
