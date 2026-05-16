@@ -60,9 +60,16 @@ rather than hidden client core.
 
 ## Development
 
-This repository starts with a Swift package for client core before an Xcode app
-target is added.
+This repository currently builds as a Swift package with the shared
+`AteliaMacCore` library and the `AteliaMacClient` executable.
 
 ```sh
+swift build
 swift test
+```
+
+To build and launch the bootstrap client executable:
+
+```sh
+script/run_client_app.sh
 ```

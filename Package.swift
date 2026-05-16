@@ -8,6 +8,10 @@ let package = Package(
         .macOS(.v26)
     ],
     products: [
+        .executable(
+            name: "AteliaMacClient",
+            targets: ["AteliaMacClient"]
+        ),
         .library(
             name: "AteliaMacCore",
             targets: ["AteliaMacCore"]
@@ -17,6 +21,10 @@ let package = Package(
         .package(url: "https://github.com/atelia-labs/atelia-kit.git", branch: "main")
     ],
     targets: [
+        .executableTarget(
+            name: "AteliaMacClient",
+            dependencies: ["AteliaMacCore"]
+        ),
         .target(
             name: "AteliaMacCore",
             dependencies: [
