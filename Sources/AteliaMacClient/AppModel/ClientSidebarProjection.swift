@@ -345,10 +345,6 @@ struct ClientSidebarProjection {
         ]
     }
 
-    private var navigationItems: [ChatListItem] {
-        workspaceGroups.flatMap { $0.items + $0.settings } + globalItems
-    }
-
     private static func repositorySubtitle(for rootPath: String) -> String? {
         let lastPathComponent = URL(fileURLWithPath: rootPath).lastPathComponent
         return lastPathComponent.isEmpty ? nil : lastPathComponent
