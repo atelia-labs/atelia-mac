@@ -433,11 +433,17 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     let model = ClientAppModel(projectStatusStore: store)
 
     try await model.reloadProjectStatus()
+    model.handleComposerIntent(.send(
+        text: "既存のリクエスト",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
     await model.clearProjectStatus()
 
     #expect(model.projectStatusSnapshot == nil)
     #expect(model.sidebarProjection.activeProjectTitle == "プロジェクト未読込")
     #expect(model.sidebarProjection.workspaceGroups.first?.title == "プロジェクト未読込")
+    #expect(model.lastComposerSubmissionRequest == nil)
     #expect(model.lastErrorMessage == nil)
     #expect(await store.snapshot == nil)
 }
@@ -548,6 +554,32 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     ))
 
     #expect(model.activeConversationTarget() == .global)
+}
+
+@MainActor
+@Test func clientAppModelReportsUnavailableConversationTargetWhenNoProjectStatusLoaded() async {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    #expect(model.activeConversationTarget() == .unavailable)
+}
+
+@MainActor
+@Test func clientAppModelRejectsComposerSendWhenConversationTargetIsUnavailable() async {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    model.handleComposerIntent(.send(
+        text: "テスト",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
+
+    #expect(model.activeConversationTarget() == .unavailable)
+    #expect(model.lastComposerSubmissionRequest == nil)
+    #expect(model.lastErrorMessage == "プロジェクトを選択してください。")
 }
 
 @MainActor

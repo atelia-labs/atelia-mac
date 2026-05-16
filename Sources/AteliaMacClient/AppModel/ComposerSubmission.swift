@@ -19,6 +19,7 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
 
     static func fromSendIntent(
         text: String,
+        repositoryId: String,
         configuration: ComposerConfiguration,
         contexts: [ComposerContextSelection]
     ) -> ComposerJobSubmissionRequest? {
@@ -28,7 +29,7 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
         }
 
         return ComposerJobSubmissionRequest(
-            repositoryId: "",
+            repositoryId: repositoryId,
             message: trimmedText,
             goal: nil,
             modelRouteKey: configuration.routeKey,

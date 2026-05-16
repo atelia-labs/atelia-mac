@@ -308,20 +308,13 @@ final class ClientAppModel {
 
         guard let request = ComposerJobSubmissionRequest.fromSendIntent(
             text: text,
+            repositoryId: repositoryId,
             configuration: configuration,
             contexts: contexts
         ) else {
             return nil
         }
 
-        return ComposerJobSubmissionRequest(
-            repositoryId: repositoryId,
-            message: request.message,
-            goal: request.goal,
-            modelRouteKey: request.modelRouteKey,
-            permissionModeRouteKey: request.permissionModeRouteKey,
-            contextIDs: request.contextIDs,
-            pathScope: request.pathScope
-        )
+        return request
     }
 }
