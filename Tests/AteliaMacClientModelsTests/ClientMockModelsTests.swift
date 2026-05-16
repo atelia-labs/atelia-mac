@@ -367,7 +367,9 @@ import AteliaMacClientModels
     let search = MockActionReference.searchAllProjects
 
     #expect(newThread.declaredBySurfaceID == MockSurfaceReference.projectConversation.surfaceID)
-    #expect(search.declaredBySurfaceID == MockSurfaceReference.projectHome.surfaceID)
+    #expect(search.declaredBySurfaceID == MockSurfaceReference.globalSearch.surfaceID)
+    #expect(MockSurfaceReference.globalSearch.trust == .bundledOfficial)
+    #expect(MockSurfaceReference.globalSearch.criticality == .userRemovable)
     #expect(newThread.permissionScope == "project.conversation.write")
     #expect(search.permissionScope == "workspace.search.read")
 }

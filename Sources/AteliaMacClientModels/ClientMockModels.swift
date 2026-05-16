@@ -823,6 +823,24 @@ public extension MockSurfaceReference {
         schemaVersion: "surface.mock.v1"
     )
 
+    static let globalSecretary = MockSurfaceReference(
+        packageID: "dev.atelia.packages.official.secretary",
+        surfaceID: "global-secretary",
+        lifecycle: .available,
+        trust: .bundledOfficial,
+        criticality: .userRemovable,
+        schemaVersion: "surface.mock.v1"
+    )
+
+    static let globalSearch = MockSurfaceReference(
+        packageID: "dev.atelia.packages.official.search",
+        surfaceID: "global-search",
+        lifecycle: .available,
+        trust: .bundledOfficial,
+        criticality: .userRemovable,
+        schemaVersion: "surface.mock.v1"
+    )
+
     static let packageManagement = MockSurfaceReference(
         packageID: hostPackageID,
         surfaceID: "package-management",
@@ -978,22 +996,58 @@ public extension MockActionReference {
         auditEvent: "project_conversation.started"
     )
 
+    static let openGlobalSecretary = MockActionReference(
+        actionID: "action.global-secretary.open",
+        label: "Open Global Secretary",
+        packageID: "dev.atelia.packages.official.secretary",
+        surfaceID: "global-secretary",
+        actionOwnerComponentID: "global-secretary",
+        capabilityCallerComponentID: "global-secretary-backend",
+        callerCapabilityID: "service.global_secretary.read",
+        componentProfile: "GlobalNavigationListItem.v1",
+        requiredPermissions: ["workspace.secretary.read"],
+        risk: .r1,
+        invokes: .service(service: "global-secretary.surface.v1", method: "open"),
+        executionPath: .serviceBroker,
+        confirmationRequired: false,
+        redactionProjection: "workspace_default",
+        auditEvent: "global_secretary.opened"
+    )
+
     static let searchAllProjects = MockActionReference(
-        actionID: "action.project-home.search-all-projects",
+        actionID: "action.global-search.search-all-projects",
         label: "Search all projects",
-        packageID: MockSurfaceReference.hostPackageID,
-        surfaceID: "project-home",
-        actionOwnerComponentID: "project-shell",
-        capabilityCallerComponentID: "host-navigation",
-        callerCapabilityID: "host_broker.open_surface",
+        packageID: "dev.atelia.packages.official.search",
+        surfaceID: "global-search",
+        actionOwnerComponentID: "global-search",
+        capabilityCallerComponentID: "global-search-backend",
+        callerCapabilityID: "service.global_search.read",
         componentProfile: "PrimaryNavigationCommand.v1",
         requiredPermissions: ["workspace.search.read"],
+        risk: .r1,
+        invokes: .service(service: "global-search.surface.v1", method: "open"),
+        executionPath: .serviceBroker,
+        confirmationRequired: false,
+        redactionProjection: "workspace_default",
+        auditEvent: "global_search.opened"
+    )
+
+    static let openMobileSetup = MockActionReference(
+        actionID: "action.mobile-setup.open",
+        label: "Open mobile setup",
+        packageID: MockSurfaceReference.hostPackageID,
+        surfaceID: "settings",
+        actionOwnerComponentID: "settings-mobile",
+        capabilityCallerComponentID: "host-navigation",
+        callerCapabilityID: "host_broker.open_surface",
+        componentProfile: "GlobalNavigationListItem.v1",
+        requiredPermissions: ["workspace.mobile.setup"],
         risk: .r1,
         invokes: .broker(family: "surface", operation: "open"),
         executionPath: .hostBroker,
         confirmationRequired: false,
         redactionProjection: "workspace_default",
-        auditEvent: "global_search.opened"
+        auditEvent: "mobile_setup.opened"
     )
 
     static let openAutomationsPackage = MockActionReference(

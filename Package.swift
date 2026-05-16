@@ -24,6 +24,7 @@ let package = Package(
         .executableTarget(
             name: "AteliaMacClient",
             dependencies: [
+                .product(name: "AteliaKit", package: "atelia-kit"),
                 "AteliaMacClientModels",
                 "AteliaMacCore"
             ],

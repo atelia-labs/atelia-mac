@@ -108,8 +108,14 @@ public struct MacProjectStatusSnapshot: Sendable, Equatable {
     public let repositoryRootPath: String
     /// Latest daemon label for presentation surfaces.
     public let daemonLabel: String
+    /// Whether the daemon reports typed readiness.
+    public let isDaemonReady: Bool
     /// Latest storage label for presentation surfaces.
     public let storageLabel: String
+    /// Whether storage reports typed readiness.
+    public let isStorageReady: Bool
+    /// Whether daemon and storage are both ready.
+    public let isReady: Bool
     /// Latest event cursor, if available.
     public let latestCursor: AteliaEventCursor?
     /// Presentation-safe cursor label, if available.
@@ -129,11 +135,14 @@ public struct MacProjectStatusSnapshot: Sendable, Equatable {
             version: status.metadata.daemonVersion,
             status: Self.daemonStatusLabel(for: status.daemonStatus)
         )
+        self.isDaemonReady = status.daemonStatus == .ready
         self.storageLabel = Self.label(
             prefix: "Storage",
             version: status.metadata.storageVersion,
             status: Self.storageStatusLabel(for: status.storageStatus)
         )
+        self.isStorageReady = status.storageStatus == .ready
+        self.isReady = isDaemonReady && isStorageReady
         self.latestCursor = status.latestCursor
         self.latestCursorLabel = status.latestCursor.map(Self.latestCursorLabel(for:))
         self.recentJobs = status.recentJobs.map(RecentJobSummary.init(job:))
