@@ -4,12 +4,11 @@ import SwiftUI
 enum ComposerIntent: Equatable {
     case attachFile
     case insertMention(String)
-    case openFileContext
-    case openExtensionContext
+    case openContext(ComposerContextSelection)
     case selectPermissionMode(ComposerPermissionMode)
     case selectModel(ComposerModelSelection)
     case startVoiceInput
-    case send(text: String, configuration: ComposerConfiguration)
+    case send(text: String, configuration: ComposerConfiguration, contexts: [ComposerContextSelection])
 }
 
 struct ComposerView: View {
@@ -19,6 +18,7 @@ struct ComposerView: View {
     var onIntent: (ComposerIntent) -> Void = { _ in }
 
     @State private var draftText: String
+    @State private var selectedContexts: [ComposerContextSelection] = []
 
     init(
         goal: GoalStatus,
@@ -29,7 +29,7 @@ struct ComposerView: View {
     ) {
         self.goal = goal
         self.configuration = configuration
-        self.hasAttachment = hasAttachment
+        self.hasAttachment = hasAttachment || configuration.attachmentPreview != nil
         self.onIntent = onIntent
         _draftText = State(initialValue: text)
     }
@@ -44,6 +44,9 @@ struct ComposerView: View {
                 goal: goal,
                 hasAttachment: hasAttachment,
                 draftText: $draftText,
+                selectedContexts: $selectedContexts,
+                contextReferences: configuration.contextReferences,
+                attachmentPreview: configuration.attachmentPreview,
                 onIntent: onIntent
             )
 
@@ -101,7 +104,7 @@ struct ComposerView: View {
 
                 Button {
                     guard isSendEnabled else { return }
-                    onIntent(.send(text: draftText, configuration: configuration))
+                    onIntent(.send(text: draftText, configuration: configuration, contexts: selectedContexts))
                 } label: {
                     Image(systemName: "arrow.up")
                         .font(.system(size: 14, weight: .regular))
@@ -146,6 +149,9 @@ private struct ComposerBody: View {
     let goal: GoalStatus
     let hasAttachment: Bool
     @Binding var draftText: String
+    @Binding var selectedContexts: [ComposerContextSelection]
+    let contextReferences: [ComposerContextReference]
+    let attachmentPreview: ComposerAttachmentPreview?
     let onIntent: (ComposerIntent) -> Void
 
     var body: some View {
@@ -167,24 +173,15 @@ private struct ComposerBody: View {
                         onIntent: onIntent
                     )
 
-                    ComposerContextChip(
-                        title: "ファイル",
-                        subtitle: "添付",
-                        systemName: "paperclip",
-                        tint: Color.clientFileMention
-                    ) {
-                        draftText = draftText.isEmpty ? "[file]" : "\(draftText) [file]"
-                        onIntent(.openFileContext)
-                    }
-
-                    ComposerContextChip(
-                        title: "拡張機能",
-                        subtitle: "文脈",
-                        systemName: "puzzlepiece.extension",
-                        tint: Color.clientMutedText
-                    ) {
-                        draftText = draftText.isEmpty ? "[extension]" : "\(draftText) [extension]"
-                        onIntent(.openExtensionContext)
+                    ForEach(contextReferences) { context in
+                        ComposerContextChip(
+                            context: context,
+                            tint: context.kind.composerTint
+                        ) {
+                            let selection = ComposerContextSelection(id: context.id, kind: context.kind)
+                            selectedContexts.upsert(selection)
+                            onIntent(.openContext(selection))
+                        }
                     }
 
                     Spacer(minLength: 0)
@@ -193,6 +190,7 @@ private struct ComposerBody: View {
                         Text("/")
                             .font(.ateliaLatin(14, weight: .semibold))
                             .foregroundStyle(Color.clientMutedText)
+                            .accessibilityHidden(true)
 
                         TextField(
                             "コマンドを入力",
@@ -202,6 +200,8 @@ private struct ComposerBody: View {
                         .textFieldStyle(.plain)
                         .foregroundStyle(Color.clientStrongText)
                         .tint(Color.clientAccent)
+                        .accessibilityLabel("コマンド入力")
+                        .accessibilityHint("Secretary のコマンド本文を入力")
                     }
                     .padding(.horizontal, 10)
                     .frame(width: 238, height: 24)
@@ -214,16 +214,13 @@ private struct ComposerBody: View {
                             .stroke(Color.clientLineStrong, lineWidth: 1)
                     }
                 }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("スラッシュコマンド入力")
-                .accessibilityHint("先頭に / を付けて Secretary のコマンドを入力します")
             }
             .padding(.top, 8)
             .padding(.leading, 14)
             .padding(.trailing, 14)
 
             if hasAttachment {
-                ComposerAttachmentPreview()
+                ComposerAttachmentPreviewView(attachment: attachmentPreview)
                     .padding(.top, 10)
                     .padding(.leading, 13)
             }
@@ -270,22 +267,22 @@ private struct ComposerMentionMenu: View {
 }
 
 private struct ComposerContextChip: View {
-    let title: String
-    let subtitle: String
-    let systemName: String
+    let context: ComposerContextReference
     let tint: Color
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             ComposerContextChipLabel(
-                title: title,
-                subtitle: subtitle,
-                systemName: systemName,
+                title: context.title,
+                subtitle: context.subtitle,
+                systemName: context.systemImageName,
                 tint: tint
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(context.accessibilityLabel)
+        .accessibilityHint("文脈を開く")
     }
 }
 
@@ -325,7 +322,9 @@ private struct ComposerContextChipLabel: View {
     }
 }
 
-private struct ComposerAttachmentPreview: View {
+private struct ComposerAttachmentPreviewView: View {
+    let attachment: ComposerAttachmentPreview?
+
     var body: some View {
         HStack(spacing: 8) {
             RoundedRectangle(cornerRadius: 7, style: .continuous)
@@ -337,12 +336,12 @@ private struct ComposerAttachmentPreview: View {
                 }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("standard-surfaces.md")
+                Text(attachment?.title ?? "添付ファイル")
                     .font(.ateliaLatin(11.5, weight: .medium))
                     .foregroundStyle(Color.clientStrongText)
                     .lineLimit(1)
 
-                Text("ファイル / 拡張機能の文脈を保持")
+                Text(attachment?.subtitle ?? "ファイル文脈")
                     .font(.atelia(10.75))
                     .foregroundStyle(Color.clientSubtleText)
                     .lineLimit(1)
@@ -360,6 +359,33 @@ private struct ComposerAttachmentPreview: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.clientLine, lineWidth: 1)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(attachment?.title ?? "添付ファイル")
+        .accessibilityHint(attachment?.subtitle ?? "添付済みのファイル文脈")
+    }
+}
+
+private extension ComposerContextKind {
+    var composerTint: Color {
+        switch self {
+        case .file:
+            Color.clientFileMention
+        case .packageExtension:
+            Color.clientMutedText
+        }
+    }
+}
+
+private extension ComposerContextReference {
+    var accessibilityLabel: String {
+        "\(title): \(subtitle)"
+    }
+}
+
+private extension Array where Element == ComposerContextSelection {
+    mutating func upsert(_ selection: ComposerContextSelection) {
+        removeAll { $0.id == selection.id }
+        append(selection)
     }
 }
 
