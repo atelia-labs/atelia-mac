@@ -382,6 +382,10 @@ private struct SidebarChatRow: View {
     let isSelected: Bool
     let onAction: (SidebarAction) -> Void
 
+    private var isPlaceholder: Bool {
+        item.action == nil
+    }
+
     var body: some View {
         if let action = item.action {
             Button {
@@ -405,6 +409,7 @@ private struct SidebarChatRow: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(accessibilityLabel)
                 .accessibilityValue(isSelected ? "選択中" : "")
+                .accessibilityHint("準備中の項目です")
         }
     }
 
@@ -429,7 +434,11 @@ private struct SidebarChatRow: View {
             Text(item.title)
                 .font(.atelia(13.25))
                 .tracking(0.25)
-                .foregroundStyle(isSelected ? Color.clientText : Color.clientSidebarText)
+                .foregroundStyle(
+                    isPlaceholder
+                        ? Color.clientSubtleText
+                        : (isSelected ? Color.clientText : Color.clientSidebarText)
+                )
                 .lineLimit(1)
 
             Spacer(minLength: 8)

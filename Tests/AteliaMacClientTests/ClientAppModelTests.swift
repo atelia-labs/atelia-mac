@@ -473,6 +473,26 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientAppModelRoutesDismissProjectAddCandidateActionToClearSelection() async throws {
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    model.recordPendingProjectAddSelection(
+        folderURL: URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit"),
+        source: .existingFolder
+    )
+
+    #expect(model.pendingProjectAddSelection?.folderURL == URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit"))
+    #expect(model.sidebarProjection.projectAddCandidateLabel == "AteliaKit")
+
+    model.handleSidebarAction(.dismissProjectAddCandidate)
+
+    #expect(model.pendingProjectAddSelection == nil)
+    #expect(model.sidebarProjection.projectAddCandidateLabel == nil)
+}
+
+@MainActor
 @Test func clientAppModelUnloadedProjectionUsesStableSelectionContract() async throws {
     let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
     let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")

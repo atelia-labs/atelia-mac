@@ -13,7 +13,7 @@ struct ProjectAddSelection: Equatable, Sendable {
     var folderURL: URL
 
     var label: String {
-        let folderName = folderURL.lastPathComponent.isEmpty ? folderURL.path : folderURL.lastPathComponent
+        let folderName = folderURL.lastPathComponent
         return folderName.isEmpty ? folderURL.path : folderName
     }
 }

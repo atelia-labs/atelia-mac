@@ -1,30 +1,30 @@
 # Atelia Mac Client Design System
 
-この文書は、現在の `AteliaMacClient` 実装と client sketch から読み取れる
-永続的な UI ルールを固定するものです。見た目は product surface です。
+この文書は、現在の `AteliaMacClient` 実装と `client sketch` から読み取れる
+永続的な `UI` ルールを固定するものです。見た目は `product surface` です。
 将来の PR で毎回方向性を議論し直さないよう、レビュー可能な粒度まで具体化します。
 
 ## Design Intent
 
-Atelia Mac は、Secretary の作業、project context、tool activity、code change
-を監督するための高密度な業務 client です。native、静か、精密、運用向きに見える
-必要があります。marketing page 的な構成、装飾 card、巨大な heading、強い
-gradient、遊びの強い illustration は避けます。
+Atelia Mac は、`Secretary` の作業、`project context`、`tool activity`、`code change`
+を監督するための高密度な業務 `client` です。`native`、静か、精密、運用向きに見える
+必要があります。`marketing page` 的な構成、装飾 `card`、巨大な `heading`、強い
+`gradient`、遊びの強い `illustration` は避けます。
 
-既定 theme は light です。現在の app は `.preferredColorScheme(.light)` を指定
-しています。dark mode は専用の設計 pass が必要です。部分的な dark styling を
+既定 `theme` は `light` です。現在の `app` は `.preferredColorScheme(.light)` を指定
+しています。`dark mode` は専用の設計 `pass` が必要です。部分的な `dark styling` を
 混ぜてはいけません。
 
 ## Typography
 
-- Font は shared helper を使います。場当たり的な system font stack を各 view に
+- `Font` は shared helper を使います。場当たり的な `system font stack` を各 `view` に
   書かないでください。
-- Body、日本語 UI text、general prose は `Font.atelia` を使います。Latin label と
-  file path は `Font.ateliaLatin` を優先します。Current semantic text surface では、
-  mixed copy や legacy sidebar label が残る箇所で `Font.atelia` を使う場合があります。
-  visible な `Global Secretary` sidebar label は現在の transition exception です。
-  これらの body / Latin helper は、bundled text font が明示的に wire されるまでは
-  system-font fallback に乗る semantic wrapper です。Code と diff output は mono
+- Body、日本語 `UI` `text`、`general prose` は `Font.atelia` を使います。Latin `label` と
+  `file path` は `Font.ateliaLatin` を優先します。Current `semantic text surface` では、
+  `mixed copy` や `legacy sidebar label` が残る箇所で `Font.atelia` を使う場合があります。
+  visible な `Global Secretary` sidebar `label` は現在の `transition exception` です。
+  これらの body / Latin helper は、bundled `text font` が明示的に `wire` されるまでは
+  `system-font fallback` に乗る `semantic wrapper` です。`Code` と `diff output` は mono
   helper を使い、その surface を render する時点で bundled `JetBrainsMono-Regular`
   を target します。
 - Base content text は 14 pt。Top bar product title は 16 pt semibold です。
