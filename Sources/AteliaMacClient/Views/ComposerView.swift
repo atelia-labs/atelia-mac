@@ -14,7 +14,7 @@ struct ComposerView: View {
             ComposerBody(hasAttachment: hasAttachment, text: text)
 
             HStack(spacing: 13) {
-                PlainIconButton(systemName: "plus")
+                ComposerExtensionControl()
 
                 HStack(spacing: 5) {
                     Image(systemName: "exclamationmark.shield")
@@ -118,5 +118,28 @@ private struct PlainIconButton: View {
             .symbolRenderingMode(.monochrome)
             .foregroundStyle(Color.clientMutedText)
             .frame(width: 17, height: 17)
+    }
+}
+
+private struct ComposerExtensionControl: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "plus.circle")
+                .font(.system(size: 14, weight: .regular))
+
+            Text("拡張機能")
+                .font(.atelia(13))
+        }
+        .foregroundStyle(Color.clientMutedText)
+        .frame(height: 26)
+        .padding(.horizontal, 9)
+        .background {
+            Capsule()
+                .fill(Color.clientSurfaceSofter)
+        }
+        .overlay {
+            Capsule()
+                .stroke(Color.clientDockHairline, lineWidth: 1)
+        }
     }
 }

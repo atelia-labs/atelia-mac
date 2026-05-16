@@ -16,13 +16,13 @@ struct SidebarView: View {
 
             FadingSidebarScroll {
                 VStack(alignment: .leading, spacing: 14) {
+                    GlobalSecretaryView(items: globalItems)
+
                     SidebarSectionLabel(title: "プロジェクト")
 
                     ForEach(groups) { group in
                         WorkspaceGroupView(group: group)
                     }
-
-                    GlobalSecretaryView(items: globalItems)
                 }
                 .padding(.horizontal, 6)
                 .padding(.top, 12)
@@ -131,6 +131,7 @@ private struct SidebarGlyph: View {
         case automation
         case phone
         case folder
+        case globe
         case gear
     }
 
@@ -168,6 +169,8 @@ private struct SidebarGlyph: View {
             "iphone"
         case .folder:
             "folder"
+        case .globe:
+            "globe"
         case .gear:
             "gearshape"
         }
@@ -179,7 +182,7 @@ private struct SidebarGlyph: View {
             12.75
         case .sidebar:
             12.5
-        case .folder:
+        case .folder, .globe:
             13.25
         default:
             13.75
@@ -190,10 +193,7 @@ private struct SidebarGlyph: View {
 private struct PrimaryNavigation: View {
     private let rows = [
         (SidebarGlyph.Kind.compose, "新しいスレッド"),
-        (.search, "検索"),
-        (.plugins, "拡張機能"),
-        (.automation, "オートメーション"),
-        (.phone, "Atelia Mobile を設定")
+        (.search, "検索")
     ]
 
     var body: some View {
@@ -245,6 +245,13 @@ private struct WorkspaceGroupView: View {
 
             if !group.settings.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
+                    Rectangle()
+                        .fill(Color.clientLineSoft)
+                        .frame(height: 1)
+                        .padding(.leading, 39)
+                        .padding(.trailing, 8)
+                        .padding(.bottom, 3)
+
                     Text("その他の設定")
                         .font(.atelia(12.75))
                         .tracking(0.25)
@@ -292,8 +299,8 @@ private struct SidebarChatRow: View {
     var body: some View {
         HStack(spacing: 9) {
             if let leadingStatus = item.leadingStatus {
-                Image(systemName: "point.3.connected.trianglepath.dotted")
-                    .font(.system(size: 10, weight: .regular))
+                Image(systemName: symbolName(for: leadingStatus))
+                    .font(.system(size: symbolSize(for: leadingStatus), weight: .regular))
                     .foregroundStyle(Color.clientSidebarIcon)
                     .overlay(alignment: .bottomTrailing) {
                         if leadingStatus == .green {
@@ -333,6 +340,30 @@ private struct SidebarChatRow: View {
         .padding(.leading, 6)
         .padding(.trailing, 8)
     }
+
+    private func symbolName(for status: ChatListItem.LeadingStatus) -> String {
+        switch status {
+        case .green:
+            "point.3.connected.trianglepath.dotted"
+        case .secretary:
+            "sparkles"
+        case .branch:
+            "arrow.triangle.branch"
+        case .plus:
+            "plus.circle"
+        }
+    }
+
+    private func symbolSize(for status: ChatListItem.LeadingStatus) -> CGFloat {
+        switch status {
+        case .green:
+            10
+        case .secretary, .branch:
+            12.25
+        case .plus:
+            12
+        }
+    }
 }
 
 private struct GlobalSecretaryView: View {
@@ -340,17 +371,32 @@ private struct GlobalSecretaryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Global Secretary")
+            HStack(spacing: 9) {
+                SidebarGlyph(.globe)
+
+                Text("Global Secretary")
+                    .font(.atelia(13.25))
+                    .tracking(0.25)
+                    .foregroundStyle(Color.clientSidebarText)
+
+                Spacer()
+            }
+            .frame(height: 32)
+            .padding(.leading, 14)
+            .padding(.trailing, 8)
+
+            Text("全プロジェクト")
                 .font(.atelia(12.25))
                 .tracking(0.25)
                 .foregroundStyle(Color.clientMutedText)
-                .padding(.leading, 14)
-                .frame(height: 32, alignment: .leading)
+                .padding(.leading, 39)
+                .frame(height: 25, alignment: .leading)
 
-            ForEach(items) { item in
+            ForEach(items.prefix(1)) { item in
                 SidebarChatRow(item: item)
             }
         }
+        .padding(.top, 2)
     }
 }
 
