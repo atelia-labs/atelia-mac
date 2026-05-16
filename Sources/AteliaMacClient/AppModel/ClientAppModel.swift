@@ -13,7 +13,7 @@ struct ProjectAddSelection: Equatable, Sendable {
     var folderURL: URL
 
     var label: String {
-        let folderName = folderURL.lastPathComponent.isEmpty ? folderURL.path : folderURL.lastPathComponent
+        let folderName = folderURL.lastPathComponent
         return folderName.isEmpty ? folderURL.path : folderName
     }
 }
@@ -179,14 +179,14 @@ final class ClientAppModel {
         case .openProjectSettings:
             sidebarSelectionState = .globalSettings(title: title)
         default:
-            let fallbackScope = fallbackScope(for: surface)
+            let scope = fallbackScope(for: surface)
             sidebarSelectionState = .selectionState(
-                projectTitle: fallbackScope.projectTitle,
+                projectTitle: scope.projectTitle,
                 navigationItemID: nil,
                 primaryCommandID: id,
                 title: title,
                 surface: surface,
-                projectID: fallbackScope.projectID,
+                projectID: scope.projectID,
                 resourceID: "surface-command:\(id)"
             )
         }

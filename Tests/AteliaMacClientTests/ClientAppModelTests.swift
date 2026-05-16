@@ -172,8 +172,8 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(group.items.map(\.trailing) == [nil, "2"])
     #expect(model.sidebarProjection.activeNavigationItemID == "nav:repo_123:project-conversation")
     #expect(model.sidebarProjection.activeSurfaceID == MockSurfaceReference.projectConversation.id)
-    #expect(group.settings.map(\.title) == ["ポリシー判断", "プロジェクト設定"])
-    #expect(group.settings.map(\.trailing) == ["1", nil])
+    #expect(group.settings.map(\.title) == ["ポリシー判断", "拡張機能", "オートメーション", "プロジェクト設定"])
+    #expect(group.settings.map(\.trailing) == ["1", nil, nil, nil])
     #expect(model.sidebarProjection.globalItems.map(\.title) == [
         "Global Secretary",
         "検索",
@@ -259,7 +259,7 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 
     try await model.reloadProjectStatus()
 
-    let projectSettings = try #require(model.sidebarProjection.workspaceGroups.first?.settings.first { $0.id == "nav:repo_123:settings" })
+    let projectSettings = try #require(model.sidebarProjection.workspaceGroups.first?.settings.last { $0.id == "nav:repo_123:settings" })
 
     model.handleSidebarAction(.chatItem(
         id: projectSettings.id,
@@ -473,6 +473,26 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientAppModelRoutesDismissProjectAddCandidateActionToClearSelection() async throws {
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    model.recordPendingProjectAddSelection(
+        folderURL: URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit"),
+        source: .existingFolder
+    )
+
+    #expect(model.pendingProjectAddSelection?.folderURL == URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit"))
+    #expect(model.sidebarProjection.projectAddCandidateLabel == "AteliaKit")
+
+    model.handleSidebarAction(.dismissProjectAddCandidate)
+
+    #expect(model.pendingProjectAddSelection == nil)
+    #expect(model.sidebarProjection.projectAddCandidateLabel == nil)
+}
+
+@MainActor
 @Test func clientAppModelUnloadedProjectionUsesStableSelectionContract() async throws {
     let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
     let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
@@ -564,11 +584,27 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 
     try FileManager.default.createDirectory(at: parentDirectory, withIntermediateDirectories: true)
 
-    let resultURL = try ProjectFolderCreation.ensureDirectory(at: folderURL)
-
-    #expect(resultURL == folderURL)
-    #expect(FileManager.default.fileExists(atPath: folderURL.path))
+    let ensuredURL = try ProjectFolderCreation.ensureDirectory(at: folderURL)
     var isDirectory: ObjCBool = false
+
+    #expect(ensuredURL == folderURL)
     #expect(FileManager.default.fileExists(atPath: folderURL.path, isDirectory: &isDirectory))
     #expect(isDirectory.boolValue)
+}
+
+@Test func projectFolderCreationThrowsWhenTargetExistsAsFile() throws {
+    let parentDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let fileURL = parentDirectory.appendingPathComponent("ExistingProject", isDirectory: false)
+
+    defer {
+        try? FileManager.default.removeItem(at: parentDirectory)
+    }
+
+    try FileManager.default.createDirectory(at: parentDirectory, withIntermediateDirectories: true)
+    FileManager.default.createFile(atPath: fileURL.path, contents: Data(), attributes: nil)
+
+    #expect(FileManager.default.fileExists(atPath: fileURL.path))
+    #expect(throws: CocoaError.self) {
+        try ProjectFolderCreation.ensureDirectory(at: fileURL)
+    }
 }

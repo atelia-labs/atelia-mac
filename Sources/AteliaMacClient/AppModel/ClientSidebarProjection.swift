@@ -265,6 +265,24 @@ struct ClientSidebarProjection {
                 action: .reviewPermissions
             ),
             ChatListItem(
+                id: "nav:\(snapshot.repositoryId):extensions",
+                projectID: "project:\(snapshot.repositoryId)",
+                resourceID: "packages:\(snapshot.repositoryId):installed",
+                title: "拡張機能",
+                trailing: nil,
+                surface: .packageManagement,
+                action: nil
+            ),
+            ChatListItem(
+                id: "nav:\(snapshot.repositoryId):automations",
+                projectID: "project:\(snapshot.repositoryId)",
+                resourceID: "package-surface:official-automations:home",
+                title: "オートメーション",
+                trailing: nil,
+                surface: .officialAutomations,
+                action: nil
+            ),
+            ChatListItem(
                 id: "nav:\(snapshot.repositoryId):settings",
                 projectID: "project:\(snapshot.repositoryId)",
                 resourceID: "settings:\(snapshot.repositoryId):project",
@@ -339,5 +357,4 @@ struct ClientSidebarProjection {
     private static func status(for snapshot: MacProjectStatusSnapshot) -> WorkspaceGroup.Status? {
         snapshot.isReady ? nil : .warning
     }
-
 }

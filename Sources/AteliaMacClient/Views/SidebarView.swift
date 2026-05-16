@@ -113,12 +113,12 @@ private struct FadingSidebarScroll<Content: View>: View {
 
             VStack(spacing: 0) {
                 SidebarFadeOverlay(edge: .top)
-                .frame(height: 32)
+                    .frame(height: 32)
 
                 Spacer(minLength: 0)
 
                 SidebarFadeOverlay(edge: .bottom)
-                .frame(height: 34)
+                    .frame(height: 34)
             }
             .allowsHitTesting(false)
         }
@@ -382,6 +382,10 @@ private struct SidebarChatRow: View {
     let isSelected: Bool
     let onAction: (SidebarAction) -> Void
 
+    private var isPlaceholder: Bool {
+        item.action == nil
+    }
+
     var body: some View {
         if let action = item.action {
             Button {
@@ -405,6 +409,7 @@ private struct SidebarChatRow: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(accessibilityLabel)
                 .accessibilityValue(isSelected ? "選択中" : "")
+                .accessibilityHint("準備中の項目です")
         }
     }
 
@@ -429,7 +434,11 @@ private struct SidebarChatRow: View {
             Text(item.title)
                 .font(.atelia(13.25))
                 .tracking(0.25)
-                .foregroundStyle(isSelected ? Color.clientText : Color.clientSidebarText)
+                .foregroundStyle(
+                    isPlaceholder
+                        ? Color.clientSubtleText
+                        : (isSelected ? Color.clientText : Color.clientSidebarText)
+                )
                 .lineLimit(1)
 
             Spacer(minLength: 8)
@@ -531,6 +540,8 @@ private struct ProjectSectionHeaderView: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
+        let isProjectAddMenuVisible = isHovered || isFocused
+
         HStack(spacing: 8) {
             Text(header.title)
                 .font(.atelia(14.25))
@@ -555,8 +566,36 @@ private struct ProjectSectionHeaderView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .focused($isFocused)
-                .opacity(isHovered || isFocused ? 1 : 0)
+                .opacity(isProjectAddMenuVisible ? 1 : 0)
+                .allowsHitTesting(isProjectAddMenuVisible)
+                .accessibilityHidden(!isProjectAddMenuVisible)
                 .accessibilityLabel("プロジェクトを追加")
+            }
+        }
+        .frame(height: 32)
+        .padding(.leading, 14)
+        .padding(.trailing, 8)
+        .projectSectionHeaderAccessibilityActions(header: header, onAction: onAction)
+        .onHover { hovered in
+            withAnimation(.easeOut(duration: 0.12)) {
+                isHovered = hovered
+            }
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func projectSectionHeaderAccessibilityActions(
+        header: ProjectSectionHeaderViewData,
+        onAction: @escaping (SidebarAction) -> Void
+    ) -> some View {
+        if header.actions.isEmpty {
+            self
+        } else {
+            self
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(header.title)
                 .accessibilityAction(named: Text("新規フォルダを作成")) {
                     if let action = header.actions.first(where: { $0.kind == .createFolder }) {
                         onAction(.projectSectionHeaderAction(action))
@@ -567,15 +606,6 @@ private struct ProjectSectionHeaderView: View {
                         onAction(.projectSectionHeaderAction(action))
                     }
                 }
-            }
-        }
-        .frame(height: 32)
-        .padding(.leading, 14)
-        .padding(.trailing, 8)
-        .onHover { hovered in
-            withAnimation(.easeOut(duration: 0.12)) {
-                isHovered = hovered
-            }
         }
     }
 }
