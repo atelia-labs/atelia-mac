@@ -9,7 +9,7 @@ struct AteliaMacClientApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ClientBootstrapView()
+            ClientShellView(state: .ateliaReference)
                 .frame(minWidth: 960, minHeight: 640)
                 .preferredColorScheme(AteliaClientDesign.supportsLightColorSchemeOnly ? .light : nil)
         }
