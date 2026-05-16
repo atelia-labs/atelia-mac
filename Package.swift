@@ -23,16 +23,26 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "AteliaMacClient",
-            dependencies: ["AteliaMacCore"],
+            dependencies: [
+                "AteliaMacClientModels",
+                "AteliaMacCore"
+            ],
             resources: [
                 .process("Resources")
             ]
+        ),
+        .target(
+            name: "AteliaMacClientModels"
         ),
         .target(
             name: "AteliaMacCore",
             dependencies: [
                 .product(name: "AteliaKit", package: "atelia-kit")
             ]
+        ),
+        .testTarget(
+            name: "AteliaMacClientModelsTests",
+            dependencies: ["AteliaMacClientModels"]
         ),
         .testTarget(
             name: "AteliaMacCoreTests",
