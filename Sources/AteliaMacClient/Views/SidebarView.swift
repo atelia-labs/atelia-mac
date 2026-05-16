@@ -540,6 +540,8 @@ private struct ProjectSectionHeaderView: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
+        let isProjectAddMenuVisible = isHovered || isFocused
+
         HStack(spacing: 8) {
             Text(header.title)
                 .font(.atelia(14.25))
@@ -564,7 +566,9 @@ private struct ProjectSectionHeaderView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .focused($isFocused)
-                .opacity(isHovered || isFocused ? 1 : 0)
+                .opacity(isProjectAddMenuVisible ? 1 : 0)
+                .allowsHitTesting(isProjectAddMenuVisible)
+                .accessibilityHidden(!isProjectAddMenuVisible)
                 .accessibilityLabel("プロジェクトを追加")
                 .accessibilityAction(named: Text("新規フォルダを作成")) {
                     if let action = header.actions.first(where: { $0.kind == .createFolder }) {

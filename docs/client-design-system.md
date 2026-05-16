@@ -70,8 +70,9 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 - Project groups use folder glyphs, optional short subtitles, and row-level
   counts or warnings. Group-local secondary rows belong under the localized
   `その他の設定` label with a subtle separator before that subsection.
-- Current project-secondary IA includes the placeholder rows `拡張機能`,
-  `オートメーション`, and `プロジェクト設定` under that subsection.
+- Current project-secondary IA keeps `拡張機能` and `オートメーション`
+  as placeholder rows under that subsection. `プロジェクト設定` is active,
+  not a placeholder row.
 - Use SF Symbols through `SidebarGlyph` for common actions. Keep glyphs
   monochrome, regular weight, and in the 12 to 14 pt range.
 - Selected rows use `clientSidebarSelected` with 9 pt corner radius. Do not use

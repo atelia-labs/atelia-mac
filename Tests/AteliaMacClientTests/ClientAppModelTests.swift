@@ -585,7 +585,26 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     try FileManager.default.createDirectory(at: parentDirectory, withIntermediateDirectories: true)
 
     let ensuredURL = try ProjectFolderCreation.ensureDirectory(at: folderURL)
+    var isDirectory: ObjCBool = false
 
     #expect(ensuredURL == folderURL)
-    #expect(FileManager.default.fileExists(atPath: folderURL.path))
+    #expect(FileManager.default.fileExists(atPath: folderURL.path, isDirectory: &isDirectory))
+    #expect(isDirectory.boolValue)
+}
+
+@Test func projectFolderCreationThrowsWhenTargetExistsAsFile() throws {
+    let parentDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let fileURL = parentDirectory.appendingPathComponent("ExistingProject", isDirectory: false)
+
+    defer {
+        try? FileManager.default.removeItem(at: parentDirectory)
+    }
+
+    try FileManager.default.createDirectory(at: parentDirectory, withIntermediateDirectories: true)
+    FileManager.default.createFile(atPath: fileURL.path, contents: Data(), attributes: nil)
+
+    #expect(FileManager.default.fileExists(atPath: fileURL.path))
+    #expect(throws: CocoaError.self) {
+        try ProjectFolderCreation.ensureDirectory(at: fileURL)
+    }
 }

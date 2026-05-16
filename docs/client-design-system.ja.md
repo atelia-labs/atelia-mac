@@ -71,8 +71,8 @@ Atelia Mac は、`Secretary` の作業、`project context`、`tool activity`、`
   warning を持ちます。Group-local secondary row は localized label である
   `その他の設定` の下に置き、その subsection の前に subtle separator を入れます。
 - 現在の project-secondary IA は、その subsection の下に
-  `拡張機能`、`オートメーション`、`プロジェクト設定` の placeholder row を
-  含みます。
+  `拡張機能` と `オートメーション` の placeholder row を含みます。
+  `プロジェクト設定` は active であり、placeholder row ではありません。
 - Common action は `SidebarGlyph` 経由の SF Symbols を使います。Glyph は
   monochrome、regular weight、12 から 14 pt の範囲に収めます。
 - Selected row は `clientSidebarSelected` と 9 pt corner radius を使います。
