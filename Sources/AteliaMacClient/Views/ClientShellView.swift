@@ -36,16 +36,20 @@ struct ClientShellView: View {
                 .fill(Color.clientSidebarRail)
                 .frame(width: AteliaClientLayout.sidebarDividerWidth)
 
-            ConversationView(
-                conversation: AteliaConversation(fixture: state.conversation),
-                activeProjectTitle: state.activeProjectTitle,
-                goal: state.goal,
-                composer: state.composer,
-                onOpenSettings: { onAction(.openSettings) },
-                onComposerIntent: { onAction(.composer($0)) }
-            )
+            conversationView
         }
         .background(Color.white)
         .font(.atelia(14))
+    }
+
+    var conversationView: ConversationView {
+        ConversationView(
+            conversation: AteliaConversation(fixture: state.conversation),
+            activeProjectTitle: sidebarProjection.activeProjectTitle,
+            goal: state.goal,
+            composer: state.composer,
+            onOpenSettings: { onAction(.openSettings) },
+            onComposerIntent: { onAction(.composer($0)) }
+        )
     }
 }
