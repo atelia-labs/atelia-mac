@@ -298,10 +298,6 @@ private struct AteliaChangeSetView: View {
                 .frame(maxHeight: 312)
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.clientLine, lineWidth: 1)
-                }
             }
         }
         .padding(12)
@@ -351,16 +347,17 @@ private struct AteliaDiffFileView: View {
             .padding(.horizontal, 10)
             .frame(height: 34)
             .background(Color.clientSurfaceSoft)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Color.clientLineSoft)
+                    .frame(height: 1)
+            }
 
             ForEach(file.hunks) { hunk in
                 AteliaDiffHunkView(hunk: hunk)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 7))
-        .overlay {
-            RoundedRectangle(cornerRadius: 7)
-                .stroke(Color.clientLine, lineWidth: 1)
-        }
     }
 }
 
