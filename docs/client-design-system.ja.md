@@ -19,9 +19,9 @@ gradient、遊びの強い illustration は避けます。
 
 - Font は bundled font と shared helper を使います。場当たり的な system font stack
   を各 view に書かないでください。
-- Body、日本語 UI text、Latin label、file path は `Font.atelia` を使います。
-  Code と diff output は、その surface を render する時点で
-  `JetBrainsMono-Regular` を使います。
+- Body、日本語 UI text、general prose は `Font.atelia` を使います。Latin label と
+  file path は `Font.ateliaLatin` を使います。Code と diff output は、その
+  surface を render する時点で `JetBrainsMono-Regular` を使います。
 - Base content text は 14 pt。Top bar product title は 16 pt semibold です。
   Section と row label は 12.25 から 13.25 pt。Sidebar section header は
   14.25 pt です。
@@ -94,11 +94,12 @@ gradient、遊びの強い illustration は避けます。
 - Current conversation content は 736 pt column に置きます。実装済み shell は、
   表示される conversation stack の上に 34 pt、下に 28 pt padding を使います。Top
   bar height は 52 pt、bottom に soft hairline を置きます。
-- Current user message は右寄せ、`clientSurfaceSofter`、8 pt radius、14 pt text、
+- Current user message は右寄せ、`clientSurfaceSofter`、12 pt radius、14 pt text、
   最大 width 566 pt です。
-- Current Secretary activity は、duration、status、title、checkmark bullet を持つ
-  activity card として表示します。Document/review preview pill は current
-  rendering ではなく intended follow-up です。
+- Current Secretary activity は、Secretary mark、status、duration、title、小さな
+  success-dot bullet を持つ unframed inline activity block として表示します。
+  Document/review preview pill は current rendering ではなく intended follow-up
+  です。
 - Current mock shell は tool output を screenshot ではなく semantic block として
   表示します。Tool name、status、command、output lines を表示し、8 pt radius
   surface 内に mono 12 pt で置きます。

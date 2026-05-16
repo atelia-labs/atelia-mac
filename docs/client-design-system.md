@@ -18,9 +18,9 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 ## Typography
 
 - Use bundled fonts through the shared helpers, not ad hoc system font stacks.
-- Body, Japanese UI text, Latin labels, and file paths use `Font.atelia`.
-  Code and diff output should use `JetBrainsMono-Regular` when those surfaces
-  are rendered.
+- Body, Japanese UI text, and general prose use `Font.atelia`. Latin labels and
+  file paths use `Font.ateliaLatin`. Code and diff output should use
+  `JetBrainsMono-Regular` when those surfaces are rendered.
 - Base content text is 14 pt. The top bar product title is 16 pt semibold.
   Section and row labels sit between 12.25 and 13.25 pt. Sidebar section
   headers use 14.25 pt.
@@ -94,11 +94,12 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 - Current conversation content is centered in a 736 pt column. The implemented
   shell uses 34 pt top padding and 28 pt bottom padding around the visible
   conversation stack. The top bar height is 52 pt with a soft bottom hairline.
-- Current user messages align right, use `clientSurfaceSofter`, 8 pt radius,
+- Current user messages align right, use `clientSurfaceSofter`, 12 pt radius,
   14 pt text, and max width 566 pt.
-- Current Secretary activity is represented by an activity card with duration,
-  status, title, and checkmark bullets. Document/review preview pills are an
-  intended follow-up, not current activity rendering.
+- Current Secretary activity is an unframed inline activity block with the
+  Secretary mark, status, duration, title, and small success-dot bullets.
+  Document/review preview pills are an intended follow-up, not current activity
+  rendering.
 - Current mock shell renders tool output as a semantic block, not a screenshot.
   It shows tool name, status, command, and output lines in mono 12 pt inside an
   8 pt radius surface.
