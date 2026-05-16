@@ -1,4 +1,5 @@
 import AppKit
+import CoreText
 @testable import AteliaMacClient
 import Testing
 
@@ -52,4 +53,31 @@ func attributedTextConfiguresLineHeightAndSelectionContract() throws {
     #expect(paragraph.maximumLineHeight == 21)
     #expect(paragraph.lineBreakMode == .byWordWrapping)
     #expect(attributes[.foregroundColor] as? NSColor == .clientText)
+}
+
+@MainActor
+@Test
+func attributedTextUsesJapaneseCascadeForBundledInterWeights() throws {
+    let result = ClientFontRegistrar.registerBundledFonts()
+    #expect(result.isSuccessful)
+
+    let sample = "フォローアップの変更を求める"
+    let sampleString = sample as CFString
+
+    for interPostScriptName in ClientFontRegistrar.interPostScriptNames {
+        let view = AteliaClientAttributedText(
+            text: sample,
+            maxWidth: 320,
+            fontName: interPostScriptName
+        )
+        let font = try #require(view.attributedString().attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        let fallbackFont = CTFontCreateForString(
+            font as CTFont,
+            sampleString,
+            CFRange(location: 0, length: CFStringGetLength(sampleString))
+        )
+
+        #expect(CTFontCopyPostScriptName(font as CTFont) as String == interPostScriptName)
+        #expect(CTFontCopyPostScriptName(fallbackFont) as String == ClientFontRegistrar.japaneseFallbackPostScriptName)
+    }
 }

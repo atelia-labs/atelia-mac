@@ -39,15 +39,23 @@ struct AteliaClientAttributedText: NSViewRepresentable {
         return NSAttributedString(
             string: text,
             attributes: [
-                .font: AteliaClientFont.nsFont(
-                    size: fontSize,
-                    weight: .regular,
-                    preferredName: fontName
-                ),
+                .font: font(),
                 .foregroundColor: color,
                 .paragraphStyle: paragraph,
                 .kern: 0
             ]
+        )
+    }
+
+    private func font() -> NSFont {
+        if let fontName, ClientFontRegistrar.interPostScriptNames.contains(fontName) {
+            return ClientFontRegistrar.clientTextFont(named: fontName, size: fontSize) as NSFont
+        }
+
+        return AteliaClientFont.nsFont(
+            size: fontSize,
+            weight: .regular,
+            preferredName: fontName
         )
     }
 }
