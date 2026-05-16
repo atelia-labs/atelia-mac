@@ -23,7 +23,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "AteliaMacClient",
-            dependencies: ["AteliaMacCore"]
+            dependencies: ["AteliaMacCore"],
+            resources: [
+                .process("Resources")
+            ]
         ),
         .target(
             name: "AteliaMacCore",

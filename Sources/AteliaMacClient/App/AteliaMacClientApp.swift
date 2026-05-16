@@ -3,6 +3,10 @@ import SwiftUI
 
 @main
 struct AteliaMacClientApp: App {
+    init() {
+        ClientFontRegistrar.registerBundledFonts()
+    }
+
     var body: some Scene {
         WindowGroup {
             ClientBootstrapView()
