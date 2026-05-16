@@ -48,8 +48,8 @@ struct AteliaClientAttributedText: NSViewRepresentable {
     }
 
     private func font() -> NSFont {
-        if fontName == ClientFontRegistrar.interRegularPostScriptName {
-            return ClientFontRegistrar.clientTextFont(size: fontSize) as NSFont
+        if let fontName, ClientFontRegistrar.interPostScriptNames.contains(fontName) {
+            return ClientFontRegistrar.clientTextFont(named: fontName, size: fontSize) as NSFont
         }
 
         return AteliaClientFont.nsFont(

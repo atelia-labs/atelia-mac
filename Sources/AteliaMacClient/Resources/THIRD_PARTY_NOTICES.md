@@ -24,7 +24,10 @@ Open Font License, Version 1.1.
 
 ## Noto Sans JP
 
-- File: `NotoSansJP.ttf`
+- File: `NotoSansJP-VF.ttf`
+- Font metadata: this bundled variable font registers the fallback instance
+  with PostScript name `NotoSansJP-Thin_Regular` and family instance
+  `NotoSansJP-Thin`.
 - Copyright: (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font
   Name 'Source'.
 - Designers: Ryoko Nishizuka, Paul D. Hunt, Sandoll Communications, Soo-young

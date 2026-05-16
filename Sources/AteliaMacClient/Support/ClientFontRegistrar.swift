@@ -29,9 +29,17 @@ enum ClientFontRegistrar {
 
     static let interRegularPostScriptName = "Inter-Regular"
     static let japaneseFallbackPostScriptName = "NotoSansJP-Thin_Regular"
+    static let interPostScriptNames = [
+        "Inter-Light",
+        interRegularPostScriptName,
+        "Inter-Medium",
+        "Inter-SemiBold"
+    ]
 
     static let bundledFonts = [
-        FontResource(fileName: "NotoSansJP", postScriptName: japaneseFallbackPostScriptName),
+        // The Noto Sans JP variable font registers the fallback instance under
+        // NotoSansJP-Thin_Regular; keep the resource name explicit about VF packaging.
+        FontResource(fileName: "NotoSansJP-VF", postScriptName: japaneseFallbackPostScriptName),
         FontResource(fileName: "Inter-Light", postScriptName: "Inter-Light"),
         FontResource(fileName: interRegularPostScriptName, postScriptName: interRegularPostScriptName),
         FontResource(fileName: "Inter-Medium", postScriptName: "Inter-Medium"),
@@ -129,8 +137,12 @@ enum ClientFontRegistrar {
     }
 
     static func clientTextFont(size: CGFloat) -> CTFont {
+        clientTextFont(named: interRegularPostScriptName, size: size)
+    }
+
+    static func clientTextFont(named postScriptName: String, size: CGFloat) -> CTFont {
         let baseDescriptor = CTFontDescriptorCreateWithNameAndSize(
-            interRegularPostScriptName as CFString,
+            postScriptName as CFString,
             size
         )
         let japaneseDescriptor = CTFontDescriptorCreateWithNameAndSize(
@@ -143,27 +155,5 @@ enum ClientFontRegistrar {
         )
 
         return CTFontCreateWithFontDescriptor(descriptor, size, nil)
-    }
-
-    static func debugFallbackFonts() {
-        let base = clientTextFont(size: 14)
-        let samples = [
-            "A",
-            "AGENTS.md",
-            "削除しました。",
-            "フルアクセス",
-            "フォローアップの変更を求める"
-        ]
-
-        for sample in samples {
-            let string = sample as CFString
-            let font = CTFontCreateForString(
-                base,
-                string,
-                CFRange(location: 0, length: CFStringGetLength(string))
-            )
-            let postScriptName = CTFontCopyPostScriptName(font)
-            print("[AteliaMacClient] fallback font:", sample, "=>", postScriptName)
-        }
     }
 }
