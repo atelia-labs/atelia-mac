@@ -2,6 +2,7 @@ import Foundation
 
 struct ClientMockState {
     var activeConversationTitle: String
+    var activeProjectTitle: String
     var workspaceGroups: [WorkspaceGroup]
     var recentChats: [ChatListItem]
     var changeSummary: ChangeSummary
@@ -9,52 +10,46 @@ struct ClientMockState {
     var activity: ActivityBlock
     var goal: GoalStatus
 
-    static let codexReference = ClientMockState(
-        activeConversationTitle: "Atelia docsを同期",
+    static let ateliaReference = ClientMockState(
+        activeConversationTitle: "Secretary による Package MDP 更新",
+        activeProjectTitle: "Mac Atelia",
         workspaceGroups: [
-            WorkspaceGroup(
-                title: "presentations",
-                subtitle: nil,
-                items: []
-            ),
             WorkspaceGroup(
                 title: "Mac Atelia",
                 subtitle: nil,
                 items: [
-                    ChatListItem(title: "Atelia docsを同期", trailing: "7時間", isSelected: true),
-                    ChatListItem(title: "Sync docs to Atelia canon", trailing: "3日"),
-                    ChatListItem(title: "Review surface-protocol ...", trailing: "5日"),
-                    ChatListItem(title: "Review codex/surface-pr...", trailing: "1週間"),
-                    ChatListItem(title: "Review codex/surface-pr...", trailing: "4日")
+                    ChatListItem(title: "Secretary", trailing: nil, isSelected: true, leadingStatus: .secretary),
+                    ChatListItem(title: "サブエージェント", trailing: "3", leadingStatus: .branch)
+                ],
+                settings: [
+                    ChatListItem(title: "拡張機能", trailing: nil, leadingStatus: .plus),
+                    ChatListItem(title: "オートメーション", trailing: nil),
+                    ChatListItem(title: "プロジェクト設定", trailing: nil)
                 ]
             ),
             WorkspaceGroup(
-                title: "atelia-la...",
-                subtitle: "wsl-co...",
-                items: [],
-                status: .warning,
-                emptyText: "チャットはありません"
+                title: "atelia-secretary",
+                subtitle: "Global Secretary",
+                items: [
+                    ChatListItem(title: "Secretary", trailing: nil, leadingStatus: .secretary),
+                    ChatListItem(title: "オートメーション", trailing: "2")
+                ],
+                status: .warning
             ),
             WorkspaceGroup(
                 title: "Aspiral",
                 subtitle: nil,
                 items: [
-                    ChatListItem(title: "Aspiral Main 4/26", trailing: "2週間", leadingStatus: .green)
+                    ChatListItem(title: "Secretary", trailing: nil, leadingStatus: .secretary)
                 ]
-            ),
-            WorkspaceGroup(title: "papers", subtitle: nil, items: [], emptyText: "チャットはありません"),
-            WorkspaceGroup(
-                title: "metis",
-                subtitle: "wsl-codex",
-                items: [],
-                status: .warning,
-                emptyText: "チャットはありません"
             )
         ],
         recentChats: [
-            ChatListItem(title: "GLM Coding Planをサブエ...", trailing: "2日"),
-            ChatListItem(title: "Codexマルウェアを調査", trailing: "3日"),
-            ChatListItem(title: "Codex Appで/goalを有効化", trailing: "3日")
+            ChatListItem(title: "Global Secretary", trailing: nil, leadingStatus: .secretary),
+            ChatListItem(title: "検索", trailing: nil),
+            ChatListItem(title: "拡張機能", trailing: nil),
+            ChatListItem(title: "オートメーション", trailing: nil),
+            ChatListItem(title: "Atelia Mobile を設定", trailing: nil)
         ],
         changeSummary: ChangeSummary(
             filePath: "atelia-secretary-package-audit/crates/ateliad/src/rpc.rs",
@@ -80,10 +75,12 @@ struct ClientMockState {
             review: ReviewPreview(title: "2 件のファイルを編集", additions: 50, deletions: 47)
         ),
         goal: GoalStatus(
-            title: "一時停止中の目標 Package-Driven Atelia MDP: merge existing At...",
+            title: "一時停止中の目標 Package-Driven Atelia MDP: dynamic Mac client",
             elapsed: "33h 39m 21s"
         )
     )
+
+    static let codexReference = ateliaReference
 }
 
 struct WorkspaceGroup: Identifiable {
@@ -95,6 +92,7 @@ struct WorkspaceGroup: Identifiable {
     var title: String
     var subtitle: String?
     var items: [ChatListItem]
+    var settings: [ChatListItem] = []
     var status: Status?
     var emptyText: String?
 }
@@ -102,11 +100,14 @@ struct WorkspaceGroup: Identifiable {
 struct ChatListItem: Identifiable {
     enum LeadingStatus {
         case green
+        case secretary
+        case branch
+        case plus
     }
 
     var id = UUID()
     var title: String
-    var trailing: String
+    var trailing: String?
     var isSelected = false
     var leadingStatus: LeadingStatus?
 }
