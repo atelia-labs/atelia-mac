@@ -1,3 +1,4 @@
+import AteliaMacClientModels
 import SwiftUI
 
 struct ClientShellView: View {

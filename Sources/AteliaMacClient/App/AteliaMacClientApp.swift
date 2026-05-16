@@ -1,3 +1,4 @@
+import AteliaMacClientModels
 import AteliaMacCore
 import SwiftUI
 
