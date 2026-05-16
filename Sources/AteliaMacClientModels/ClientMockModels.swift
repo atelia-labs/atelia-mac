@@ -1183,12 +1183,55 @@ public extension LeadingAffordanceRole {
 }
 
 public struct ClientMockProjection: Sendable {
+    public var projectSectionHeader: ProjectSectionHeaderViewData
     public var workspaceGroups: [WorkspaceGroupViewData]
     public var recentChats: [ChatListItemViewData]
 
-    public init(workspaceGroups: [WorkspaceGroupViewData], recentChats: [ChatListItemViewData]) {
+    public init(
+        projectSectionHeader: ProjectSectionHeaderViewData,
+        workspaceGroups: [WorkspaceGroupViewData],
+        recentChats: [ChatListItemViewData]
+    ) {
+        self.projectSectionHeader = projectSectionHeader
         self.workspaceGroups = workspaceGroups
         self.recentChats = recentChats
+    }
+}
+
+public struct ProjectSectionHeaderViewData: Sendable, Equatable {
+    public var title: String
+    public var actions: [ProjectSectionHeaderActionViewData]
+
+    public init(title: String, actions: [ProjectSectionHeaderActionViewData]) {
+        self.title = title
+        self.actions = actions
+    }
+}
+
+public struct ProjectSectionHeaderActionViewData: Identifiable, Hashable, Sendable {
+    public enum Kind: String, Hashable, Sendable {
+        case createFolder = "create-folder"
+        case useExistingFolder = "use-existing-folder"
+    }
+
+    public var id: String
+    public var kind: Kind
+    public var title: String
+    public var symbolName: String
+    public var accessibilityLabel: String
+
+    public init(
+        id: String,
+        kind: Kind,
+        title: String,
+        symbolName: String,
+        accessibilityLabel: String
+    ) {
+        self.id = id
+        self.kind = kind
+        self.title = title
+        self.symbolName = symbolName
+        self.accessibilityLabel = accessibilityLabel
     }
 }
 
@@ -1252,6 +1295,7 @@ public struct ChatListItemViewData: Identifiable, Sendable {
 public extension ClientMockState {
     var projection: ClientMockProjection {
         ClientMockProjection(
+            projectSectionHeader: .projectSectionHeader,
             workspaceGroups: workspaceGroups.map { group in
                 WorkspaceGroupViewData(
                     id: group.id,
@@ -1273,6 +1317,28 @@ public extension ClientMockState {
             }
         )
     }
+}
+
+public extension ProjectSectionHeaderViewData {
+    static let projectSectionHeader = ProjectSectionHeaderViewData(
+        title: "プロジェクト",
+        actions: [
+            ProjectSectionHeaderActionViewData(
+                id: "project:add:create-folder",
+                kind: .createFolder,
+                title: "新規フォルダを作成",
+                symbolName: "folder.badge.plus",
+                accessibilityLabel: "新規フォルダを作成"
+            ),
+            ProjectSectionHeaderActionViewData(
+                id: "project:add:use-existing-folder",
+                kind: .useExistingFolder,
+                title: "既存のフォルダを使用",
+                symbolName: "folder",
+                accessibilityLabel: "既存のフォルダを使用"
+            )
+        ]
+    )
 }
 
 public struct ChangeSummary: Sendable {

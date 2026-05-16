@@ -4,11 +4,13 @@ import SwiftUI
 enum SidebarAction {
     case command(id: String, surface: MockSurfaceReference, action: MockActionReference)
     case chatItem(id: String, projectID: String, resourceID: String, surface: MockSurfaceReference, action: MockActionReference)
+    case projectSectionHeaderAction(ProjectSectionHeaderActionViewData)
 }
 
 struct SidebarView: View {
     let activeSelection: ClientMockActiveSelection
     let activeNavigationItemID: String
+    let projectSectionHeader: ProjectSectionHeaderViewData
     let groups: [WorkspaceGroup]
     let globalItems: [ChatListItem]
     var onAction: (SidebarAction) -> Void = { _ in }
@@ -31,7 +33,10 @@ struct SidebarView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     GlobalSecretaryView(items: globalItems, selection: selection, onAction: onAction)
 
-                    SidebarSectionLabel(title: "プロジェクト")
+                    ProjectSectionHeaderView(
+                        header: projectSectionHeader,
+                        onAction: onAction
+                    )
 
                     ForEach(groups) { group in
                         WorkspaceGroupView(group: group, selection: selection, onAction: onAction)
@@ -69,18 +74,6 @@ private struct SidebarBackground: View {
     var body: some View {
         VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
             .overlay(Color.white.opacity(0.80))
-    }
-}
-
-private struct SidebarSectionLabel: View {
-    let title: String
-
-    var body: some View {
-        Text(title)
-            .font(.atelia(14.25))
-            .foregroundStyle(Color.clientMutedText)
-            .padding(.leading, 14)
-            .frame(height: 32, alignment: .leading)
     }
 }
 
@@ -503,6 +496,52 @@ private struct GlobalSecretaryView: View {
             }
         }
         .padding(.top, 2)
+    }
+}
+
+private struct ProjectSectionHeaderView: View {
+    let header: ProjectSectionHeaderViewData
+    let onAction: (SidebarAction) -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(header.title)
+                .font(.atelia(14.25))
+                .foregroundStyle(Color.clientMutedText)
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            if !header.actions.isEmpty {
+                Menu {
+                    ForEach(header.actions) { action in
+                        Button {
+                            onAction(.projectSectionHeaderAction(action))
+                        } label: {
+                            Label(action.title, systemImage: action.symbolName)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 13.25, weight: .regular))
+                        .foregroundStyle(Color.clientSidebarIcon)
+                        .frame(width: 22, height: 22)
+                }
+                .menuStyle(.borderlessButton)
+                .opacity(isHovered ? 1 : 0)
+                .allowsHitTesting(isHovered)
+                .accessibilityLabel("プロジェクトを追加")
+            }
+        }
+        .frame(height: 32)
+        .padding(.leading, 14)
+        .padding(.trailing, 8)
+        .onHover { hovered in
+            withAnimation(.easeOut(duration: 0.12)) {
+                isHovered = hovered
+            }
+        }
     }
 }
 

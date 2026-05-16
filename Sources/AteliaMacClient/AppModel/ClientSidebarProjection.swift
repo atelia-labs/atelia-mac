@@ -6,6 +6,7 @@ struct ClientSidebarProjection {
     var activeConversationTitle: String
     var activeProjectTitle: String
     var activeSelection: ClientMockActiveSelection
+    var projectSectionHeader: ProjectSectionHeaderViewData
     var workspaceGroups: [WorkspaceGroup]
     var globalItems: [ChatListItem]
 
@@ -27,6 +28,7 @@ struct ClientSidebarProjection {
                 surfaceID: MockSurfaceReference.projectConversation.surfaceID,
                 resourceID: "conversation:unloaded:secretary"
             )
+            self.projectSectionHeader = .projectSectionHeader
             self.workspaceGroups = [
                 WorkspaceGroup(
                     id: "project:unloaded",
@@ -62,6 +64,7 @@ struct ClientSidebarProjection {
             surfaceID: MockSurfaceReference.projectConversation.surfaceID,
             resourceID: "conversation:\(snapshot.repositoryId):secretary"
         )
+        self.projectSectionHeader = .projectSectionHeader
         self.workspaceGroups = [
             WorkspaceGroup(
                 id: "project:\(snapshot.repositoryId)",
@@ -80,6 +83,7 @@ struct ClientSidebarProjection {
         self.activeConversationTitle = mockState.activeConversationTitle
         self.activeProjectTitle = mockState.activeProjectTitle
         self.activeSelection = mockState.activeSelection
+        self.projectSectionHeader = mockState.projection.projectSectionHeader
         self.workspaceGroups = mockState.workspaceGroups
         self.globalItems = mockState.recentChats
     }

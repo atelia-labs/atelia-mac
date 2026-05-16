@@ -134,6 +134,11 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(model.projectStatusSnapshot == MacProjectStatusSnapshot(status: clientAppModelProjectStatusFixture))
     #expect(model.sidebarProjection.activeConversationTitle == "Secretary")
     #expect(model.sidebarProjection.activeProjectTitle == "Atelia Kit")
+    #expect(model.sidebarProjection.projectSectionHeader.title == "プロジェクト")
+    #expect(model.sidebarProjection.projectSectionHeader.actions.map(\.id) == [
+        "project:add:create-folder",
+        "project:add:use-existing-folder"
+    ])
     #expect(model.sidebarProjection.workspaceGroups.count == 1)
 
     let group = try #require(model.sidebarProjection.workspaceGroups.first)
