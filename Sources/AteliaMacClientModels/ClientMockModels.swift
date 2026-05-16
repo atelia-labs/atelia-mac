@@ -10,6 +10,7 @@ public struct ClientMockState: Sendable {
     public var messages: [ChatMessage]
     public var activity: ActivityBlock
     public var goal: GoalStatus
+    public var composer: ComposerConfiguration
 
     public init(
         activeConversationTitle: String,
@@ -20,7 +21,8 @@ public struct ClientMockState: Sendable {
         changeSummary: ChangeSummary,
         messages: [ChatMessage],
         activity: ActivityBlock,
-        goal: GoalStatus
+        goal: GoalStatus,
+        composer: ComposerConfiguration
     ) {
         self.activeConversationTitle = activeConversationTitle
         self.activeProjectTitle = activeProjectTitle
@@ -31,6 +33,7 @@ public struct ClientMockState: Sendable {
         self.messages = messages
         self.activity = activity
         self.goal = goal
+        self.composer = composer
     }
 
     public static let ateliaReference = ClientMockState(
@@ -222,6 +225,10 @@ public struct ClientMockState: Sendable {
         goal: GoalStatus(
             title: "一時停止中の目標 Package-Driven Atelia MDP: dynamic Mac client",
             elapsed: "33h 39m 21s"
+        ),
+        composer: ComposerConfiguration(
+            selectedModel: ComposerModelSelection(displayName: "5.5 中"),
+            permissionMode: ComposerPermissionMode(displayName: "フルアクセス")
         )
     )
 }
@@ -379,6 +386,32 @@ public struct MockActionReference: Hashable, Sendable {
         self.confirmationRequired = confirmationRequired
         self.redactionProjection = redactionProjection
         self.auditEvent = auditEvent
+    }
+}
+
+public struct ComposerConfiguration: Equatable, Sendable {
+    public var selectedModel: ComposerModelSelection
+    public var permissionMode: ComposerPermissionMode
+
+    public init(selectedModel: ComposerModelSelection, permissionMode: ComposerPermissionMode) {
+        self.selectedModel = selectedModel
+        self.permissionMode = permissionMode
+    }
+}
+
+public struct ComposerModelSelection: Equatable, Sendable {
+    public var displayName: String
+
+    public init(displayName: String) {
+        self.displayName = displayName
+    }
+}
+
+public struct ComposerPermissionMode: Equatable, Sendable {
+    public var displayName: String
+
+    public init(displayName: String) {
+        self.displayName = displayName
     }
 }
 

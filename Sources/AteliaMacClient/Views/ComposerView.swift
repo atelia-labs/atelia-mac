@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ComposerView: View {
     let goal: GoalStatus
+    let configuration: ComposerConfiguration
     var hasAttachment = false
     var text = ""
 
@@ -17,13 +18,18 @@ struct ComposerView: View {
             HStack(spacing: 13) {
                 ComposerExtensionControl()
 
-                HStack(spacing: 5) {
-                    Image(systemName: "exclamationmark.shield")
-                        .font(.system(size: 14, weight: .regular))
-                    Text("フルアクセス")
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .regular))
+                Button {} label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "exclamationmark.shield")
+                            .font(.system(size: 14, weight: .regular))
+                        Text(configuration.permissionMode.displayName)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .regular))
+                    }
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("権限モード: \(configuration.permissionMode.displayName)")
+                .accessibilityHint("権限モードを選択")
                 .font(.atelia(13))
                 .foregroundStyle(Color.clientWarning)
 
@@ -32,16 +38,22 @@ struct ComposerView: View {
                 Image(systemName: "circle.dotted")
                     .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(Color.clientMutedText)
+                    .accessibilityHidden(true)
 
-                HStack(spacing: 5) {
-                    Text("5.5 中")
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .regular))
+                Button {} label: {
+                    HStack(spacing: 5) {
+                        Text(configuration.selectedModel.displayName)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .regular))
+                    }
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("モデル: \(configuration.selectedModel.displayName)")
+                .accessibilityHint("使用するモデルを選択")
                 .font(.atelia(14))
                 .foregroundStyle(Color.clientText)
 
-                PlainIconButton(systemName: "mic")
+                PlainIconButton(systemName: "mic", accessibilityLabel: "音声入力")
 
                 Button {} label: {
                     Image(systemName: "arrow.up")
@@ -52,6 +64,9 @@ struct ComposerView: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("送信")
+                .accessibilityHint(isSendEnabled ? "入力内容を送信" : "入力すると送信できます")
+                .disabled(!isSendEnabled)
             }
             .frame(height: 42)
             .padding(.horizontal, 12)
@@ -112,6 +127,7 @@ private struct ComposerBody: View {
 
 private struct PlainIconButton: View {
     let systemName: String
+    let accessibilityLabel: String
 
     var body: some View {
         Image(systemName: systemName)
@@ -119,6 +135,7 @@ private struct PlainIconButton: View {
             .symbolRenderingMode(.monochrome)
             .foregroundStyle(Color.clientMutedText)
             .frame(width: 17, height: 17)
+            .accessibilityLabel(accessibilityLabel)
     }
 }
 

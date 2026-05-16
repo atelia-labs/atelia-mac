@@ -33,6 +33,17 @@ import AteliaMacClientModels
     #expect(packageProvidedItems.allSatisfy { $0.surface.criticality == .userRemovable })
 }
 
+@Test func globalItemsIncludeProjectedPackageRoutes() {
+    let state = ClientMockState.codexReference
+
+    #expect(state.recentChats.map(\.id) == [
+        "recent:mac-atelia:project-conversation",
+        "recent:mac-atelia:package-management",
+        "recent:official-automations:surface-home",
+        "recent:official-review:surface-home"
+    ])
+}
+
 @Test func publicAPIIsConstructibleWithoutTestableImport() {
     let surface = MockSurfaceReference(
         packageID: "dev.atelia.test.package",
@@ -100,6 +111,10 @@ import AteliaMacClientModels
         review: review
     )
     let goal = GoalStatus(title: "Goal", elapsed: "1s")
+    let composer = ComposerConfiguration(
+        selectedModel: ComposerModelSelection(displayName: "Test model"),
+        permissionMode: ComposerPermissionMode(displayName: "Test access")
+    )
     let state = ClientMockState(
         activeConversationTitle: "Conversation",
         activeProjectTitle: "Project",
@@ -114,13 +129,22 @@ import AteliaMacClientModels
         changeSummary: changeSummary,
         messages: [message],
         activity: activity,
-        goal: goal
+        goal: goal,
+        composer: composer
     )
 
     #expect(state.workspaceGroups.first?.items.first?.action == action)
     #expect(state.projection.workspaceGroups.first?.items.first?.isSelected == true)
     #expect(state.activity.document.title == document.title)
     #expect(state.goal.elapsed == goal.elapsed)
+    #expect(state.composer == composer)
+}
+
+@Test func mockComposerConfigurationKeepsModelDisplayInState() {
+    let state = ClientMockState.codexReference
+
+    #expect(state.composer.selectedModel.displayName == "5.5 中")
+    #expect(state.composer.permissionMode.displayName == "フルアクセス")
 }
 
 @Test func mockActionsCarrySurfaceProtocolRoutingMetadata() {
@@ -210,7 +234,9 @@ import AteliaMacClientModels
         state.messages.map(\.text).joined(separator: " "),
         state.activity.title,
         state.activity.bullets.joined(separator: " "),
-        state.goal.title
+        state.goal.title,
+        state.composer.selectedModel.displayName,
+        state.composer.permissionMode.displayName
     ].joined(separator: " ")
 
     for forbiddenPattern in [#"\bGLM\b"#, #"\bSpark\b"#, #"\bmini\b"#, #"\bgpt[-\w.]*\b"#] {

@@ -291,6 +291,9 @@ private struct SidebarRow: View {
         .padding(.leading, 14)
         .padding(.trailing, 8)
         .padding(.horizontal, 6)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(.isButton)
     }
 }
 
@@ -340,6 +343,18 @@ private struct SidebarChatRow: View {
         )
         .padding(.leading, 6)
         .padding(.trailing, 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(item.isSelected ? "選択中" : "")
+        .accessibilityAddTraits(.isButton)
+    }
+
+    private var accessibilityLabel: String {
+        if let trailing = item.trailing {
+            "\(item.title), \(trailing)"
+        } else {
+            item.title
+        }
     }
 
     private func symbolName(for status: ChatListItem.LeadingStatus) -> String {
@@ -385,6 +400,8 @@ private struct GlobalSecretaryView: View {
             .frame(height: 32)
             .padding(.leading, 14)
             .padding(.trailing, 8)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Global Secretary")
 
             Text("全プロジェクト")
                 .font(.atelia(12.25))
@@ -393,7 +410,7 @@ private struct GlobalSecretaryView: View {
                 .padding(.leading, 39)
                 .frame(height: 25, alignment: .leading)
 
-            ForEach(items.prefix(1)) { item in
+            ForEach(items) { item in
                 SidebarChatRow(item: item)
             }
         }
@@ -414,5 +431,8 @@ private struct SettingsRow: View {
             Spacer()
         }
         .frame(height: 32)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("設定")
+        .accessibilityAddTraits(.isButton)
     }
 }
