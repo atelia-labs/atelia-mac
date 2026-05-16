@@ -37,16 +37,10 @@ public struct ClientMockState: Sendable {
         self.activeConversationTitle = activeConversationTitle
         self.activeProjectTitle = activeProjectTitle
         self.activeSelection = activeSelection
-        self.conversation = conversation ?? ClientConversationFixture(
-            id: "conversation.mock.\(activeConversationTitle)",
+        self.conversation = conversation ?? Self.synthesizedConversation(
             title: activeConversationTitle,
-            turns: messages.map { message in
-                ClientConversationTurnFixture(
-                    id: "turn.\(message.id)",
-                    actor: .user,
-                    blocks: [.message(message)]
-                )
-            }
+            messages: messages,
+            activity: activity
         )
         self.workspaceGroups = workspaceGroups
         self.recentChats = recentChats
@@ -55,6 +49,40 @@ public struct ClientMockState: Sendable {
         self.activity = activity
         self.goal = goal
         self.composer = composer
+    }
+
+    private static func synthesizedConversation(
+        title: String,
+        messages: [ChatMessage],
+        activity: ActivityBlock
+    ) -> ClientConversationFixture {
+        ClientConversationFixture(
+            id: "conversation.mock.\(title)",
+            title: title,
+            turns: messages.map { message in
+                ClientConversationTurnFixture(
+                    id: "turn.\(message.id)",
+                    actor: .user,
+                    blocks: [.message(message)]
+                )
+            } + [
+                ClientConversationTurnFixture(
+                    id: "turn.activity.mock.\(title)",
+                    actor: .secretary,
+                    blocks: [
+                        .activity(
+                            ClientConversationActivityFixture(
+                                id: "activity.mock.\(title)",
+                                duration: activity.duration,
+                                status: "完了",
+                                title: activity.title,
+                                bullets: activity.bullets
+                            )
+                        )
+                    ]
+                )
+            ]
+        )
     }
 
     public static let ateliaReference = ClientMockState(
@@ -457,19 +485,19 @@ public struct ClientConversationDiffLineFixture: Identifiable, Sendable {
     public init(id: String, kind: Kind, text: String) {
         self.id = id
         self.kind = kind
-        self.text = text
+        self.text = Self.normalizedText(text, kind: kind)
     }
 
     public static func added(id: String, _ text: String) -> ClientConversationDiffLineFixture {
-        ClientConversationDiffLineFixture(id: id, kind: .added, text: normalizedText(text, marker: "+"))
+        ClientConversationDiffLineFixture(id: id, kind: .added, text: text)
     }
 
     public static func removed(id: String, _ text: String) -> ClientConversationDiffLineFixture {
-        ClientConversationDiffLineFixture(id: id, kind: .removed, text: normalizedText(text, marker: "-"))
+        ClientConversationDiffLineFixture(id: id, kind: .removed, text: text)
     }
 
     public static func context(id: String, _ text: String) -> ClientConversationDiffLineFixture {
-        ClientConversationDiffLineFixture(id: id, kind: .context, text: normalizedText(text, marker: " "))
+        ClientConversationDiffLineFixture(id: id, kind: .context, text: text)
     }
 
     private static func normalizedText(_ text: String, marker: Character) -> String {
@@ -478,6 +506,17 @@ public struct ClientConversationDiffLineFixture: Identifiable, Sendable {
         }
 
         return String(text.dropFirst())
+    }
+
+    private static func normalizedText(_ text: String, kind: Kind) -> String {
+        switch kind {
+        case .added:
+            normalizedText(text, marker: "+")
+        case .removed:
+            normalizedText(text, marker: "-")
+        case .context:
+            normalizedText(text, marker: " ")
+        }
     }
 }
 

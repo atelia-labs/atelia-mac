@@ -125,6 +125,39 @@ import Testing
     #expect(context.text == "let stable = value")
 }
 
+@Test func directDiffLineInitializerNormalizesUnifiedDiffMarkers() {
+    let added = AteliaDiffLine(id: "line.added", kind: .added, text: "+let next = value")
+    let removed = AteliaDiffLine(id: "line.removed", kind: .removed, text: "-let old = value")
+    let context = AteliaDiffLine(id: "line.context", kind: .context, text: " let stable = value")
+
+    #expect(added.marker == "+")
+    #expect(added.text == "let next = value")
+    #expect(removed.marker == "-")
+    #expect(removed.text == "let old = value")
+    #expect(context.marker == " ")
+    #expect(context.text == "let stable = value")
+}
+
+@Test func mappedFixtureDiffLinesNormalizeUnifiedDiffMarkers() {
+    let hunk = AteliaDiffHunk(
+        fixture: ClientConversationDiffHunkFixture(
+            id: "hunk.markers",
+            header: "@@ markers @@",
+            lines: [
+                ClientConversationDiffLineFixture(id: "line.added", kind: .added, text: "+let next = value"),
+                ClientConversationDiffLineFixture(id: "line.removed", kind: .removed, text: "-let old = value"),
+                ClientConversationDiffLineFixture(id: "line.context", kind: .context, text: " let stable = value")
+            ]
+        )
+    )
+
+    #expect(hunk.lines.map(\.text) == [
+        "let next = value",
+        "let old = value",
+        "let stable = value"
+    ])
+}
+
 @Test func conversationReferenceDiffLinesCarryIdsWithoutEmbeddedMarkers() {
     let changeSets = AteliaConversation.mdpRenderingReference.turns
         .flatMap(\.blocks)

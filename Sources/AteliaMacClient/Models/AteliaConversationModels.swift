@@ -265,15 +265,15 @@ struct AteliaDiffLine: Identifiable {
     }
 
     static func added(id: String, _ text: String) -> AteliaDiffLine {
-        AteliaDiffLine(id: id, kind: .added, text: normalizedText(text, marker: "+"))
+        AteliaDiffLine(id: id, kind: .added, text: text)
     }
 
     static func removed(id: String, _ text: String) -> AteliaDiffLine {
-        AteliaDiffLine(id: id, kind: .removed, text: normalizedText(text, marker: "-"))
+        AteliaDiffLine(id: id, kind: .removed, text: text)
     }
 
     static func context(id: String, _ text: String) -> AteliaDiffLine {
-        AteliaDiffLine(id: id, kind: .context, text: normalizedText(text, marker: " "))
+        AteliaDiffLine(id: id, kind: .context, text: text)
     }
 
     private static func normalizedText(_ text: String, marker: Character) -> String {
@@ -287,7 +287,7 @@ struct AteliaDiffLine: Identifiable {
     init(id: String, kind: Kind, text: String) {
         self.id = id
         self.kind = kind
-        self.text = text
+        self.text = Self.normalizedText(text, kind: kind)
     }
 
     init(fixture: ClientConversationDiffLineFixture) {
@@ -301,6 +301,17 @@ struct AteliaDiffLine: Identifiable {
             mappedKind = .context
         }
         self.init(id: fixture.id, kind: mappedKind, text: fixture.text)
+    }
+
+    private static func normalizedText(_ text: String, kind: Kind) -> String {
+        switch kind {
+        case .added:
+            normalizedText(text, marker: "+")
+        case .removed:
+            normalizedText(text, marker: "-")
+        case .context:
+            normalizedText(text, marker: " ")
+        }
     }
 }
 
