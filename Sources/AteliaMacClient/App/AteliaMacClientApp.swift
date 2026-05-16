@@ -7,6 +7,7 @@ struct AteliaMacClientApp: App {
         WindowGroup {
             ClientBootstrapView()
                 .frame(minWidth: 960, minHeight: 640)
+                .preferredColorScheme(AteliaClientDesign.supportsLightColorSchemeOnly ? .light : nil)
         }
         .windowStyle(.hiddenTitleBar)
     }
@@ -20,18 +21,19 @@ private struct ClientBootstrapView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Atelia Mac")
-                .font(.system(size: 22, weight: .medium))
+                .font(.atelia(22, weight: .medium))
+                .foregroundStyle(Color.clientStrongText)
 
             Text("Client shell bootstrap")
-                .font(.system(size: 14))
-                .foregroundStyle(.secondary)
+                .font(.atelia(14))
+                .foregroundStyle(Color.clientMutedText)
 
             Text("Core features: \(featureSummary)")
-                .font(.system(size: 12))
-                .foregroundStyle(.tertiary)
+                .font(.atelia(12))
+                .foregroundStyle(Color.clientSubtleText)
         }
         .padding(28)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(.background)
+        .background(Color.clientSurfaceSofter)
     }
 }
