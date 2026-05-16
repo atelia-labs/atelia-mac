@@ -3,11 +3,15 @@ import SwiftUI
 
 struct ConversationView: View {
     let conversation: AteliaConversation
+    let activeProjectTitle: String
     let goal: GoalStatus
+    let composer: ComposerConfiguration
+    var onOpenSettings: () -> Void = {}
+    var onComposerIntent: (ComposerIntent) -> Void = { _ in }
 
     var body: some View {
         VStack(spacing: 0) {
-            ConversationTopBar(title: conversation.title)
+            ConversationTopBar(activeProjectTitle: activeProjectTitle, onOpenSettings: onOpenSettings)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
@@ -15,13 +19,14 @@ struct ConversationView: View {
                         AteliaConversationTurnView(turn: turn)
                     }
                 }
-                .frame(width: CodexLayout.contentWidth, alignment: .leading)
+                .frame(width: AteliaClientLayout.contentWidth, alignment: .leading)
                 .padding(.top, 34)
                 .padding(.bottom, 28)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
             .scrollIndicators(.hidden)
 
-            ComposerView(goal: goal)
+            ComposerView(goal: goal, configuration: composer, onIntent: onComposerIntent)
                 .padding(.bottom, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -30,24 +35,35 @@ struct ConversationView: View {
 }
 
 private struct ConversationTopBar: View {
-    let title: String
+    let activeProjectTitle: String
+    let onOpenSettings: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text(title)
-                .font(.atelia(14, weight: .medium))
-                .foregroundStyle(Color.clientStrongText)
-                .lineLimit(1)
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Atelia")
+                    .font(.atelia(16, weight: .semibold))
+                    .foregroundStyle(Color.clientStrongText)
+
+                Text("Global Secretary / \(activeProjectTitle)")
+                    .font(.atelia(12.5))
+                    .foregroundStyle(Color.clientMutedText)
+            }
 
             Spacer()
 
-            Image(systemName: "ellipsis")
-                .font(.system(size: 16, weight: .regular))
-                .foregroundStyle(Color.clientMutedText)
-                .frame(width: 24, height: 24)
+            Button(action: onOpenSettings) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(Color.clientSidebarIcon)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Atelia 設定")
+            .accessibilityHint("Global Secretary とプロジェクト設定を開く")
         }
-        .padding(.horizontal, 22)
-        .frame(height: CodexLayout.topbarHeight)
+        .padding(.horizontal, 24)
+        .frame(height: AteliaClientLayout.topbarHeight)
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(Color.clientLineSoft)
@@ -107,9 +123,9 @@ private struct AteliaUserMessageView: View {
                 }
             }
         }
-        .padding(.horizontal, CodexLayout.userBubbleHorizontalPadding)
-        .padding(.vertical, CodexLayout.userBubbleVerticalPadding)
-        .frame(maxWidth: CodexLayout.userBubbleMaxWidth, alignment: .leading)
+        .padding(.horizontal, AteliaClientLayout.userBubbleHorizontalPadding)
+        .padding(.vertical, AteliaClientLayout.userBubbleVerticalPadding)
+        .frame(maxWidth: AteliaClientLayout.userBubbleMaxWidth, alignment: .leading)
         .background(Color.clientSurfaceSofter)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
@@ -129,6 +145,10 @@ private struct AteliaActivityView: View {
                             .font(.ateliaLatin(13, weight: .medium))
                             .foregroundStyle(Color.clientStrongText)
 
+                        Text(activity.status)
+                            .font(.atelia(12, weight: .medium))
+                            .foregroundStyle(Color.clientSuccess)
+
                         Text(activity.duration)
                             .font(.ateliaLatin(12))
                             .foregroundStyle(Color.clientMutedText)
@@ -141,7 +161,7 @@ private struct AteliaActivityView: View {
             }
 
             VStack(alignment: .leading, spacing: 7) {
-                ForEach(activity.bullets, id: \.self) { bullet in
+                ForEach(Array(activity.bullets.enumerated()), id: \.offset) { _, bullet in
                     HStack(alignment: .top, spacing: 8) {
                         Circle()
                             .fill(Color.clientSuccess)
@@ -184,12 +204,12 @@ private struct AteliaToolOutputView: View {
                 Text("$ \(toolOutput.command)")
                     .foregroundStyle(Color.clientMutedText)
 
-                ForEach(toolOutput.output, id: \.self) { line in
+                ForEach(Array(toolOutput.output.enumerated()), id: \.offset) { _, line in
                     Text(line)
                         .foregroundStyle(Color.clientText)
                 }
             }
-            .font(.custom("JetBrainsMono-Regular", fixedSize: 12))
+            .font(.ateliaMonospaced(12))
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.clientSurfaceSofter)
@@ -350,7 +370,7 @@ private struct AteliaDiffHunkView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(hunk.header)
-                .font(.custom("JetBrainsMono-Regular", fixedSize: 11))
+                .font(.ateliaMonospaced(11))
                 .foregroundStyle(Color.clientMutedText)
                 .padding(.horizontal, 10)
                 .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
@@ -376,7 +396,7 @@ private struct AteliaDiffLineView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .foregroundStyle(Color.clientText)
         }
-        .font(.custom("JetBrainsMono-Regular", fixedSize: 11))
+        .font(.ateliaMonospaced(11))
         .padding(.horizontal, 10)
         .frame(minHeight: 22)
         .background(backgroundColor)

@@ -67,10 +67,10 @@ struct AteliaConversation: Identifiable {
                                             id: "diff-hunk.models.schema",
                                             header: "@@ new semantic conversation schema @@",
                                             lines: [
-                                                .added(id: "diff-line.models.schema.001", "+struct AteliaConversation: Identifiable {"),
-                                                .added(id: "diff-line.models.schema.002", "+    var id: String"),
-                                                .added(id: "diff-line.models.schema.003", "+    var turns: [AteliaConversationTurn]"),
-                                                .context(id: "diff-line.models.schema.004", " }")
+                                                .added(id: "diff-line.models.schema.001", "struct AteliaConversation: Identifiable {"),
+                                                .added(id: "diff-line.models.schema.002", "    var id: String"),
+                                                .added(id: "diff-line.models.schema.003", "    var turns: [AteliaConversationTurn]"),
+                                                .context(id: "diff-line.models.schema.004", "}")
                                             ]
                                         )
                                     ]
@@ -85,10 +85,10 @@ struct AteliaConversation: Identifiable {
                                             id: "diff-hunk.view.renderer",
                                             header: "@@ render activity, tool output, and change set @@",
                                             lines: [
-                                                .added(id: "diff-line.view.renderer.001", "+AteliaActivityView(activity: activity)"),
-                                                .added(id: "diff-line.view.renderer.002", "+AteliaToolOutputView(toolOutput: toolOutput)"),
-                                                .added(id: "diff-line.view.renderer.003", "+AteliaChangeSetView(changeSet: changeSet)"),
-                                                .context(id: "diff-line.view.renderer.004", " ComposerView(goal: goal)")
+                                                .added(id: "diff-line.view.renderer.001", "AteliaActivityView(activity: activity)"),
+                                                .added(id: "diff-line.view.renderer.002", "AteliaToolOutputView(toolOutput: toolOutput)"),
+                                                .added(id: "diff-line.view.renderer.003", "AteliaChangeSetView(changeSet: changeSet)"),
+                                                .context(id: "diff-line.view.renderer.004", "ComposerView(goal: goal)")
                                             ]
                                         )
                                     ]
@@ -213,14 +213,22 @@ struct AteliaDiffLine: Identifiable {
     }
 
     static func added(id: String, _ text: String) -> AteliaDiffLine {
-        AteliaDiffLine(id: id, kind: .added, text: text)
+        AteliaDiffLine(id: id, kind: .added, text: normalizedText(text, marker: "+"))
     }
 
     static func removed(id: String, _ text: String) -> AteliaDiffLine {
-        AteliaDiffLine(id: id, kind: .removed, text: text)
+        AteliaDiffLine(id: id, kind: .removed, text: normalizedText(text, marker: "-"))
     }
 
     static func context(id: String, _ text: String) -> AteliaDiffLine {
-        AteliaDiffLine(id: id, kind: .context, text: text)
+        AteliaDiffLine(id: id, kind: .context, text: normalizedText(text, marker: " "))
+    }
+
+    private static func normalizedText(_ text: String, marker: Character) -> String {
+        guard text.first == marker else {
+            return text
+        }
+
+        return String(text.dropFirst())
     }
 }

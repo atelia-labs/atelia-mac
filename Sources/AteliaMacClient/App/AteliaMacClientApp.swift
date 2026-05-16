@@ -1,6 +1,5 @@
 import AteliaMacClientModels
 import AteliaMacCore
-import AteliaMacClientModels
 import SwiftUI
 
 @main

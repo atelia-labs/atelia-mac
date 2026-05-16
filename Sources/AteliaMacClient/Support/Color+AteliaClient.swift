@@ -14,6 +14,14 @@ extension Font {
     static func atelia(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
         return Font(AteliaClientFont.nsFont(size: size, weight: weight))
     }
+
+    static func ateliaLatin(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        return Font(AteliaClientFont.nsFont(size: size, weight: weight))
+    }
+
+    static func ateliaMonospaced(_ size: CGFloat) -> Font {
+        return Font(AteliaClientFont.monospacedNSFont(size: size))
+    }
 }
 
 enum AteliaClientFont {
@@ -26,6 +34,14 @@ enum AteliaClientFont {
             return font
         }
         return NSFont.systemFont(ofSize: size, weight: systemWeight(for: weight))
+    }
+
+    static func monospacedNSFont(size: CGFloat) -> NSFont {
+        return nsFont(
+            size: size,
+            weight: .regular,
+            preferredName: ClientFontRegistrar.jetBrainsMonoRegularPostScriptName
+        )
     }
 
     private static func systemWeight(for weight: Font.Weight) -> NSFont.Weight {
