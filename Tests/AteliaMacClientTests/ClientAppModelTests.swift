@@ -174,6 +174,14 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(model.sidebarProjection.activeSurfaceID == MockSurfaceReference.projectConversation.id)
     #expect(group.settings.map(\.title) == ["ポリシー判断", "拡張機能", "オートメーション", "プロジェクト設定"])
     #expect(group.settings.map(\.trailing) == ["1", nil, nil, nil])
+    #expect(model.sidebarProjection.projectMenuItems.map(\.title) == [
+        "Secretary",
+        "ジョブ",
+        "ポリシー判断",
+        "拡張機能",
+        "オートメーション",
+        "プロジェクト設定"
+    ])
     #expect(model.sidebarProjection.globalItems.map(\.title) == [
         "Global Secretary",
         "検索",

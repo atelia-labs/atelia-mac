@@ -46,14 +46,16 @@ struct ClientShellView: View {
     }
 
     var conversationView: ConversationView {
-        ConversationView(
-            conversation: AteliaConversation(fixture: state.conversation),
-            activeConversationTitle: sidebarProjection.activeConversationTitle,
-            activeProjectTitle: sidebarProjection.activeProjectTitle,
-            goal: state.goal,
-            composer: state.composer,
-            onOpenSettings: { onAction(.openSettings) },
-            onComposerIntent: { onAction(.composer($0)) }
-        )
-    }
+            ConversationView(
+                conversation: AteliaConversation(fixture: state.conversation),
+                activeConversationTitle: sidebarProjection.activeConversationTitle,
+                activeProjectTitle: sidebarProjection.activeProjectTitle,
+                sidebarProjection: sidebarProjection,
+                goal: state.goal,
+                composer: state.composer,
+                onOpenSettings: { onAction(.openSettings) },
+                onProjectMenuAction: { onAction(.sidebar($0)) },
+                onComposerIntent: { onAction(.composer($0)) }
+            )
+        }
 }

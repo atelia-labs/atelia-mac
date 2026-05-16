@@ -5,9 +5,11 @@ struct ConversationView: View {
     let conversation: AteliaConversation
     let activeConversationTitle: String
     let activeProjectTitle: String
+    let sidebarProjection: ClientSidebarProjection?
     let goal: GoalStatus
     let composer: ComposerConfiguration
     var onOpenSettings: () -> Void = {}
+    var onProjectMenuAction: (SidebarAction) -> Void = { _ in }
     var onComposerIntent: (ComposerIntent) -> Void = { _ in }
 
     var body: some View {
@@ -15,7 +17,10 @@ struct ConversationView: View {
             ConversationTopBar(
                 activeConversationTitle: activeConversationTitle,
                 activeProjectTitle: activeProjectTitle,
-                onOpenSettings: onOpenSettings
+                projectMenuItems: sidebarProjection?.projectMenuItems ?? [],
+                globalItems: sidebarProjection?.globalItems ?? [],
+                onOpenSettings: onOpenSettings,
+                onProjectMenuAction: onProjectMenuAction
             )
 
             ScrollView {
@@ -42,31 +47,42 @@ struct ConversationView: View {
 private struct ConversationTopBar: View {
     let activeConversationTitle: String
     let activeProjectTitle: String
+    let projectMenuItems: [ChatListItem]
+    let globalItems: [ChatListItem]
     let onOpenSettings: () -> Void
+    let onProjectMenuAction: (SidebarAction) -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(activeConversationTitle)
-                    .font(.atelia(16, weight: .semibold))
+                    .font(.atelia(16.5, weight: .semibold))
                     .foregroundStyle(Color.clientStrongText)
-
-                Text(activeProjectTitle)
-                    .font(.atelia(12.5))
-                    .foregroundStyle(Color.clientMutedText)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
 
             Spacer()
 
-            Button(action: onOpenSettings) {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(Color.clientSidebarIcon)
-                    .frame(width: 28, height: 28)
+            HStack(spacing: 8) {
+                ConversationProjectChipMenu(
+                    activeProjectTitle: activeProjectTitle,
+                    projectMenuItems: projectMenuItems,
+                    globalItems: globalItems,
+                    onProjectMenuAction: onProjectMenuAction
+                )
+
+                Button(action: onOpenSettings) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(Color.clientSidebarIcon)
+                        .frame(width: 28, height: 28)
+                        .background(Color.black.opacity(0.01))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Atelia 設定")
+                .accessibilityHint("Global Secretary とプロジェクト設定を開く")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Atelia 設定")
-            .accessibilityHint("Global Secretary とプロジェクト設定を開く")
         }
         .padding(.horizontal, 24)
         .frame(height: AteliaClientLayout.topbarHeight)
@@ -74,6 +90,115 @@ private struct ConversationTopBar: View {
             Rectangle()
                 .fill(Color.clientLineSoft)
                 .frame(height: 1)
+        }
+    }
+}
+
+private struct ConversationProjectChipMenu: View {
+    let activeProjectTitle: String
+    let projectMenuItems: [ChatListItem]
+    let globalItems: [ChatListItem]
+    let onProjectMenuAction: (SidebarAction) -> Void
+
+    var body: some View {
+        Menu {
+            if !projectMenuItems.isEmpty {
+                Section("Project Secretary") {
+                    ForEach(projectMenuItems) { item in
+                        ConversationMenuItemButton(item: item, onProjectMenuAction: onProjectMenuAction)
+                    }
+                }
+            }
+
+            if !globalItems.isEmpty {
+                Section("Global Secretary") {
+                    ForEach(globalItems) { item in
+                        ConversationMenuItemButton(item: item, onProjectMenuAction: onProjectMenuAction)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 7) {
+                Image(systemName: "folder")
+                    .font(.system(size: 12.5, weight: .regular))
+
+                Text(activeProjectTitle)
+                    .font(.atelia(13.25, weight: .medium))
+                    .lineLimit(1)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 11, weight: .regular))
+            }
+            .foregroundStyle(Color.clientStrongText)
+            .padding(.horizontal, 11)
+            .frame(height: 28)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(Color.clientSurfaceSofter)
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .stroke(Color.clientLineStrong, lineWidth: 1)
+            }
+        }
+        .menuStyle(.borderlessButton)
+        .buttonStyle(.plain)
+        .accessibilityLabel("プロジェクト \(activeProjectTitle)")
+        .accessibilityHint("プロジェクトの Secretary と設定を開く")
+    }
+}
+
+private struct ConversationMenuItemButton: View {
+    let item: ChatListItem
+    let onProjectMenuAction: (SidebarAction) -> Void
+
+    var body: some View {
+        if let action = item.action {
+            Button {
+                onProjectMenuAction(.chatItem(
+                    id: item.id,
+                    projectID: item.projectID,
+                    resourceID: item.resourceID,
+                    title: item.title,
+                    surface: item.surface,
+                    action: action
+                ))
+            } label: {
+                Label(item.title, systemImage: symbolName)
+            }
+        } else {
+            Button {} label: {
+                Label(item.title, systemImage: symbolName)
+            }
+            .disabled(true)
+        }
+    }
+
+    private var symbolName: String {
+        switch item.leadingAffordance?.presentation {
+        case .some(.statusDot):
+            return "circle.fill"
+        case .some(.assistantMark):
+            return "sparkles"
+        case .some(.branchGlyph):
+            return "arrow.triangle.branch"
+        case .some(.addGlyph):
+            return "plus.circle"
+        case nil:
+            switch item.surface.surfaceID {
+            case "settings":
+                return "gearshape"
+            case "package-management":
+                return "square.grid.2x2"
+            case "permission-recovery":
+                return "checklist"
+            case "automations-home":
+                return "clock"
+            case "project-conversation":
+                return "message"
+            default:
+                return "circle"
+            }
         }
     }
 }

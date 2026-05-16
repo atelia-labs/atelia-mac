@@ -3,6 +3,9 @@ import SwiftUI
 
 enum ComposerIntent: Equatable {
     case attachFile
+    case insertMention(String)
+    case openFileContext
+    case openExtensionContext
     case selectPermissionMode(ComposerPermissionMode)
     case selectModel(ComposerModelSelection)
     case startVoiceInput
@@ -13,19 +16,39 @@ struct ComposerView: View {
     let goal: GoalStatus
     let configuration: ComposerConfiguration
     var hasAttachment = false
-    var text = ""
     var onIntent: (ComposerIntent) -> Void = { _ in }
 
+    @State private var draftText: String
+
+    init(
+        goal: GoalStatus,
+        configuration: ComposerConfiguration,
+        hasAttachment: Bool = false,
+        text: String = "",
+        onIntent: @escaping (ComposerIntent) -> Void = { _ in }
+    ) {
+        self.goal = goal
+        self.configuration = configuration
+        self.hasAttachment = hasAttachment
+        self.onIntent = onIntent
+        _draftText = State(initialValue: text)
+    }
+
     private var isSendEnabled: Bool {
-        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            ComposerBody(goal: goal, hasAttachment: hasAttachment, text: text)
+            ComposerBody(
+                goal: goal,
+                hasAttachment: hasAttachment,
+                draftText: $draftText,
+                onIntent: onIntent
+            )
 
             HStack(spacing: 13) {
-                ComposerExtensionControl {
+                ComposerAttachmentButton {
                     onIntent(.attachFile)
                 }
 
@@ -78,7 +101,7 @@ struct ComposerView: View {
 
                 Button {
                     guard isSendEnabled else { return }
-                    onIntent(.send(text: text, configuration: configuration))
+                    onIntent(.send(text: draftText, configuration: configuration))
                 } label: {
                     Image(systemName: "arrow.up")
                         .font(.system(size: 14, weight: .regular))
@@ -122,7 +145,8 @@ private struct ComposerSurface: View {
 private struct ComposerBody: View {
     let goal: GoalStatus
     let hasAttachment: Bool
-    let text: String
+    @Binding var draftText: String
+    let onIntent: (ComposerIntent) -> Void
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -137,29 +161,205 @@ private struct ComposerBody: View {
                 }
                 .foregroundStyle(Color.clientMutedText)
 
-                if text.isEmpty {
-                    Text("@Global Secretary にフォローアップの変更を求める")
-                        .font(.atelia(14))
-                        .foregroundStyle(Color.clientSubtleText)
+                HStack(spacing: 8) {
+                    ComposerMentionMenu(
+                        draftText: $draftText,
+                        onIntent: onIntent
+                    )
+
+                    ComposerContextChip(
+                        title: "ファイル",
+                        subtitle: "添付",
+                        systemName: "paperclip",
+                        tint: Color.clientFileMention
+                    ) {
+                        draftText = draftText.isEmpty ? "[file]" : "\(draftText) [file]"
+                        onIntent(.openFileContext)
+                    }
+
+                    ComposerContextChip(
+                        title: "拡張機能",
+                        subtitle: "文脈",
+                        systemName: "puzzlepiece.extension",
+                        tint: Color.clientMutedText
+                    ) {
+                        draftText = draftText.isEmpty ? "[extension]" : "\(draftText) [extension]"
+                        onIntent(.openExtensionContext)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    HStack(spacing: 8) {
+                        Text("/")
+                            .font(.ateliaLatin(14, weight: .semibold))
+                            .foregroundStyle(Color.clientMutedText)
+
+                        TextField(
+                            "コマンドを入力",
+                            text: $draftText
+                        )
+                        .font(.atelia(12.75))
+                        .textFieldStyle(.plain)
+                        .foregroundStyle(Color.clientStrongText)
+                        .tint(Color.clientAccent)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(width: 238, height: 24)
+                    .background {
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(Color.white)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .stroke(Color.clientLineStrong, lineWidth: 1)
+                    }
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("スラッシュコマンド入力")
+                .accessibilityHint("先頭に / を付けて Secretary のコマンドを入力します")
             }
-            .padding(.top, 12)
+            .padding(.top, 8)
             .padding(.leading, 14)
             .padding(.trailing, 14)
 
             if hasAttachment {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.white)
-                    .frame(width: 84, height: 82)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.clientLine, lineWidth: 1)
-                    }
+                ComposerAttachmentPreview()
                     .padding(.top, 10)
                     .padding(.leading, 13)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+private struct ComposerMentionMenu: View {
+    @Binding var draftText: String
+    let onIntent: (ComposerIntent) -> Void
+
+    var body: some View {
+        Menu {
+            Button {
+                insertMention("@Global Secretary")
+            } label: {
+                Label("Global Secretary", systemImage: "globe")
+            }
+
+            Button {
+                insertMention("@Secretary")
+            } label: {
+                Label("Project Secretary", systemImage: "folder")
+            }
+        } label: {
+            ComposerContextChipLabel(
+                title: "@",
+                subtitle: "mention",
+                systemName: "at",
+                tint: Color.clientAccent
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .buttonStyle(.plain)
+        .accessibilityLabel("メンション")
+        .accessibilityHint("Secretary を指定する @ メンションを挿入")
+    }
+
+    private func insertMention(_ mention: String) {
+        draftText = draftText.isEmpty ? "\(mention) " : "\(draftText) \(mention)"
+        onIntent(.insertMention(mention))
+    }
+}
+
+private struct ComposerContextChip: View {
+    let title: String
+    let subtitle: String
+    let systemName: String
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ComposerContextChipLabel(
+                title: title,
+                subtitle: subtitle,
+                systemName: systemName,
+                tint: tint
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct ComposerContextChipLabel: View {
+    let title: String
+    let subtitle: String
+    let systemName: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemName)
+                .font(.system(size: 11.5, weight: .regular))
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text(title)
+                    .font(.atelia(11.75, weight: .medium))
+                    .lineLimit(1)
+
+                Text(subtitle)
+                    .font(.atelia(9.75))
+                    .foregroundStyle(Color.clientSubtleText)
+                    .lineLimit(1)
+            }
+        }
+        .foregroundStyle(tint)
+        .frame(height: 24)
+        .padding(.horizontal, 10)
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.clientSurfaceSofter)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.clientDockHairline, lineWidth: 1)
+        }
+    }
+}
+
+private struct ComposerAttachmentPreview: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(Color.white)
+                .frame(width: 72, height: 54)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .stroke(Color.clientLine, lineWidth: 1)
+                }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("standard-surfaces.md")
+                    .font(.ateliaLatin(11.5, weight: .medium))
+                    .foregroundStyle(Color.clientStrongText)
+                    .lineLimit(1)
+
+                Text("ファイル / 拡張機能の文脈を保持")
+                    .font(.atelia(10.75))
+                    .foregroundStyle(Color.clientSubtleText)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 70)
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.white)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.clientLine, lineWidth: 1)
+        }
     }
 }
 
@@ -183,16 +383,16 @@ private struct PlainIconButton: View {
     }
 }
 
-private struct ComposerExtensionControl: View {
+private struct ComposerAttachmentButton: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: "plus.circle")
+                Image(systemName: "paperclip")
                     .font(.system(size: 14, weight: .regular))
 
-                Text("拡張機能")
+                Text("ファイル")
                     .font(.atelia(13))
             }
             .foregroundStyle(Color.clientMutedText)

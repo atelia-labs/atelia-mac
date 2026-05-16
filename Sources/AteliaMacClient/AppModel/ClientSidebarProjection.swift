@@ -149,6 +149,13 @@ struct ClientSidebarProjection {
         "\(activeSelection.surfacePackageID)#\(activeSelection.surfaceID)"
     }
 
+    var projectMenuItems: [ChatListItem] {
+        guard let projectGroup = workspaceGroups.first else {
+            return []
+        }
+        return projectGroup.items + projectGroup.settings
+    }
+
     init(
         snapshot: MacProjectStatusSnapshot?,
         pendingProjectAddSelection: ProjectAddSelection?,
