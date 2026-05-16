@@ -75,6 +75,25 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 - Selected rows use `clientSidebarSelected` with 9 pt corner radius. Do not use
   high-contrast selection fills in the sidebar.
 
+## Project Add Flow
+
+- The project section add menu is hover-revealed. Keep it hidden until the user
+  hovers the section header, then show the folder-with-badge-plus trigger and
+  the two menu items only: `新規フォルダを作成` and `既存のフォルダを使用`.
+- The menu items open native panels, not custom modal chrome. `新規フォルダを
+  作成` uses `NSSavePanel` with the title `新規フォルダを作成`, message
+  `Atelia で使うフォルダ名と保存先を指定してください。`, and prompt
+  `作成`. `既存のフォルダを使用` uses `NSOpenPanel` with the title
+  `既存のフォルダを使用`, message `Atelia で使うフォルダを選択してください。`,
+  and prompt `選択`.
+- A confirmed folder selection becomes a compact candidate row in the sidebar.
+  The row shows `追加候補`, the selected folder name, and a small dismiss slot
+  for the shell to wire. It should carry a combined accessibility label and
+  value so the selected folder name is announced cleanly.
+- The candidate row is transient. Canceling the panel leaves the sidebar
+  unchanged; confirming a folder shows the candidate; clearing project status
+  also clears the pending candidate selection.
+
 ## Composer
 
 - Composer width is 736 pt. Height is 112 pt normally and 193 pt with an

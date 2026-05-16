@@ -22,6 +22,30 @@ import AteliaMacClientModels
     #expect(state.activeSurfaceID == MockSurfaceReference.projectConversation.id)
 }
 
+@Test func projectSectionHeaderProjectionCarriesMenuContract() {
+    let state = ClientMockState.ateliaReference
+    let header = state.projection.projectSectionHeader
+
+    #expect(header.title == "プロジェクト")
+    #expect(header.actions.map(\.id) == [
+        "project:add:create-folder",
+        "project:add:use-existing-folder"
+    ])
+    #expect(header.actions.map(\.kind) == [.createFolder, .useExistingFolder])
+    #expect(header.actions.map(\.title) == [
+        "新規フォルダを作成",
+        "既存のフォルダを使用"
+    ])
+    #expect(header.actions.map(\.symbolName) == [
+        "folder.badge.plus",
+        "folder"
+    ])
+    #expect(header.actions.map(\.accessibilityLabel) == [
+        "新規フォルダを作成",
+        "既存のフォルダを使用"
+    ])
+}
+
 @Test func packageProvidedAreasAreOptionalBundledSurfaces() {
     let state = ClientMockState.ateliaReference
     let navigationItems = state.workspaceGroups.flatMap { $0.items + $0.settings } + state.recentChats

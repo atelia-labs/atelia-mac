@@ -4,11 +4,15 @@ import SwiftUI
 enum SidebarAction {
     case command(id: String, surface: MockSurfaceReference, action: MockActionReference)
     case chatItem(id: String, projectID: String, resourceID: String, surface: MockSurfaceReference, action: MockActionReference)
+    case projectSectionHeaderAction(ProjectSectionHeaderActionViewData)
+    case dismissProjectAddCandidate
 }
 
 struct SidebarView: View {
     let activeSelection: ClientMockActiveSelection
     let activeNavigationItemID: String
+    let projectSectionHeader: ProjectSectionHeaderViewData
+    let projectAddCandidateLabel: String?
     let groups: [WorkspaceGroup]
     let globalItems: [ChatListItem]
     var onAction: (SidebarAction) -> Void = { _ in }
@@ -31,7 +35,16 @@ struct SidebarView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     GlobalSecretaryView(items: globalItems, selection: selection, onAction: onAction)
 
-                    SidebarSectionLabel(title: "プロジェクト")
+                    ProjectSectionHeaderView(
+                        header: projectSectionHeader,
+                        onAction: onAction
+                    )
+
+                    if let projectAddCandidateLabel {
+                        ProjectAddCandidateView(label: projectAddCandidateLabel) {
+                            onAction(.dismissProjectAddCandidate)
+                        }
+                    }
 
                     ForEach(groups) { group in
                         WorkspaceGroupView(group: group, selection: selection, onAction: onAction)
@@ -69,18 +82,6 @@ private struct SidebarBackground: View {
     var body: some View {
         VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
             .overlay(Color.white.opacity(0.80))
-    }
-}
-
-private struct SidebarSectionLabel: View {
-    let title: String
-
-    var body: some View {
-        Text(title)
-            .font(.atelia(14.25))
-            .foregroundStyle(Color.clientMutedText)
-            .padding(.leading, 14)
-            .frame(height: 32, alignment: .leading)
     }
 }
 
@@ -156,6 +157,7 @@ private struct SidebarGlyph: View {
         case automation
         case phone
         case folder
+        case folderAdd
         case globe
         case gear
     }
@@ -195,6 +197,8 @@ private struct SidebarGlyph: View {
             "iphone"
         case .folder:
             "folder"
+        case .folderAdd:
+            "folder.badge.plus"
         case .globe:
             "globe"
         case .gear:
@@ -208,7 +212,7 @@ private struct SidebarGlyph: View {
             12.75
         case .sidebar:
             12.5
-        case .folder, .globe:
+        case .folder, .folderAdd, .globe:
             13.25
         default:
             13.75
@@ -503,6 +507,109 @@ private struct GlobalSecretaryView: View {
             }
         }
         .padding(.top, 2)
+    }
+}
+
+private struct ProjectSectionHeaderView: View {
+    let header: ProjectSectionHeaderViewData
+    let onAction: (SidebarAction) -> Void
+    @State private var isHovered = false
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(header.title)
+                .font(.atelia(14.25))
+                .foregroundStyle(Color.clientMutedText)
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            if !header.actions.isEmpty {
+                Menu {
+                    ForEach(header.actions) { action in
+                        Button {
+                            onAction(.projectSectionHeaderAction(action))
+                        } label: {
+                            Label(action.title, systemImage: action.symbolName)
+                        }
+                        .accessibilityLabel(action.accessibilityLabel)
+                    }
+                } label: {
+                    SidebarGlyph(.folderAdd)
+                        .frame(width: 22, height: 22)
+                }
+                .menuStyle(.borderlessButton)
+                .focused($isFocused)
+                .opacity(isHovered || isFocused ? 1 : 0)
+                .accessibilityLabel("プロジェクトを追加")
+                .accessibilityAction(named: Text("新規フォルダを作成")) {
+                    if let action = header.actions.first(where: { $0.kind == .createFolder }) {
+                        onAction(.projectSectionHeaderAction(action))
+                    }
+                }
+                .accessibilityAction(named: Text("既存のフォルダを使用")) {
+                    if let action = header.actions.first(where: { $0.kind == .useExistingFolder }) {
+                        onAction(.projectSectionHeaderAction(action))
+                    }
+                }
+            }
+        }
+        .frame(height: 32)
+        .padding(.leading, 14)
+        .padding(.trailing, 8)
+        .onHover { hovered in
+            withAnimation(.easeOut(duration: 0.12)) {
+                isHovered = hovered
+            }
+        }
+    }
+}
+
+private struct ProjectAddCandidateView: View {
+    let label: String
+    let onDismiss: () -> Void
+
+    private let dismissButtonSize: CGFloat = 16
+
+    var body: some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 8) {
+                    SidebarGlyph(.folderAdd)
+
+                    Text("追加候補")
+                        .font(.atelia(12.25))
+                        .tracking(0.25)
+                        .foregroundStyle(Color.clientMutedText)
+
+                    Text(label)
+                        .font(.atelia(12.25))
+                        .tracking(0.25)
+                        .foregroundStyle(Color.clientSidebarText)
+                        .lineLimit(1)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("追加候補")
+                .accessibilityValue(label)
+                .accessibilityHint("選択中のフォルダ候補")
+            }
+
+            Spacer(minLength: 0)
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark.circle")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(Color.clientMutedText)
+                    .frame(width: dismissButtonSize, height: dismissButtonSize)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("候補を閉じる")
+            .accessibilityHint("追加候補を非表示にします")
+        }
+        .frame(height: 26)
+        .padding(.leading, 14)
+        .padding(.trailing, 8)
     }
 }
 

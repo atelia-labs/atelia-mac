@@ -17,7 +17,7 @@ struct AteliaMacClientApp: App {
             ClientShellView(
                 state: .ateliaReference,
                 sidebarProjection: appModel.sidebarProjection,
-                onAction: { _ in }
+                onAction: handleClientShellAction
             )
                 .frame(minWidth: AteliaClientLayout.minimumWindowWidth, minHeight: 640)
                 .preferredColorScheme(AteliaClientDesign.supportsLightColorSchemeOnly ? .light : nil)
@@ -43,29 +43,33 @@ struct AteliaMacClientApp: App {
         }
         return URL(fileURLWithPath: FileManager.default.currentDirectoryPath).lastPathComponent
     }
-}
 
-private struct ClientBootstrapView: View {
-    private var featureSummary: String {
-        MacClientFeature.initial.map(\.title).joined(separator: ", ")
+    @MainActor
+    private func handleClientShellAction(_ action: ClientShellAction) {
+        switch action {
+        case .openSettings:
+            break
+        case .sidebar(let sidebarAction):
+            handleSidebarAction(sidebarAction)
+        case .composer:
+            break
+        }
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Atelia Mac")
-                .font(.atelia(22, weight: .medium))
-                .foregroundStyle(Color.clientStrongText)
-
-            Text("Client shell bootstrap")
-                .font(.atelia(14))
-                .foregroundStyle(Color.clientMutedText)
-
-            Text("Core features: \(featureSummary)")
-                .font(.atelia(12))
-                .foregroundStyle(Color.clientSubtleText)
+    @MainActor
+    private func handleSidebarAction(_ action: SidebarAction) {
+        switch action {
+        case .projectSectionHeaderAction(let headerAction):
+            handleProjectSectionHeaderAction(headerAction)
+        case .dismissProjectAddCandidate:
+            appModel.clearPendingProjectAddSelection()
+        case .command, .chatItem:
+            break
         }
-        .padding(28)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color.clientSurfaceSofter)
+    }
+
+    @MainActor
+    private func handleProjectSectionHeaderAction(_ action: ProjectSectionHeaderActionViewData) {
+        appModel.handleProjectSectionHeaderAction(action)
     }
 }

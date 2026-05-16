@@ -6,6 +6,8 @@ struct ClientSidebarProjection {
     var activeConversationTitle: String
     var activeProjectTitle: String
     var activeSelection: ClientMockActiveSelection
+    var projectSectionHeader: ProjectSectionHeaderViewData
+    var projectAddCandidateLabel: String?
     var workspaceGroups: [WorkspaceGroup]
     var globalItems: [ChatListItem]
 
@@ -17,7 +19,10 @@ struct ClientSidebarProjection {
         "\(activeSelection.surfacePackageID)#\(activeSelection.surfaceID)"
     }
 
-    init(snapshot: MacProjectStatusSnapshot?) {
+    init(
+        snapshot: MacProjectStatusSnapshot?,
+        pendingProjectAddSelection: ProjectAddSelection?
+    ) {
         guard let snapshot else {
             self.activeConversationTitle = "Secretary"
             self.activeProjectTitle = "プロジェクト未読込"
@@ -27,6 +32,7 @@ struct ClientSidebarProjection {
                 surfaceID: MockSurfaceReference.projectConversation.surfaceID,
                 resourceID: "conversation:unloaded:secretary"
             )
+            self.projectSectionHeader = .projectSectionHeader
             self.workspaceGroups = [
                 WorkspaceGroup(
                     id: "project:unloaded",
@@ -49,6 +55,7 @@ struct ClientSidebarProjection {
                 )
             ]
             self.globalItems = Self.globalItems()
+            self.projectAddCandidateLabel = pendingProjectAddSelection?.label
             return
         }
 
@@ -62,6 +69,8 @@ struct ClientSidebarProjection {
             surfaceID: MockSurfaceReference.projectConversation.surfaceID,
             resourceID: "conversation:\(snapshot.repositoryId):secretary"
         )
+        self.projectSectionHeader = .projectSectionHeader
+        self.projectAddCandidateLabel = pendingProjectAddSelection?.label
         self.workspaceGroups = [
             WorkspaceGroup(
                 id: "project:\(snapshot.repositoryId)",
@@ -80,12 +89,14 @@ struct ClientSidebarProjection {
         self.activeConversationTitle = mockState.activeConversationTitle
         self.activeProjectTitle = mockState.activeProjectTitle
         self.activeSelection = mockState.activeSelection
+        self.projectSectionHeader = mockState.projection.projectSectionHeader
+        self.projectAddCandidateLabel = nil
         self.workspaceGroups = mockState.workspaceGroups
         self.globalItems = mockState.recentChats
     }
 
     static var empty: ClientSidebarProjection {
-        ClientSidebarProjection(snapshot: nil)
+        ClientSidebarProjection(snapshot: nil, pendingProjectAddSelection: nil)
     }
 
     private static func projectItems(for snapshot: MacProjectStatusSnapshot) -> [ChatListItem] {

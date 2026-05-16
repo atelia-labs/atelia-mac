@@ -1,5 +1,6 @@
 import AteliaKit
 import AteliaMacClientModels
+import Foundation
 import Testing
 @testable import AteliaMacClient
 @testable import AteliaMacCore
@@ -38,6 +39,24 @@ private actor ProjectStatusClientFixture: AteliaClient {
 
 private enum ProjectStatusClientFixtureError: Error {
     case failed
+}
+
+@MainActor
+private final class ProjectFolderSelectionClientFixture: ProjectFolderSelectionProviding {
+    var existingFolderURL: URL?
+    var newFolderURL: URL?
+    private(set) var existingFolderCallCount = 0
+    private(set) var newFolderCallCount = 0
+
+    func chooseExistingFolder() -> URL? {
+        existingFolderCallCount += 1
+        return existingFolderURL
+    }
+
+    func createNewFolder() -> URL? {
+        newFolderCallCount += 1
+        return newFolderURL
+    }
 }
 
 private let clientAppModelProjectStatusFixture = AteliaProjectStatus(
@@ -134,6 +153,15 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(model.projectStatusSnapshot == MacProjectStatusSnapshot(status: clientAppModelProjectStatusFixture))
     #expect(model.sidebarProjection.activeConversationTitle == "Secretary")
     #expect(model.sidebarProjection.activeProjectTitle == "Atelia Kit")
+    #expect(model.sidebarProjection.projectSectionHeader.title == "プロジェクト")
+    #expect(model.sidebarProjection.projectSectionHeader.actions.map(\.id) == [
+        "project:add:create-folder",
+        "project:add:use-existing-folder"
+    ])
+    #expect(model.sidebarProjection.projectSectionHeader.actions.map(\.kind) == [
+        .createFolder,
+        .useExistingFolder
+    ])
     #expect(model.sidebarProjection.workspaceGroups.count == 1)
 
     let group = try #require(model.sidebarProjection.workspaceGroups.first)
@@ -202,6 +230,44 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientAppModelClearProjectStatusAlsoClearsPendingProjectAddSelection() async throws {
+    let picker = ProjectFolderSelectionClientFixture()
+    picker.existingFolderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit")
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, projectFolderSelection: picker)
+
+    let useExistingFolderAction = ProjectSectionHeaderViewData.projectSectionHeader.actions.first(where: { $0.kind == .useExistingFolder })!
+
+    model.handleProjectSectionHeaderAction(useExistingFolderAction)
+    await model.clearProjectStatus()
+
+    #expect(model.pendingProjectAddSelection == nil)
+    #expect(model.sidebarProjection.projectAddCandidateLabel == nil)
+}
+
+@MainActor
+@Test func clientAppModelClearPendingProjectAddSelectionKeepsProjectStatusSnapshot() async throws {
+    let picker = ProjectFolderSelectionClientFixture()
+    picker.existingFolderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit")
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, projectFolderSelection: picker)
+
+    try await model.reloadProjectStatus()
+
+    let useExistingFolderAction = ProjectSectionHeaderViewData.projectSectionHeader.actions.first(where: { $0.kind == .useExistingFolder })!
+
+    model.handleProjectSectionHeaderAction(useExistingFolderAction)
+    model.clearPendingProjectAddSelection()
+
+    #expect(model.projectStatusSnapshot == MacProjectStatusSnapshot(status: readyClientAppModelProjectStatusFixture))
+    #expect(model.pendingProjectAddSelection == nil)
+    #expect(model.sidebarProjection.projectAddCandidateLabel == nil)
+    #expect(model.sidebarProjection.activeProjectTitle == "Ready Repo")
+}
+
+@MainActor
 @Test func clientAppModelUnloadedProjectionUsesStableSelectionContract() async throws {
     let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
     let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
@@ -243,4 +309,61 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(model.projectStatusSnapshot == nil)
     #expect(model.sidebarProjection.activeProjectTitle == "プロジェクト未読込")
     #expect(model.lastErrorMessage != nil)
+}
+
+@MainActor
+@Test func clientAppModelRecordsExistingFolderSelectionAsPendingProjectAddSelection() {
+    let picker = ProjectFolderSelectionClientFixture()
+    picker.existingFolderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit")
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, projectFolderSelection: picker)
+
+    let useExistingFolderAction = ProjectSectionHeaderViewData.projectSectionHeader.actions.first(where: { $0.kind == .useExistingFolder })!
+
+    model.handleProjectSectionHeaderAction(useExistingFolderAction)
+
+    #expect(picker.existingFolderCallCount == 1)
+    #expect(picker.newFolderCallCount == 0)
+    #expect(model.pendingProjectAddSelection?.source == .existingFolder)
+    #expect(model.pendingProjectAddSelection?.folderURL == URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit"))
+    #expect(model.sidebarProjection.projectAddCandidateLabel == "AteliaKit")
+}
+
+@MainActor
+@Test func clientAppModelRecordsNewFolderSelectionAsPendingProjectAddSelection() {
+    let picker = ProjectFolderSelectionClientFixture()
+    picker.newFolderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/NewAteliaProject")
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, projectFolderSelection: picker)
+
+    let createFolderAction = ProjectSectionHeaderViewData.projectSectionHeader.actions.first(where: { $0.kind == .createFolder })!
+
+    model.handleProjectSectionHeaderAction(createFolderAction)
+
+    #expect(picker.existingFolderCallCount == 0)
+    #expect(picker.newFolderCallCount == 1)
+    #expect(model.pendingProjectAddSelection?.source == .newFolder)
+    #expect(model.pendingProjectAddSelection?.folderURL == URL(fileURLWithPath: "/Users/yohaku/Projects/NewAteliaProject"))
+    #expect(model.sidebarProjection.projectAddCandidateLabel == "NewAteliaProject")
+}
+
+@Test func projectFolderCreationEnsuresDirectoryExists() throws {
+    let parentDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let folderURL = parentDirectory.appendingPathComponent("NewAteliaProject", isDirectory: true)
+
+    defer {
+        try? FileManager.default.removeItem(at: parentDirectory)
+    }
+
+    try FileManager.default.createDirectory(at: parentDirectory, withIntermediateDirectories: true)
+
+    let resultURL = try ProjectFolderCreation.ensureDirectory(at: folderURL)
+
+    #expect(resultURL == folderURL)
+    #expect(FileManager.default.fileExists(atPath: folderURL.path))
+    var isDirectory: ObjCBool = false
+    #expect(FileManager.default.fileExists(atPath: folderURL.path, isDirectory: &isDirectory))
+    #expect(isDirectory.boolValue)
 }
