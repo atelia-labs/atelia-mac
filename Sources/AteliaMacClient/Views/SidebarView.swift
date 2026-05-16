@@ -5,6 +5,7 @@ enum SidebarAction {
     case command(id: String, surface: MockSurfaceReference, action: MockActionReference)
     case chatItem(id: String, projectID: String, resourceID: String, surface: MockSurfaceReference, action: MockActionReference)
     case projectSectionHeaderAction(ProjectSectionHeaderActionViewData)
+    case dismissProjectAddCandidate
 }
 
 struct SidebarView: View {
@@ -40,7 +41,9 @@ struct SidebarView: View {
                     )
 
                     if let projectAddCandidateLabel {
-                        ProjectAddCandidateView(label: projectAddCandidateLabel)
+                        ProjectAddCandidateView(label: projectAddCandidateLabel) {
+                            onAction(.dismissProjectAddCandidate)
+                        }
                     }
 
                     ForEach(groups) { group in
@@ -511,6 +514,7 @@ private struct ProjectSectionHeaderView: View {
     let header: ProjectSectionHeaderViewData
     let onAction: (SidebarAction) -> Void
     @State private var isHovered = false
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         HStack(spacing: 8) {
@@ -536,9 +540,19 @@ private struct ProjectSectionHeaderView: View {
                         .frame(width: 22, height: 22)
                 }
                 .menuStyle(.borderlessButton)
-                .opacity(isHovered ? 1 : 0)
-                .allowsHitTesting(isHovered)
+                .focused($isFocused)
+                .opacity(isHovered || isFocused ? 1 : 0)
                 .accessibilityLabel("プロジェクトを追加")
+                .accessibilityAction(named: Text("新規フォルダを作成")) {
+                    if let action = header.actions.first(where: { $0.kind == .createFolder }) {
+                        onAction(.projectSectionHeaderAction(action))
+                    }
+                }
+                .accessibilityAction(named: Text("既存のフォルダを使用")) {
+                    if let action = header.actions.first(where: { $0.kind == .useExistingFolder }) {
+                        onAction(.projectSectionHeaderAction(action))
+                    }
+                }
             }
         }
         .frame(height: 32)
@@ -554,33 +568,48 @@ private struct ProjectSectionHeaderView: View {
 
 private struct ProjectAddCandidateView: View {
     let label: String
+    let onDismiss: () -> Void
+
+    private let dismissButtonSize: CGFloat = 16
 
     var body: some View {
         HStack(spacing: 8) {
-            SidebarGlyph(.folderAdd)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 8) {
+                    SidebarGlyph(.folderAdd)
 
-            Text("追加候補")
-                .font(.atelia(12.25))
-                .tracking(0.25)
-                .foregroundStyle(Color.clientMutedText)
+                    Text("追加候補")
+                        .font(.atelia(12.25))
+                        .tracking(0.25)
+                        .foregroundStyle(Color.clientMutedText)
 
-            Text(label)
-                .font(.atelia(12.25))
-                .tracking(0.25)
-                .foregroundStyle(Color.clientSidebarText)
-                .lineLimit(1)
+                    Text(label)
+                        .font(.atelia(12.25))
+                        .tracking(0.25)
+                        .foregroundStyle(Color.clientSidebarText)
+                        .lineLimit(1)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("追加候補")
+                .accessibilityValue(label)
+                .accessibilityHint("選択中のフォルダ候補")
+            }
 
             Spacer(minLength: 0)
 
-            // TODO: wire a shell-level cancel action so the pending project-add selection can be dismissed here.
+            Button(action: onDismiss) {
+                Image(systemName: "xmark.circle")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(Color.clientMutedText)
+                    .frame(width: dismissButtonSize, height: dismissButtonSize)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("候補を閉じる")
+            .accessibilityHint("追加候補を非表示にします")
         }
         .frame(height: 26)
         .padding(.leading, 14)
         .padding(.trailing, 8)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("追加候補")
-        .accessibilityValue(label)
-        .accessibilityHint("選択中のフォルダ候補")
     }
 }
 

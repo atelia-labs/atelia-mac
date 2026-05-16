@@ -247,6 +247,27 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientAppModelClearPendingProjectAddSelectionKeepsProjectStatusSnapshot() async throws {
+    let picker = ProjectFolderSelectionClientFixture()
+    picker.existingFolderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit")
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, projectFolderSelection: picker)
+
+    try await model.reloadProjectStatus()
+
+    let useExistingFolderAction = ProjectSectionHeaderViewData.projectSectionHeader.actions.first(where: { $0.kind == .useExistingFolder })!
+
+    model.handleProjectSectionHeaderAction(useExistingFolderAction)
+    model.clearPendingProjectAddSelection()
+
+    #expect(model.projectStatusSnapshot == MacProjectStatusSnapshot(status: readyClientAppModelProjectStatusFixture))
+    #expect(model.pendingProjectAddSelection == nil)
+    #expect(model.sidebarProjection.projectAddCandidateLabel == nil)
+    #expect(model.sidebarProjection.activeProjectTitle == "Ready Repo")
+}
+
+@MainActor
 @Test func clientAppModelUnloadedProjectionUsesStableSelectionContract() async throws {
     let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
     let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")

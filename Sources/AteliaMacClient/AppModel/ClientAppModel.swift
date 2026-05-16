@@ -70,6 +70,11 @@ final class ClientAppModel {
         lastErrorMessage = nil
     }
 
+    func clearPendingProjectAddSelection() {
+        pendingProjectAddSelection = nil
+        syncSidebarProjection()
+    }
+
     func syncProjectStatusFromStore() async {
         let snapshot = await projectStatusStore.snapshot
         projectStatusSnapshot = snapshot

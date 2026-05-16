@@ -61,6 +61,8 @@ struct AteliaMacClientApp: App {
         switch action {
         case .projectSectionHeaderAction(let headerAction):
             handleProjectSectionHeaderAction(headerAction)
+        case .dismissProjectAddCandidate:
+            appModel.clearPendingProjectAddSelection()
         case .command, .chatItem:
             break
         }
