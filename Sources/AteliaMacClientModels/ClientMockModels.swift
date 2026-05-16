@@ -4,6 +4,7 @@ public struct ClientMockState: Sendable {
     public var activeConversationTitle: String
     public var activeProjectTitle: String
     public var activeSelection: ClientMockActiveSelection
+    public var conversation: ClientConversationFixture
     public var workspaceGroups: [WorkspaceGroup]
     public var recentChats: [ChatListItem]
     public var changeSummary: ChangeSummary
@@ -24,6 +25,7 @@ public struct ClientMockState: Sendable {
         activeConversationTitle: String,
         activeProjectTitle: String,
         activeSelection: ClientMockActiveSelection,
+        conversation: ClientConversationFixture? = nil,
         workspaceGroups: [WorkspaceGroup],
         recentChats: [ChatListItem],
         changeSummary: ChangeSummary,
@@ -35,6 +37,11 @@ public struct ClientMockState: Sendable {
         self.activeConversationTitle = activeConversationTitle
         self.activeProjectTitle = activeProjectTitle
         self.activeSelection = activeSelection
+        self.conversation = conversation ?? Self.synthesizedConversation(
+            title: activeConversationTitle,
+            messages: messages,
+            activity: activity
+        )
         self.workspaceGroups = workspaceGroups
         self.recentChats = recentChats
         self.changeSummary = changeSummary
@@ -42,6 +49,40 @@ public struct ClientMockState: Sendable {
         self.activity = activity
         self.goal = goal
         self.composer = composer
+    }
+
+    private static func synthesizedConversation(
+        title: String,
+        messages: [ChatMessage],
+        activity: ActivityBlock
+    ) -> ClientConversationFixture {
+        ClientConversationFixture(
+            id: "conversation.mock.\(title)",
+            title: title,
+            turns: messages.map { message in
+                ClientConversationTurnFixture(
+                    id: "turn.\(message.id)",
+                    actor: .user,
+                    blocks: [.message(message)]
+                )
+            } + [
+                ClientConversationTurnFixture(
+                    id: "turn.activity.mock.\(title)",
+                    actor: .secretary,
+                    blocks: [
+                        .activity(
+                            ClientConversationActivityFixture(
+                                id: "activity.mock.\(title)",
+                                duration: activity.duration,
+                                status: "完了",
+                                title: activity.title,
+                                bullets: activity.bullets
+                            )
+                        )
+                    ]
+                )
+            ]
+        )
     }
 
     public static let ateliaReference = ClientMockState(
@@ -53,6 +94,7 @@ public struct ClientMockState: Sendable {
             surfaceID: "project-conversation",
             resourceID: "conversation:mac-atelia:secretary"
         ),
+        conversation: .mdpRenderingReference,
         workspaceGroups: [
             WorkspaceGroup(
                 id: "project:mac-atelia",
@@ -274,6 +316,310 @@ public struct ClientMockActiveSelection: Hashable, Sendable {
             && surfaceID == item.surface.surfaceID
             && resourceID == item.resourceID
     }
+}
+
+public struct ClientConversationFixture: Identifiable, Sendable {
+    public var id: String
+    public var title: String
+    public var turns: [ClientConversationTurnFixture]
+
+    public init(id: String, title: String, turns: [ClientConversationTurnFixture]) {
+        self.id = id
+        self.title = title
+        self.turns = turns
+    }
+}
+
+public struct ClientConversationTurnFixture: Identifiable, Sendable {
+    public var id: String
+    public var actor: ClientConversationActor
+    public var blocks: [ClientConversationBlockFixture]
+
+    public init(
+        id: String,
+        actor: ClientConversationActor,
+        blocks: [ClientConversationBlockFixture]
+    ) {
+        self.id = id
+        self.actor = actor
+        self.blocks = blocks
+    }
+}
+
+public enum ClientConversationActor: Sendable {
+    case user
+    case secretary
+}
+
+public enum ClientConversationBlockFixture: Identifiable, Sendable {
+    case message(ChatMessage)
+    case activity(ClientConversationActivityFixture)
+    case toolOutput(ClientConversationToolOutputFixture)
+    case changeSet(ClientConversationChangeSetFixture)
+
+    public var id: String {
+        switch self {
+        case .message(let message):
+            message.id
+        case .activity(let activity):
+            activity.id
+        case .toolOutput(let toolOutput):
+            toolOutput.id
+        case .changeSet(let changeSet):
+            changeSet.id
+        }
+    }
+}
+
+public struct ClientConversationActivityFixture: Identifiable, Sendable {
+    public var id: String
+    public var duration: String
+    public var status: String
+    public var title: String
+    public var bullets: [String]
+
+    public init(id: String, duration: String, status: String, title: String, bullets: [String]) {
+        self.id = id
+        self.duration = duration
+        self.status = status
+        self.title = title
+        self.bullets = bullets
+    }
+}
+
+public struct ClientConversationToolOutputFixture: Identifiable, Sendable {
+    public enum Status: Sendable {
+        case succeeded
+        case failed
+        case running
+    }
+
+    public var id: String
+    public var toolName: String
+    public var command: String
+    public var status: Status
+    public var output: [String]
+
+    public init(
+        id: String,
+        toolName: String,
+        command: String,
+        status: Status,
+        output: [String]
+    ) {
+        self.id = id
+        self.toolName = toolName
+        self.command = command
+        self.status = status
+        self.output = output
+    }
+}
+
+public struct ClientConversationChangeSetFixture: Identifiable, Sendable {
+    public var id: String
+    public var title: String
+    public var summary: String
+    public var isExpandedByDefault: Bool
+    public var files: [ClientConversationChangedFileFixture]
+
+    public init(
+        id: String,
+        title: String,
+        summary: String,
+        isExpandedByDefault: Bool = false,
+        files: [ClientConversationChangedFileFixture]
+    ) {
+        self.id = id
+        self.title = title
+        self.summary = summary
+        self.isExpandedByDefault = isExpandedByDefault
+        self.files = files
+    }
+}
+
+public struct ClientConversationChangedFileFixture: Identifiable, Sendable {
+    public var id: String
+    public var path: String
+    public var additions: Int
+    public var deletions: Int
+    public var hunks: [ClientConversationDiffHunkFixture]
+
+    public init(
+        id: String,
+        path: String,
+        additions: Int,
+        deletions: Int,
+        hunks: [ClientConversationDiffHunkFixture]
+    ) {
+        self.id = id
+        self.path = path
+        self.additions = additions
+        self.deletions = deletions
+        self.hunks = hunks
+    }
+}
+
+public struct ClientConversationDiffHunkFixture: Identifiable, Sendable {
+    public var id: String
+    public var header: String
+    public var lines: [ClientConversationDiffLineFixture]
+
+    public init(id: String, header: String, lines: [ClientConversationDiffLineFixture]) {
+        self.id = id
+        self.header = header
+        self.lines = lines
+    }
+}
+
+public struct ClientConversationDiffLineFixture: Identifiable, Sendable {
+    public enum Kind: Sendable {
+        case added
+        case removed
+        case context
+    }
+
+    public var id: String
+    public var kind: Kind
+    public var text: String
+
+    public init(id: String, kind: Kind, text: String) {
+        self.id = id
+        self.kind = kind
+        self.text = text
+    }
+
+    public static func added(id: String, _ text: String) -> ClientConversationDiffLineFixture {
+        ClientConversationDiffLineFixture(id: id, kind: .added, text: text)
+    }
+
+    public static func removed(id: String, _ text: String) -> ClientConversationDiffLineFixture {
+        ClientConversationDiffLineFixture(id: id, kind: .removed, text: text)
+    }
+
+    public static func context(id: String, _ text: String) -> ClientConversationDiffLineFixture {
+        ClientConversationDiffLineFixture(id: id, kind: .context, text: text)
+    }
+
+    public static func rawUnifiedDiff(id: String, kind: Kind, text: String) -> ClientConversationDiffLineFixture {
+        ClientConversationDiffLineFixture(id: id, kind: kind, text: normalizedText(text, kind: kind))
+    }
+
+    private static func normalizedText(_ text: String, marker: Character) -> String {
+        guard text.first == marker else {
+            return text
+        }
+
+        return String(text.dropFirst())
+    }
+
+    private static func normalizedText(_ text: String, kind: Kind) -> String {
+        switch kind {
+        case .added:
+            normalizedText(text, marker: "+")
+        case .removed:
+            normalizedText(text, marker: "-")
+        case .context:
+            normalizedText(text, marker: " ")
+        }
+    }
+}
+
+public extension ClientConversationFixture {
+    static let mdpRenderingReference = ClientConversationFixture(
+        id: "conversation.mdp-rendering.reference",
+        title: "Secretary による Package MDP 更新",
+        turns: [
+            ClientConversationTurnFixture(
+                id: "turn.user.package-mdp-request",
+                actor: .user,
+                blocks: [
+                    .message(
+                        ChatMessage(
+                            id: "message.user.package-mdp-request",
+                            text: "Package MDP のレンダリングを Mac client 側で確認できるようにしたい。Secretary の実行、activity、tool output、change set、diff が会話上で意味を持って読める状態まで寄せて。",
+                            attachmentName: "AGENTS.md"
+                        )
+                    )
+                ]
+            ),
+            ClientConversationTurnFixture(
+                id: "turn.secretary.audit",
+                actor: .secretary,
+                blocks: [
+                    .activity(
+                        ClientConversationActivityFixture(
+                            id: "activity.secretary.audit",
+                            duration: "36s",
+                            status: "完了",
+                            title: "Package MDP の差分表示を確認しました。",
+                            bullets: [
+                                "semantic renderer 用の deterministic conversation model を追加",
+                                "Secretary activity と tool output を時系列で表示",
+                                "change set は collapsed default、展開時に scrollable diff を表示"
+                            ]
+                        )
+                    ),
+                    .toolOutput(
+                        ClientConversationToolOutputFixture(
+                            id: "tool.output.swift-build",
+                            toolName: "swift build",
+                            command: "swift build --product AteliaMacClient",
+                            status: .succeeded,
+                            output: [
+                                "Building for debugging...",
+                                "Build complete! (semantic mock verified)"
+                            ]
+                        )
+                    ),
+                    .changeSet(
+                        ClientConversationChangeSetFixture(
+                            id: "change-set.conversation-mdp-rendering",
+                            title: "Conversation MDP semantic mock",
+                            summary: "Mac client conversation surface now renders Atelia-shaped activity, tool output, change set, and diff semantics.",
+                            files: [
+                                ClientConversationChangedFileFixture(
+                                    id: "changed-file.models",
+                                    path: "Sources/AteliaMacClient/Models/AteliaConversationModels.swift",
+                                    additions: 156,
+                                    deletions: 0,
+                                    hunks: [
+                                        ClientConversationDiffHunkFixture(
+                                            id: "diff-hunk.models.schema",
+                                            header: "@@ new semantic conversation schema @@",
+                                            lines: [
+                                                .added(id: "diff-line.models.schema.001", "struct AteliaConversation: Identifiable {"),
+                                                .added(id: "diff-line.models.schema.002", "    var id: String"),
+                                                .added(id: "diff-line.models.schema.003", "    var turns: [AteliaConversationTurn]"),
+                                                .context(id: "diff-line.models.schema.004", "}")
+                                            ]
+                                        )
+                                    ]
+                                ),
+                                ClientConversationChangedFileFixture(
+                                    id: "changed-file.view",
+                                    path: "Sources/AteliaMacClient/Views/ConversationView.swift",
+                                    additions: 244,
+                                    deletions: 0,
+                                    hunks: [
+                                        ClientConversationDiffHunkFixture(
+                                            id: "diff-hunk.view.renderer",
+                                            header: "@@ render activity, tool output, and change set @@",
+                                            lines: [
+                                                .added(id: "diff-line.view.renderer.001", "AteliaActivityView(activity: activity)"),
+                                                .added(id: "diff-line.view.renderer.002", "AteliaToolOutputView(toolOutput: toolOutput)"),
+                                                .added(id: "diff-line.view.renderer.003", "AteliaChangeSetView(changeSet: changeSet)"),
+                                                .context(id: "diff-line.view.renderer.004", "ComposerView(goal: goal)")
+                                            ]
+                                        )
+                                    ]
+                                )
+                            ]
+                        )
+                    )
+                ]
+            )
+        ]
+    )
 }
 
 public struct MockSurfaceReference: Hashable, Identifiable, Sendable {

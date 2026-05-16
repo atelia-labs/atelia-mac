@@ -147,9 +147,115 @@ import AteliaMacClientModels
 
     #expect(state.workspaceGroups.first?.items.first?.action == action)
     #expect(state.projection.workspaceGroups.first?.items.first?.isSelected == true)
+    #expect(state.conversation.turns.count == 2)
+    #expect(state.conversation.turns.first?.blocks.first?.id == message.id)
+    #expect(state.conversation.turns.last?.blocks.first?.id == "activity.mock.Conversation")
+    guard case .secretary? = state.conversation.turns.last?.actor else {
+        Issue.record("Expected fallback conversation to synthesize a secretary activity turn.")
+        return
+    }
     #expect(state.activity.document.title == document.title)
     #expect(state.goal.elapsed == goal.elapsed)
     #expect(state.composer == composer)
+}
+
+@Test func fallbackConversationSynthesizesActivityTurnFromDefaultInitializerPath() {
+    let surface = MockSurfaceReference(
+        packageID: "dev.atelia.test.package",
+        surfaceID: "test-surface",
+        lifecycle: .available,
+        trust: .bundledOfficial,
+        criticality: .optional,
+        schemaVersion: "surface.mock.v1"
+    )
+    let item = ChatListItem(
+        id: "nav:test",
+        projectID: "project:test",
+        resourceID: "resource:test",
+        title: "Test",
+        trailing: nil,
+        surface: surface
+    )
+    let message = ChatMessage(id: "message:test", text: "User request")
+    let activity = ActivityBlock(
+        duration: "2s",
+        title: "Secretary activity",
+        bullets: ["Rendered activity"],
+        document: DocumentPreview(title: "Doc", subtitle: "Preview"),
+        review: ReviewPreview(title: "Review", additions: 1, deletions: 0)
+    )
+    let state = ClientMockState(
+        activeConversationTitle: "Conversation",
+        activeProjectTitle: "Project",
+        activeSelection: ClientMockActiveSelection(
+            projectID: item.projectID,
+            surfacePackageID: item.surface.packageID,
+            surfaceID: item.surface.surfaceID,
+            resourceID: item.resourceID
+        ),
+        workspaceGroups: [],
+        recentChats: [item],
+        changeSummary: ChangeSummary(
+            filePath: "Sources/Test.swift",
+            additions: 1,
+            deletions: 0,
+            collapsedFileCount: 0
+        ),
+        messages: [message],
+        activity: activity,
+        goal: GoalStatus(title: "Goal", elapsed: "2s"),
+        composer: ComposerConfiguration(
+            routeKey: "composer:test",
+            selectedModel: ComposerModelSelection(
+                id: "model:test",
+                routeKey: "models/test",
+                displayName: "Test model"
+            ),
+            permissionMode: ComposerPermissionMode(
+                id: "permission:test",
+                routeKey: "permissions/test",
+                permissionScope: "test.write",
+                displayName: "Test access"
+            )
+        )
+    )
+
+    guard case .user? = state.conversation.turns.first?.actor else {
+        Issue.record("Expected first fallback conversation turn to remain the user message.")
+        return
+    }
+    guard case .secretary? = state.conversation.turns.last?.actor else {
+        Issue.record("Expected second fallback conversation turn to be secretary activity.")
+        return
+    }
+    guard case .activity(let activityBlock)? = state.conversation.turns.last?.blocks.first else {
+        Issue.record("Expected fallback conversation to include secretary activity.")
+        return
+    }
+    #expect(activityBlock.duration == activity.duration)
+    #expect(activityBlock.status == "完了")
+    #expect(activityBlock.title == activity.title)
+    #expect(activityBlock.bullets == activity.bullets)
+}
+
+@Test func directDiffLineFixtureInitializerPreservesSemanticText() {
+    let added = ClientConversationDiffLineFixture(id: "line.added", kind: .added, text: "+let next = value")
+    let removed = ClientConversationDiffLineFixture(id: "line.removed", kind: .removed, text: "-let old = value")
+    let context = ClientConversationDiffLineFixture(id: "line.context", kind: .context, text: "    let stable = value")
+
+    #expect(added.text == "+let next = value")
+    #expect(removed.text == "-let old = value")
+    #expect(context.text == "    let stable = value")
+}
+
+@Test func rawUnifiedDiffLineFixtureFactoryStripsMarkerOnce() {
+    let added = ClientConversationDiffLineFixture.rawUnifiedDiff(id: "line.added", kind: .added, text: "++let next = value")
+    let removed = ClientConversationDiffLineFixture.rawUnifiedDiff(id: "line.removed", kind: .removed, text: "--let old = value")
+    let context = ClientConversationDiffLineFixture.rawUnifiedDiff(id: "line.context", kind: .context, text: "    let stable = value")
+
+    #expect(added.text == "+let next = value")
+    #expect(removed.text == "-let old = value")
+    #expect(context.text == "   let stable = value")
 }
 
 @Test func mockComposerConfigurationKeepsModelDisplayInState() {

@@ -29,6 +29,7 @@ enum ClientFontRegistrar {
 
     static let interRegularPostScriptName = "Inter-Regular"
     static let japaneseFallbackPostScriptName = "NotoSansJP-Thin_Regular"
+    static let jetBrainsMonoRegularPostScriptName = "JetBrainsMono-Regular"
     static let interPostScriptNames = [
         "Inter-Light",
         interRegularPostScriptName,
@@ -44,7 +45,7 @@ enum ClientFontRegistrar {
         FontResource(fileName: interRegularPostScriptName, postScriptName: interRegularPostScriptName),
         FontResource(fileName: "Inter-Medium", postScriptName: "Inter-Medium"),
         FontResource(fileName: "Inter-SemiBold", postScriptName: "Inter-SemiBold"),
-        FontResource(fileName: "JetBrainsMono-Regular", postScriptName: "JetBrainsMono-Regular")
+        FontResource(fileName: "JetBrainsMono-Regular", postScriptName: jetBrainsMonoRegularPostScriptName)
     ]
 
     private static let logger = Logger(subsystem: "com.atelia.mac.client", category: "Fonts")
