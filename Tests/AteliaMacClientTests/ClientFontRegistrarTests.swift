@@ -36,6 +36,7 @@ import Testing
     #expect(result.missingFonts.isEmpty)
     #expect(result.failedFonts.isEmpty)
     #expect(result.registeredFonts.count + result.alreadyRegisteredFonts.count == ClientFontRegistrar.bundledFonts.count)
+    #expect(ClientFontRegistrar.japaneseFallbackPostScriptName == "NotoSansJP-Thin_Regular")
 
     for font in ClientFontRegistrar.bundledFonts {
         let registeredFont = CTFontCreateWithName(font.postScriptName as CFString, 14, nil)

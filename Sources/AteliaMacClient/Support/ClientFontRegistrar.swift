@@ -28,7 +28,7 @@ enum ClientFontRegistrar {
     }
 
     static let interRegularPostScriptName = "Inter-Regular"
-    static let japaneseFallbackPostScriptName = "NotoSansJP-Thin"
+    static let japaneseFallbackPostScriptName = "NotoSansJP-Thin_Regular"
 
     static let bundledFonts = [
         FontResource(fileName: "NotoSansJP", postScriptName: japaneseFallbackPostScriptName),
