@@ -17,11 +17,13 @@ gradient、遊びの強い illustration は避けます。
 
 ## Typography
 
-- Font は bundled font と shared helper を使います。場当たり的な system font stack
-  を各 view に書かないでください。
+- Font は shared helper を使います。場当たり的な system font stack を各 view に
+  書かないでください。
 - Body、日本語 UI text、general prose は `Font.atelia` を使います。Latin label と
-  file path は `Font.ateliaLatin` を使います。Code と diff output は、その
-  surface を render する時点で `JetBrainsMono-Regular` を使います。
+  file path は `Font.ateliaLatin` を使います。これらの body / Latin helper は、
+  bundled text font が明示的に wire されるまでは system-font fallback に乗る
+  semantic wrapper です。Code と diff output は mono helper を使い、その surface を
+  render する時点で bundled `JetBrainsMono-Regular` を target します。
 - Base content text は 14 pt。Top bar product title は 16 pt semibold です。
   Section と row label は 12.25 から 13.25 pt。Sidebar section header は
   14.25 pt です。

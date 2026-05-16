@@ -17,10 +17,12 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 
 ## Typography
 
-- Use bundled fonts through the shared helpers, not ad hoc system font stacks.
+- Use shared font helpers, not ad hoc system font stacks in individual views.
 - Body, Japanese UI text, and general prose use `Font.atelia`. Latin labels and
-  file paths use `Font.ateliaLatin`. Code and diff output should use
-  `JetBrainsMono-Regular` when those surfaces are rendered.
+  file paths use `Font.ateliaLatin`. These body and Latin helpers are currently
+  semantic wrappers over the system-font fallback until bundled text fonts are
+  explicitly wired later. Code and diff output should use the mono helper, which
+  targets bundled `JetBrainsMono-Regular` when those surfaces are rendered.
 - Base content text is 14 pt. The top bar product title is 16 pt semibold.
   Section and row labels sit between 12.25 and 13.25 pt. Sidebar section
   headers use 14.25 pt.
