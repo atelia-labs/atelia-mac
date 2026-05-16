@@ -2,7 +2,7 @@ import Testing
 import AteliaMacClientModels
 
 @Test func mockNavigationUsesStableIdsAndSurfaceMetadata() {
-    let state = ClientMockState.codexReference
+    let state = ClientMockState.ateliaReference
     let groups = state.workspaceGroups
     let navigationItems = groups.flatMap { $0.items + $0.settings } + state.recentChats
 
@@ -21,7 +21,7 @@ import AteliaMacClientModels
 }
 
 @Test func packageProvidedAreasAreOptionalBundledSurfaces() {
-    let state = ClientMockState.codexReference
+    let state = ClientMockState.ateliaReference
     let navigationItems = state.workspaceGroups.flatMap { $0.items + $0.settings } + state.recentChats
     let packageProvidedItems = navigationItems.filter {
         $0.surface.packageID != MockSurfaceReference.hostPackageID
@@ -44,17 +44,28 @@ import AteliaMacClientModels
     )
     let action = MockActionReference(
         actionID: "action.test.open",
-        declaredByPackageID: surface.packageID,
-        declaredBySurfaceID: surface.surfaceID,
-        permissionScope: "test.read",
+        label: "Open test surface",
+        packageID: surface.packageID,
+        surfaceID: surface.surfaceID,
+        actionOwnerComponentID: "test-surface",
+        capabilityCallerComponentID: "test-backend",
+        callerCapabilityID: "service.test.read",
+        componentProfile: "TestListItem.v1",
+        requiredPermissions: ["test.read"],
+        risk: .r1,
+        invokes: .service(service: "test.surface.v1", method: "open"),
+        executionPath: .serviceBroker,
+        confirmationRequired: false,
+        redactionProjection: "package_default",
         auditEvent: "test.opened"
     )
     let item = ChatListItem(
         id: "nav:test",
+        projectID: "project:test",
+        resourceID: "resource:test",
         title: "Test",
         trailing: nil,
-        isSelected: true,
-        leadingStatus: .green,
+        leadingAffordance: .activity,
         surface: surface,
         action: action
     )
@@ -92,6 +103,12 @@ import AteliaMacClientModels
     let state = ClientMockState(
         activeConversationTitle: "Conversation",
         activeProjectTitle: "Project",
+        activeSelection: ClientMockActiveSelection(
+            projectID: item.projectID,
+            surfacePackageID: item.surface.packageID,
+            surfaceID: item.surface.surfaceID,
+            resourceID: item.resourceID
+        ),
         workspaceGroups: [group],
         recentChats: [item],
         changeSummary: changeSummary,
@@ -101,12 +118,72 @@ import AteliaMacClientModels
     )
 
     #expect(state.workspaceGroups.first?.items.first?.action == action)
+    #expect(state.projection.workspaceGroups.first?.items.first?.isSelected == true)
     #expect(state.activity.document.title == document.title)
     #expect(state.goal.elapsed == goal.elapsed)
 }
 
+@Test func mockActionsCarrySurfaceProtocolRoutingMetadata() {
+    let state = ClientMockState.ateliaReference
+    let navigationItems = state.workspaceGroups.flatMap { $0.items + $0.settings } + state.recentChats
+    let actions = navigationItems.compactMap(\.action)
+
+    #expect(MockSurfaceReference.hostPackageID == "host.bootstrap.macos")
+    #expect(actions.allSatisfy { !$0.actionOwnerComponentID.isEmpty })
+    #expect(actions.allSatisfy { !$0.capabilityCallerComponentID.isEmpty })
+    #expect(actions.allSatisfy { !$0.callerCapabilityID.isEmpty })
+    #expect(actions.allSatisfy { !$0.componentProfile.isEmpty })
+    #expect(actions.allSatisfy { !$0.requiredPermissions.isEmpty })
+    #expect(actions.allSatisfy { $0.risk == .r1 })
+    #expect(actions.allSatisfy { $0.resolverCorrelationHandling == .resolverMintedRequired })
+    #expect(actions.allSatisfy { !$0.redactionProjection.isEmpty })
+    #expect(actions.allSatisfy { action in
+        switch action.invokes {
+        case .service:
+            action.executionPath == .serviceBroker || action.executionPath == .secretaryBackendService
+        case .broker:
+            action.executionPath == .hostBroker
+        case .tool:
+            action.executionPath == .secretaryTool
+        }
+    })
+}
+
+@Test func activeSelectionIsDerivedInProjection() {
+    let state = ClientMockState.ateliaReference
+    let projectedItems = state.projection.workspaceGroups.flatMap { $0.items + $0.settings }
+        + state.projection.recentChats
+    let selectedItems = projectedItems.filter(\.isSelected)
+
+    #expect(state.activeSelection.projectID == "project:mac-atelia")
+    #expect(state.activeSelection.surfacePackageID == MockSurfaceReference.hostPackageID)
+    #expect(state.activeSelection.surfaceID == "project-conversation")
+    #expect(state.activeSelection.resourceID == "conversation:mac-atelia:secretary")
+    #expect(Set(selectedItems.map(\.id)) == Set([
+        "nav:mac-atelia:project-conversation",
+        "recent:mac-atelia:project-conversation"
+    ]))
+    #expect(state.workspaceGroups.flatMap { $0.items + $0.settings }.allSatisfy { item in
+        state.activeSelection.matches(item) == projectedItems.contains {
+            $0.id == item.id && $0.isSelected
+        }
+    })
+}
+
+@Test func leadingAffordanceRolesMapToPresentationOutsideFixtureState() {
+    let state = ClientMockState.ateliaReference
+    let projectedItems = state.projection.workspaceGroups.flatMap { $0.items + $0.settings }
+        + state.projection.recentChats
+    let assistantItems = projectedItems.filter { $0.leadingAffordance == .assistantConversation }
+
+    #expect(!assistantItems.isEmpty)
+    #expect(assistantItems.allSatisfy { $0.leadingPresentation == .assistantMark })
+    #expect(projectedItems.first { $0.leadingAffordance == .delegatedWork }?.leadingPresentation == .branchGlyph)
+    #expect(projectedItems.first { $0.leadingAffordance == .packageInstall }?.leadingPresentation == .addGlyph)
+}
+
 @Test func baselineItemsStayWithinDocumentedHostSurfaces() {
-    let state = ClientMockState.codexReference
+    let state = ClientMockState.ateliaReference
     let navigationItems = state.workspaceGroups.flatMap { $0.items + $0.settings } + state.recentChats
     let hostSurfaceIDs = Set(
         navigationItems
@@ -124,7 +201,7 @@ import AteliaMacClientModels
 }
 
 @Test func mockCopyDoesNotEmbedInternalModelRoutingNames() {
-    let state = ClientMockState.codexReference
+    let state = ClientMockState.ateliaReference
     let searchableText = [
         state.activeConversationTitle,
         state.activeProjectTitle,

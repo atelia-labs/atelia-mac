@@ -3,6 +3,7 @@ import Foundation
 public struct ClientMockState: Sendable {
     public var activeConversationTitle: String
     public var activeProjectTitle: String
+    public var activeSelection: ClientMockActiveSelection
     public var workspaceGroups: [WorkspaceGroup]
     public var recentChats: [ChatListItem]
     public var changeSummary: ChangeSummary
@@ -13,6 +14,7 @@ public struct ClientMockState: Sendable {
     public init(
         activeConversationTitle: String,
         activeProjectTitle: String,
+        activeSelection: ClientMockActiveSelection,
         workspaceGroups: [WorkspaceGroup],
         recentChats: [ChatListItem],
         changeSummary: ChangeSummary,
@@ -22,6 +24,7 @@ public struct ClientMockState: Sendable {
     ) {
         self.activeConversationTitle = activeConversationTitle
         self.activeProjectTitle = activeProjectTitle
+        self.activeSelection = activeSelection
         self.workspaceGroups = workspaceGroups
         self.recentChats = recentChats
         self.changeSummary = changeSummary
@@ -33,6 +36,12 @@ public struct ClientMockState: Sendable {
     public static let ateliaReference = ClientMockState(
         activeConversationTitle: "Secretary による package safety 更新",
         activeProjectTitle: "Mac Atelia",
+        activeSelection: ClientMockActiveSelection(
+            projectID: "project:mac-atelia",
+            surfacePackageID: MockSurfaceReference.hostPackageID,
+            surfaceID: "project-conversation",
+            resourceID: "conversation:mac-atelia:secretary"
+        ),
         workspaceGroups: [
             WorkspaceGroup(
                 id: "project:mac-atelia",
@@ -42,18 +51,21 @@ public struct ClientMockState: Sendable {
                 items: [
                     ChatListItem(
                         id: "nav:mac-atelia:project-conversation",
+                        projectID: "project:mac-atelia",
+                        resourceID: "conversation:mac-atelia:secretary",
                         title: "Secretary",
                         trailing: nil,
-                        isSelected: true,
-                        leadingStatus: .secretary,
+                        leadingAffordance: .assistantConversation,
                         surface: .projectConversation,
                         action: .openProjectConversation
                     ),
                     ChatListItem(
                         id: "nav:mac-atelia:delegated-work",
+                        projectID: "project:mac-atelia",
+                        resourceID: "work:mac-atelia:delegated",
                         title: "委任中の作業",
                         trailing: "3",
-                        leadingStatus: .branch,
+                        leadingAffordance: .delegatedWork,
                         surface: .projectHome,
                         action: .inspectDelegatedWork
                     )
@@ -61,14 +73,18 @@ public struct ClientMockState: Sendable {
                 settings: [
                     ChatListItem(
                         id: "nav:mac-atelia:package-management",
+                        projectID: "project:mac-atelia",
+                        resourceID: "packages:mac-atelia:installed",
                         title: "パッケージ",
                         trailing: nil,
-                        leadingStatus: .plus,
+                        leadingAffordance: .packageInstall,
                         surface: .packageManagement,
                         action: .inspectInstalledPackages
                     ),
                     ChatListItem(
                         id: "nav:mac-atelia:permission-recovery",
+                        projectID: "project:mac-atelia",
+                        resourceID: "permissions:mac-atelia:audit",
                         title: "権限と監査",
                         trailing: nil,
                         surface: .permissionRecovery,
@@ -76,6 +92,8 @@ public struct ClientMockState: Sendable {
                     ),
                     ChatListItem(
                         id: "nav:mac-atelia:settings",
+                        projectID: "project:mac-atelia",
+                        resourceID: "settings:mac-atelia:project",
                         title: "プロジェクト設定",
                         trailing: nil,
                         surface: .settings,
@@ -91,14 +109,18 @@ public struct ClientMockState: Sendable {
                 items: [
                     ChatListItem(
                         id: "nav:atelia-secretary:project-conversation",
+                        projectID: "project:atelia-secretary",
+                        resourceID: "conversation:atelia-secretary:secretary",
                         title: "Secretary",
                         trailing: nil,
-                        leadingStatus: .secretary,
+                        leadingAffordance: .assistantConversation,
                         surface: .projectConversation,
                         action: .openProjectConversation
                     ),
                     ChatListItem(
                         id: "nav:atelia-secretary:package-audit",
+                        projectID: "project:atelia-secretary",
+                        resourceID: "packages:atelia-secretary:audit",
                         title: "package audit",
                         trailing: "2",
                         surface: .packageManagement,
@@ -115,6 +137,8 @@ public struct ClientMockState: Sendable {
                 items: [
                     ChatListItem(
                         id: "nav:official-automations:surface-home",
+                        projectID: "project:mac-atelia",
+                        resourceID: "package-surface:official-automations:home",
                         title: "Automations",
                         trailing: "2",
                         surface: .officialAutomations,
@@ -122,6 +146,8 @@ public struct ClientMockState: Sendable {
                     ),
                     ChatListItem(
                         id: "nav:official-review:surface-home",
+                        projectID: "project:mac-atelia",
+                        resourceID: "package-surface:official-review:home",
                         title: "Review",
                         trailing: nil,
                         surface: .officialReview,
@@ -133,14 +159,18 @@ public struct ClientMockState: Sendable {
         recentChats: [
             ChatListItem(
                 id: "recent:mac-atelia:project-conversation",
+                projectID: "project:mac-atelia",
+                resourceID: "conversation:mac-atelia:secretary",
                 title: "Project conversation",
                 trailing: nil,
-                leadingStatus: .secretary,
+                leadingAffordance: .assistantConversation,
                 surface: .projectConversation,
                 action: .openProjectConversation
             ),
             ChatListItem(
                 id: "recent:mac-atelia:package-management",
+                projectID: "project:mac-atelia",
+                resourceID: "packages:mac-atelia:installed",
                 title: "Package inspection",
                 trailing: nil,
                 surface: .packageManagement,
@@ -148,6 +178,8 @@ public struct ClientMockState: Sendable {
             ),
             ChatListItem(
                 id: "recent:official-automations:surface-home",
+                projectID: "project:mac-atelia",
+                resourceID: "package-surface:official-automations:home",
                 title: "Automations package",
                 trailing: nil,
                 surface: .officialAutomations,
@@ -155,6 +187,8 @@ public struct ClientMockState: Sendable {
             ),
             ChatListItem(
                 id: "recent:official-review:surface-home",
+                projectID: "project:mac-atelia",
+                resourceID: "package-surface:official-review:home",
                 title: "Review package",
                 trailing: nil,
                 surface: .officialReview,
@@ -190,8 +224,27 @@ public struct ClientMockState: Sendable {
             elapsed: "33h 39m 21s"
         )
     )
+}
 
-    public static let codexReference = ateliaReference
+public struct ClientMockActiveSelection: Hashable, Sendable {
+    public var projectID: String
+    public var surfacePackageID: String
+    public var surfaceID: String
+    public var resourceID: String
+
+    public init(projectID: String, surfacePackageID: String, surfaceID: String, resourceID: String) {
+        self.projectID = projectID
+        self.surfacePackageID = surfacePackageID
+        self.surfaceID = surfaceID
+        self.resourceID = resourceID
+    }
+
+    public func matches(_ item: ChatListItem) -> Bool {
+        projectID == item.projectID
+            && surfacePackageID == item.surface.packageID
+            && surfaceID == item.surface.surfaceID
+            && resourceID == item.resourceID
+    }
 }
 
 public struct MockSurfaceReference: Hashable, Identifiable, Sendable {
@@ -206,7 +259,7 @@ public struct MockSurfaceReference: Hashable, Identifiable, Sendable {
         "\(packageID)#\(surfaceID)"
     }
 
-    public static let hostPackageID = "dev.atelia.mac.host"
+    public static let hostPackageID = "host.bootstrap.macos"
 
     public init(
         packageID: String,
@@ -245,24 +298,86 @@ public enum MockSurfaceCriticality: String, Hashable, Sendable {
     case optional
 }
 
+public enum MockRiskTier: String, Hashable, Sendable {
+    case r0 = "R0"
+    case r1 = "R1"
+    case r2 = "R2"
+    case r3 = "R3"
+    case r4 = "R4"
+}
+
+public enum MockActionInvocation: Hashable, Sendable {
+    case service(service: String, method: String)
+    case broker(family: String, operation: String)
+    case tool(tool: String)
+}
+
+public enum MockActionExecutionPath: String, Hashable, Sendable {
+    case serviceBroker = "service_broker"
+    case hostBroker = "host_broker"
+    case secretaryTool = "secretary_tool"
+    case secretaryBackendService = "secretary_backend_service"
+}
+
+public enum MockResolverCorrelationHandling: String, Hashable, Sendable {
+    case resolverMintedRequired = "resolver-minted-required"
+}
+
 public struct MockActionReference: Hashable, Sendable {
     public var actionID: String
-    public var declaredByPackageID: String
-    public var declaredBySurfaceID: String
-    public var permissionScope: String
+    public var label: String
+    public var packageID: String
+    public var surfaceID: String
+    public var actionOwnerComponentID: String
+    public var capabilityCallerComponentID: String
+    public var callerCapabilityID: String
+    public var componentProfile: String
+    public var requiredPermissions: [String]
+    public var risk: MockRiskTier
+    public var invokes: MockActionInvocation
+    public var executionPath: MockActionExecutionPath
+    public var resolverCorrelationHandling: MockResolverCorrelationHandling
+    public var confirmationRequired: Bool
+    public var redactionProjection: String
     public var auditEvent: String
+
+    public var declaredByPackageID: String { packageID }
+    public var declaredBySurfaceID: String { surfaceID }
+    public var permissionScope: String { requiredPermissions.joined(separator: " ") }
 
     public init(
         actionID: String,
-        declaredByPackageID: String,
-        declaredBySurfaceID: String,
-        permissionScope: String,
+        label: String,
+        packageID: String,
+        surfaceID: String,
+        actionOwnerComponentID: String,
+        capabilityCallerComponentID: String,
+        callerCapabilityID: String,
+        componentProfile: String,
+        requiredPermissions: [String],
+        risk: MockRiskTier,
+        invokes: MockActionInvocation,
+        executionPath: MockActionExecutionPath,
+        resolverCorrelationHandling: MockResolverCorrelationHandling = .resolverMintedRequired,
+        confirmationRequired: Bool,
+        redactionProjection: String,
         auditEvent: String
     ) {
         self.actionID = actionID
-        self.declaredByPackageID = declaredByPackageID
-        self.declaredBySurfaceID = declaredBySurfaceID
-        self.permissionScope = permissionScope
+        self.label = label
+        self.packageID = packageID
+        self.surfaceID = surfaceID
+        self.actionOwnerComponentID = actionOwnerComponentID
+        self.capabilityCallerComponentID = capabilityCallerComponentID
+        self.callerCapabilityID = callerCapabilityID
+        self.componentProfile = componentProfile
+        self.requiredPermissions = requiredPermissions
+        self.risk = risk
+        self.invokes = invokes
+        self.executionPath = executionPath
+        self.resolverCorrelationHandling = resolverCorrelationHandling
+        self.confirmationRequired = confirmationRequired
+        self.redactionProjection = redactionProjection
         self.auditEvent = auditEvent
     }
 }
@@ -335,57 +450,127 @@ public extension MockSurfaceReference {
 public extension MockActionReference {
     static let openProjectConversation = MockActionReference(
         actionID: "action.project-conversation.open",
-        declaredByPackageID: MockSurfaceReference.hostPackageID,
-        declaredBySurfaceID: "project-conversation",
-        permissionScope: "project.conversation.read",
+        label: "Open project conversation",
+        packageID: MockSurfaceReference.hostPackageID,
+        surfaceID: "project-conversation",
+        actionOwnerComponentID: "project-shell",
+        capabilityCallerComponentID: "host-navigation",
+        callerCapabilityID: "host_broker.open_surface",
+        componentProfile: "ConversationListItem.v1",
+        requiredPermissions: ["project.conversation.read"],
+        risk: .r1,
+        invokes: .broker(family: "surface", operation: "open"),
+        executionPath: .hostBroker,
+        confirmationRequired: false,
+        redactionProjection: "project_default",
         auditEvent: "project_conversation.opened"
     )
 
     static let inspectDelegatedWork = MockActionReference(
         actionID: "action.project-home.inspect-delegated-work",
-        declaredByPackageID: MockSurfaceReference.hostPackageID,
-        declaredBySurfaceID: "project-home",
-        permissionScope: "project.work.read",
+        label: "Inspect delegated work",
+        packageID: MockSurfaceReference.hostPackageID,
+        surfaceID: "project-home",
+        actionOwnerComponentID: "project-shell",
+        capabilityCallerComponentID: "host-navigation",
+        callerCapabilityID: "host_broker.open_surface",
+        componentProfile: "NavigationListItem.v1",
+        requiredPermissions: ["project.work.read"],
+        risk: .r1,
+        invokes: .broker(family: "surface", operation: "open"),
+        executionPath: .hostBroker,
+        confirmationRequired: false,
+        redactionProjection: "project_default",
         auditEvent: "project_work.inspected"
     )
 
     static let inspectInstalledPackages = MockActionReference(
         actionID: "action.package-management.inspect-installed",
-        declaredByPackageID: MockSurfaceReference.hostPackageID,
-        declaredBySurfaceID: "package-management",
-        permissionScope: "packages.inspect",
+        label: "Inspect installed packages",
+        packageID: MockSurfaceReference.hostPackageID,
+        surfaceID: "package-management",
+        actionOwnerComponentID: "package-inspector",
+        capabilityCallerComponentID: "host-navigation",
+        callerCapabilityID: "host_broker.open_surface",
+        componentProfile: "NavigationListItem.v1",
+        requiredPermissions: ["packages.inspect"],
+        risk: .r1,
+        invokes: .broker(family: "surface", operation: "open"),
+        executionPath: .hostBroker,
+        confirmationRequired: false,
+        redactionProjection: "project_default",
         auditEvent: "packages.inspected"
     )
 
     static let reviewPermissions = MockActionReference(
         actionID: "action.permission-recovery.review",
-        declaredByPackageID: MockSurfaceReference.hostPackageID,
-        declaredBySurfaceID: "permission-recovery",
-        permissionScope: "permissions.review",
+        label: "Review permissions",
+        packageID: MockSurfaceReference.hostPackageID,
+        surfaceID: "permission-recovery",
+        actionOwnerComponentID: "permission-recovery",
+        capabilityCallerComponentID: "host-navigation",
+        callerCapabilityID: "host_broker.open_surface",
+        componentProfile: "NavigationListItem.v1",
+        requiredPermissions: ["permissions.review"],
+        risk: .r1,
+        invokes: .broker(family: "surface", operation: "open"),
+        executionPath: .hostBroker,
+        confirmationRequired: false,
+        redactionProjection: "project_default",
         auditEvent: "permissions.reviewed"
     )
 
     static let openProjectSettings = MockActionReference(
         actionID: "action.settings.open-project",
-        declaredByPackageID: MockSurfaceReference.hostPackageID,
-        declaredBySurfaceID: "settings",
-        permissionScope: "project.settings.read",
+        label: "Open project settings",
+        packageID: MockSurfaceReference.hostPackageID,
+        surfaceID: "settings",
+        actionOwnerComponentID: "project-settings",
+        capabilityCallerComponentID: "host-navigation",
+        callerCapabilityID: "host_broker.open_surface",
+        componentProfile: "NavigationListItem.v1",
+        requiredPermissions: ["project.settings.read"],
+        risk: .r1,
+        invokes: .broker(family: "surface", operation: "open"),
+        executionPath: .hostBroker,
+        confirmationRequired: false,
+        redactionProjection: "project_default",
         auditEvent: "project_settings.opened"
     )
 
     static let openAutomationsPackage = MockActionReference(
         actionID: "action.official-automations.open",
-        declaredByPackageID: "dev.atelia.packages.official.automations",
-        declaredBySurfaceID: "automations-home",
-        permissionScope: "packages.official.automations.read",
+        label: "Open automations package",
+        packageID: "dev.atelia.packages.official.automations",
+        surfaceID: "automations-home",
+        actionOwnerComponentID: "automations-surface",
+        capabilityCallerComponentID: "automations-backend",
+        callerCapabilityID: "service.automations.read",
+        componentProfile: "PackageSurfaceListItem.v1",
+        requiredPermissions: ["packages.official.automations.read"],
+        risk: .r1,
+        invokes: .service(service: "automations.surface.v1", method: "open"),
+        executionPath: .serviceBroker,
+        confirmationRequired: false,
+        redactionProjection: "package_default",
         auditEvent: "package_surface.opened"
     )
 
     static let openReviewPackage = MockActionReference(
         actionID: "action.official-review.open",
-        declaredByPackageID: "dev.atelia.packages.official.review",
-        declaredBySurfaceID: "review-home",
-        permissionScope: "packages.official.review.read",
+        label: "Open review package",
+        packageID: "dev.atelia.packages.official.review",
+        surfaceID: "review-home",
+        actionOwnerComponentID: "review-surface",
+        capabilityCallerComponentID: "review-backend",
+        callerCapabilityID: "service.review.read",
+        componentProfile: "PackageSurfaceListItem.v1",
+        requiredPermissions: ["packages.official.review.read"],
+        risk: .r1,
+        invokes: .service(service: "review.surface.v1", method: "open"),
+        executionPath: .serviceBroker,
+        confirmationRequired: false,
+        redactionProjection: "package_default",
         auditEvent: "package_surface.opened"
     )
 }
@@ -426,37 +611,155 @@ public struct WorkspaceGroup: Identifiable, Sendable {
 }
 
 public struct ChatListItem: Identifiable, Sendable {
-    public enum LeadingStatus: Sendable {
-        case green
-        case secretary
-        case branch
-        case plus
-    }
-
     public var id: String
+    public var projectID: String
+    public var resourceID: String
     public var title: String
     public var trailing: String?
-    public var isSelected = false
-    public var leadingStatus: LeadingStatus?
+    public var leadingAffordance: LeadingAffordanceRole?
     public var surface: MockSurfaceReference
     public var action: MockActionReference?
 
     public init(
         id: String,
+        projectID: String,
+        resourceID: String,
         title: String,
         trailing: String?,
-        isSelected: Bool = false,
-        leadingStatus: LeadingStatus? = nil,
+        leadingAffordance: LeadingAffordanceRole? = nil,
         surface: MockSurfaceReference,
         action: MockActionReference? = nil
     ) {
         self.id = id
+        self.projectID = projectID
+        self.resourceID = resourceID
         self.title = title
         self.trailing = trailing
-        self.isSelected = isSelected
-        self.leadingStatus = leadingStatus
+        self.leadingAffordance = leadingAffordance
         self.surface = surface
         self.action = action
+    }
+}
+
+public enum LeadingAffordanceRole: Hashable, Sendable {
+    case activity
+    case assistantConversation
+    case delegatedWork
+    case packageInstall
+}
+
+public enum LeadingAffordancePresentation: Hashable, Sendable {
+    case statusDot
+    case assistantMark
+    case branchGlyph
+    case addGlyph
+}
+
+public extension LeadingAffordanceRole {
+    var presentation: LeadingAffordancePresentation {
+        switch self {
+        case .activity:
+            return .statusDot
+        case .assistantConversation:
+            return .assistantMark
+        case .delegatedWork:
+            return .branchGlyph
+        case .packageInstall:
+            return .addGlyph
+        }
+    }
+}
+
+public struct ClientMockProjection: Sendable {
+    public var workspaceGroups: [WorkspaceGroupViewData]
+    public var recentChats: [ChatListItemViewData]
+
+    public init(workspaceGroups: [WorkspaceGroupViewData], recentChats: [ChatListItemViewData]) {
+        self.workspaceGroups = workspaceGroups
+        self.recentChats = recentChats
+    }
+}
+
+public struct WorkspaceGroupViewData: Identifiable, Sendable {
+    public var id: String
+    public var title: String
+    public var subtitle: String?
+    public var surface: MockSurfaceReference
+    public var items: [ChatListItemViewData]
+    public var settings: [ChatListItemViewData]
+    public var status: WorkspaceGroup.Status?
+    public var emptyText: String?
+
+    public init(
+        id: String,
+        title: String,
+        subtitle: String?,
+        surface: MockSurfaceReference,
+        items: [ChatListItemViewData],
+        settings: [ChatListItemViewData],
+        status: WorkspaceGroup.Status?,
+        emptyText: String?
+    ) {
+        self.id = id
+        self.title = title
+        self.subtitle = subtitle
+        self.surface = surface
+        self.items = items
+        self.settings = settings
+        self.status = status
+        self.emptyText = emptyText
+    }
+}
+
+public struct ChatListItemViewData: Identifiable, Sendable {
+    public var id: String
+    public var projectID: String
+    public var resourceID: String
+    public var title: String
+    public var trailing: String?
+    public var isSelected: Bool
+    public var leadingAffordance: LeadingAffordanceRole?
+    public var leadingPresentation: LeadingAffordancePresentation?
+    public var surface: MockSurfaceReference
+    public var action: MockActionReference?
+
+    public init(item: ChatListItem, activeSelection: ClientMockActiveSelection) {
+        id = item.id
+        projectID = item.projectID
+        resourceID = item.resourceID
+        title = item.title
+        trailing = item.trailing
+        isSelected = activeSelection.matches(item)
+        leadingAffordance = item.leadingAffordance
+        leadingPresentation = item.leadingAffordance?.presentation
+        surface = item.surface
+        action = item.action
+    }
+}
+
+public extension ClientMockState {
+    var projection: ClientMockProjection {
+        ClientMockProjection(
+            workspaceGroups: workspaceGroups.map { group in
+                WorkspaceGroupViewData(
+                    id: group.id,
+                    title: group.title,
+                    subtitle: group.subtitle,
+                    surface: group.surface,
+                    items: group.items.map {
+                        ChatListItemViewData(item: $0, activeSelection: activeSelection)
+                    },
+                    settings: group.settings.map {
+                        ChatListItemViewData(item: $0, activeSelection: activeSelection)
+                    },
+                    status: group.status,
+                    emptyText: group.emptyText
+                )
+            },
+            recentChats: recentChats.map {
+                ChatListItemViewData(item: $0, activeSelection: activeSelection)
+            }
+        )
     }
 }
 
