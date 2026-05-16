@@ -2,18 +2,148 @@ import AteliaMacClientModels
 import AteliaMacCore
 import Foundation
 
+struct ClientSidebarSelectionState: Equatable, Sendable {
+    var activeSelection: ClientMockActiveSelection
+    var activeConversationTitle: String
+    var activeProjectTitle: String
+    var activeNavigationItemID: String?
+    var activePrimaryCommandID: String?
+
+    var isUnloaded: Bool {
+        activeSelection.projectID == "project:unloaded"
+    }
+
+    static func selectionState(
+        projectTitle: String,
+        navigationItemID: String?,
+        primaryCommandID: String?,
+        title: String,
+        surface: MockSurfaceReference,
+        projectID: String,
+        resourceID: String
+    ) -> ClientSidebarSelectionState {
+        ClientSidebarSelectionState(
+            activeSelection: ClientMockActiveSelection(
+                projectID: projectID,
+                surfacePackageID: surface.packageID,
+                surfaceID: surface.surfaceID,
+                resourceID: resourceID
+            ),
+            activeConversationTitle: title,
+            activeProjectTitle: projectTitle,
+            activeNavigationItemID: navigationItemID,
+            activePrimaryCommandID: primaryCommandID
+        )
+    }
+
+    static func projectSecretary(snapshot: MacProjectStatusSnapshot) -> ClientSidebarSelectionState {
+        ClientSidebarSelectionState(
+            activeSelection: ClientMockActiveSelection(
+                projectID: "project:\(snapshot.repositoryId)",
+                surfacePackageID: MockSurfaceReference.hostPackageID,
+                surfaceID: MockSurfaceReference.projectConversation.surfaceID,
+                resourceID: "conversation:\(snapshot.repositoryId):secretary"
+            ),
+            activeConversationTitle: "Secretary",
+            activeProjectTitle: snapshot.repositoryDisplayName,
+            activeNavigationItemID: "nav:\(snapshot.repositoryId):project-conversation",
+            activePrimaryCommandID: nil
+        )
+    }
+
+    static func unloaded() -> ClientSidebarSelectionState {
+        ClientSidebarSelectionState(
+            activeSelection: ClientMockActiveSelection(
+                projectID: "project:unloaded",
+                surfacePackageID: MockSurfaceReference.hostPackageID,
+                surfaceID: MockSurfaceReference.projectConversation.surfaceID,
+                resourceID: "conversation:unloaded:secretary"
+            ),
+            activeConversationTitle: "Secretary",
+            activeProjectTitle: "プロジェクト未読込",
+            activeNavigationItemID: "nav:unloaded:project-conversation",
+            activePrimaryCommandID: nil
+        )
+    }
+
+    static func globalSecretary() -> ClientSidebarSelectionState {
+        ClientSidebarSelectionState(
+            activeSelection: ClientMockActiveSelection(
+                projectID: "global",
+                surfacePackageID: MockSurfaceReference.globalSecretary.packageID,
+                surfaceID: MockSurfaceReference.globalSecretary.surfaceID,
+                resourceID: "conversation:global:secretary"
+            ),
+            activeConversationTitle: "Global Secretary",
+            activeProjectTitle: "全プロジェクト",
+            activeNavigationItemID: "global:secretary",
+            activePrimaryCommandID: nil
+        )
+    }
+
+    static func globalSearch(commandID: String?, title: String) -> ClientSidebarSelectionState {
+        ClientSidebarSelectionState(
+            activeSelection: ClientMockActiveSelection(
+                projectID: "global",
+                surfacePackageID: MockSurfaceReference.globalSearch.packageID,
+                surfaceID: MockSurfaceReference.globalSearch.surfaceID,
+                resourceID: "search:global"
+            ),
+            activeConversationTitle: title,
+            activeProjectTitle: "全プロジェクト",
+            activeNavigationItemID: "global:search",
+            activePrimaryCommandID: commandID
+        )
+    }
+
+    static func globalSettings(title: String) -> ClientSidebarSelectionState {
+        ClientSidebarSelectionState(
+            activeSelection: ClientMockActiveSelection(
+                projectID: "global",
+                surfacePackageID: MockSurfaceReference.settings.packageID,
+                surfaceID: MockSurfaceReference.settings.surfaceID,
+                resourceID: "settings:global:workspace"
+            ),
+            activeConversationTitle: title,
+            activeProjectTitle: "全プロジェクト",
+            activeNavigationItemID: "global:settings",
+            activePrimaryCommandID: nil
+        )
+    }
+
+    static func newThread(
+        commandID: String,
+        title: String,
+        projectSnapshot: MacProjectStatusSnapshot?,
+        surface: MockSurfaceReference
+    ) -> ClientSidebarSelectionState {
+        let repositoryId = projectSnapshot?.repositoryId ?? "unloaded"
+        let projectID = projectSnapshot.map { "project:\($0.repositoryId)" } ?? "project:unloaded"
+        return ClientSidebarSelectionState(
+            activeSelection: ClientMockActiveSelection(
+                projectID: projectID,
+                surfacePackageID: surface.packageID,
+                surfaceID: surface.surfaceID,
+                resourceID: "conversation:\(repositoryId):draft"
+            ),
+            activeConversationTitle: title,
+            activeProjectTitle: projectSnapshot?.repositoryDisplayName ?? "プロジェクト未読込",
+            activeNavigationItemID: projectSnapshot.map { "nav:\($0.repositoryId):project-conversation" } ?? "nav:unloaded:project-conversation",
+            activePrimaryCommandID: commandID
+        )
+    }
+}
+
 struct ClientSidebarProjection {
     var activeConversationTitle: String
     var activeProjectTitle: String
     var activeSelection: ClientMockActiveSelection
+    var activeNavigationItemID: String
+    var activePrimaryCommandID: String?
     var projectSectionHeader: ProjectSectionHeaderViewData
     var projectAddCandidateLabel: String?
     var workspaceGroups: [WorkspaceGroup]
     var globalItems: [ChatListItem]
-
-    var activeNavigationItemID: String {
-        navigationItems.first { activeSelection.matches($0) }?.id ?? ""
-    }
 
     var activeSurfaceID: String {
         "\(activeSelection.surfacePackageID)#\(activeSelection.surfaceID)"
@@ -21,17 +151,16 @@ struct ClientSidebarProjection {
 
     init(
         snapshot: MacProjectStatusSnapshot?,
-        pendingProjectAddSelection: ProjectAddSelection?
+        pendingProjectAddSelection: ProjectAddSelection?,
+        selectionState: ClientSidebarSelectionState? = nil
     ) {
         guard let snapshot else {
-            self.activeConversationTitle = "Secretary"
-            self.activeProjectTitle = "プロジェクト未読込"
-            self.activeSelection = ClientMockActiveSelection(
-                projectID: "project:unloaded",
-                surfacePackageID: MockSurfaceReference.hostPackageID,
-                surfaceID: MockSurfaceReference.projectConversation.surfaceID,
-                resourceID: "conversation:unloaded:secretary"
-            )
+            let selectionState = selectionState ?? .unloaded()
+            self.activeConversationTitle = selectionState.activeConversationTitle
+            self.activeProjectTitle = selectionState.activeProjectTitle
+            self.activeSelection = selectionState.activeSelection
+            self.activeNavigationItemID = selectionState.activeNavigationItemID ?? ""
+            self.activePrimaryCommandID = selectionState.activePrimaryCommandID
             self.projectSectionHeader = .projectSectionHeader
             self.workspaceGroups = [
                 WorkspaceGroup(
@@ -59,36 +188,35 @@ struct ClientSidebarProjection {
             return
         }
 
-        let projectTitle = snapshot.repositoryDisplayName
-
-        self.activeConversationTitle = "Secretary"
-        self.activeProjectTitle = projectTitle
-        self.activeSelection = ClientMockActiveSelection(
-            projectID: "project:\(snapshot.repositoryId)",
-            surfacePackageID: MockSurfaceReference.hostPackageID,
-            surfaceID: MockSurfaceReference.projectConversation.surfaceID,
-            resourceID: "conversation:\(snapshot.repositoryId):secretary"
+        let selectionState = selectionState ?? .projectSecretary(snapshot: snapshot)
+        let projectGroup = WorkspaceGroup(
+            id: "project:\(snapshot.repositoryId)",
+            title: snapshot.repositoryDisplayName,
+            subtitle: Self.repositorySubtitle(for: snapshot.repositoryRootPath),
+            surface: .projectHome,
+            items: Self.projectItems(for: snapshot),
+            settings: Self.projectSettings(for: snapshot),
+            status: Self.status(for: snapshot)
         )
+        let globalItems = Self.globalItems()
+
+        self.activeConversationTitle = selectionState.activeConversationTitle
+        self.activeProjectTitle = selectionState.activeProjectTitle
+        self.activeSelection = selectionState.activeSelection
+        self.activeNavigationItemID = selectionState.activeNavigationItemID ?? (projectGroup.items + projectGroup.settings + globalItems).first { selectionState.activeSelection.matches($0) }?.id ?? ""
+        self.activePrimaryCommandID = selectionState.activePrimaryCommandID
         self.projectSectionHeader = .projectSectionHeader
         self.projectAddCandidateLabel = pendingProjectAddSelection?.label
-        self.workspaceGroups = [
-            WorkspaceGroup(
-                id: "project:\(snapshot.repositoryId)",
-                title: projectTitle,
-                subtitle: Self.repositorySubtitle(for: snapshot.repositoryRootPath),
-                surface: .projectHome,
-                items: Self.projectItems(for: snapshot),
-                settings: Self.projectSettings(for: snapshot),
-                status: Self.status(for: snapshot)
-            )
-        ]
-        self.globalItems = Self.globalItems()
+        self.workspaceGroups = [projectGroup]
+        self.globalItems = globalItems
     }
 
     init(mockState: ClientMockState) {
         self.activeConversationTitle = mockState.activeConversationTitle
         self.activeProjectTitle = mockState.activeProjectTitle
         self.activeSelection = mockState.activeSelection
+        self.activeNavigationItemID = mockState.activeNavigationItemID
+        self.activePrimaryCommandID = nil
         self.projectSectionHeader = mockState.projection.projectSectionHeader
         self.projectAddCandidateLabel = nil
         self.workspaceGroups = mockState.workspaceGroups
@@ -199,10 +327,6 @@ struct ClientSidebarProjection {
         ]
     }
 
-    private var navigationItems: [ChatListItem] {
-        workspaceGroups.flatMap { $0.items + $0.settings } + globalItems
-    }
-
     private static func repositorySubtitle(for rootPath: String) -> String? {
         let lastPathComponent = URL(fileURLWithPath: rootPath).lastPathComponent
         return lastPathComponent.isEmpty ? nil : lastPathComponent
@@ -215,4 +339,5 @@ struct ClientSidebarProjection {
     private static func status(for snapshot: MacProjectStatusSnapshot) -> WorkspaceGroup.Status? {
         snapshot.isReady ? nil : .warning
     }
+
 }

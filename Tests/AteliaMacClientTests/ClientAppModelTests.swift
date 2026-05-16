@@ -202,6 +202,211 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientAppModelRoutesGlobalSecretarySelectionIntoConversationState() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    let globalSecretary = try #require(model.sidebarProjection.globalItems.first { $0.id == "global:secretary" })
+
+    model.handleSidebarAction(.chatItem(
+        id: globalSecretary.id,
+        projectID: globalSecretary.projectID,
+        resourceID: globalSecretary.resourceID,
+        title: globalSecretary.title,
+        surface: globalSecretary.surface,
+        action: try #require(globalSecretary.action)
+    ))
+
+    #expect(model.sidebarProjection.activeConversationTitle == "Global Secretary")
+    #expect(model.sidebarProjection.activeProjectTitle == "全プロジェクト")
+    #expect(model.sidebarProjection.activeNavigationItemID == "global:secretary")
+    #expect(model.sidebarProjection.activePrimaryCommandID == nil)
+    #expect(model.sidebarProjection.activeSurfaceID == MockSurfaceReference.globalSecretary.id)
+}
+
+@MainActor
+@Test func clientAppModelRoutesGlobalSettingsSelectionIntoWorkspaceState() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    model.handleSidebarAction(.command(
+        id: "global:settings",
+        title: "設定",
+        surface: .settings,
+        action: .openProjectSettings
+    ))
+
+    #expect(model.sidebarProjection.activeConversationTitle == "設定")
+    #expect(model.sidebarProjection.activeProjectTitle == "全プロジェクト")
+    #expect(model.sidebarProjection.activeSelection.projectID == "global")
+    #expect(model.sidebarProjection.activeSelection.resourceID == "settings:global:workspace")
+    #expect(model.sidebarProjection.activeNavigationItemID == "global:settings")
+    #expect(model.sidebarProjection.activePrimaryCommandID == nil)
+    #expect(model.sidebarProjection.activeSurfaceID == MockSurfaceReference.settings.id)
+}
+
+@MainActor
+@Test func clientAppModelRoutesProjectSettingsSelectionIntoProjectState() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    let projectSettings = try #require(model.sidebarProjection.workspaceGroups.first?.settings.first { $0.id == "nav:repo_123:settings" })
+
+    model.handleSidebarAction(.chatItem(
+        id: projectSettings.id,
+        projectID: projectSettings.projectID,
+        resourceID: projectSettings.resourceID,
+        title: projectSettings.title,
+        surface: projectSettings.surface,
+        action: try #require(projectSettings.action)
+    ))
+
+    #expect(model.sidebarProjection.activeConversationTitle == "プロジェクト設定")
+    #expect(model.sidebarProjection.activeProjectTitle == "Atelia Kit")
+    #expect(model.sidebarProjection.activeNavigationItemID == "nav:repo_123:settings")
+    #expect(model.sidebarProjection.activePrimaryCommandID == nil)
+}
+
+@MainActor
+@Test func clientAppModelRoutesPrimaryCommandSelectionIntoShellState() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    model.handleSidebarAction(.command(
+        id: "primary:global-search",
+        title: "検索",
+        surface: .globalSearch,
+        action: .searchAllProjects
+    ))
+
+    #expect(model.sidebarProjection.activeConversationTitle == "検索")
+    #expect(model.sidebarProjection.activeProjectTitle == "全プロジェクト")
+    #expect(model.sidebarProjection.activeNavigationItemID == "global:search")
+    #expect(model.sidebarProjection.activePrimaryCommandID == "primary:global-search")
+    #expect(model.sidebarProjection.activeSurfaceID == MockSurfaceReference.globalSearch.id)
+}
+
+@MainActor
+@Test func clientAppModelRoutesNewThreadCommandSelectionIntoProjectConversationState() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    model.handleSidebarAction(.command(
+        id: "primary:new-thread",
+        title: "新しいスレッド",
+        surface: .projectConversation,
+        action: .startNewThread
+    ))
+
+    #expect(model.sidebarProjection.activeConversationTitle == "新しいスレッド")
+    #expect(model.sidebarProjection.activeProjectTitle == "Atelia Kit")
+    #expect(model.sidebarProjection.activeNavigationItemID == "nav:repo_123:project-conversation")
+    #expect(model.sidebarProjection.activePrimaryCommandID == "primary:new-thread")
+    #expect(model.sidebarProjection.activeSurfaceID == MockSurfaceReference.projectConversation.id)
+}
+
+@MainActor
+@Test func clientAppModelUpgradesUnloadedSecretarySelectionAfterReload() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    await model.clearProjectStatus()
+    try await model.reloadProjectStatus()
+
+    #expect(model.sidebarProjection.activeProjectTitle == "Atelia Kit")
+    #expect(model.sidebarProjection.activeSelection.projectID == "project:repo_123")
+    #expect(model.sidebarProjection.activeNavigationItemID == "nav:repo_123:project-conversation")
+    #expect(model.sidebarProjection.activeConversationTitle == "Secretary")
+}
+
+@MainActor
+@Test func clientAppModelUpgradesUnloadedNewThreadSelectionAfterReload() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    await model.clearProjectStatus()
+
+    model.handleSidebarAction(.command(
+        id: "primary:new-thread",
+        title: "新しいスレッド",
+        surface: .projectConversation,
+        action: .startNewThread
+    ))
+
+    #expect(model.sidebarProjection.activeSelection.projectID == "project:unloaded")
+    #expect(model.sidebarProjection.activePrimaryCommandID == "primary:new-thread")
+
+    try await model.reloadProjectStatus()
+
+    #expect(model.sidebarProjection.activeProjectTitle == "Atelia Kit")
+    #expect(model.sidebarProjection.activeSelection.projectID == "project:repo_123")
+    #expect(model.sidebarProjection.activeNavigationItemID == "nav:repo_123:project-conversation")
+    #expect(model.sidebarProjection.activePrimaryCommandID == "primary:new-thread")
+    #expect(model.sidebarProjection.activeConversationTitle == "新しいスレッド")
+}
+
+@MainActor
+@Test func clientAppModelRoutesUnsupportedCommandActionThroughGenericSelectionState() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    model.handleSidebarAction(.command(
+        id: "primary:custom",
+        title: "カスタム",
+        surface: .settings,
+        action: .openProjectConversation
+    ))
+
+    #expect(model.sidebarProjection.activeConversationTitle == "カスタム")
+    #expect(model.sidebarProjection.activeProjectTitle == "全プロジェクト")
+    #expect(model.sidebarProjection.activeSelection.projectID == "global")
+    #expect(model.sidebarProjection.activePrimaryCommandID == "primary:custom")
+    #expect(model.sidebarProjection.activeNavigationItemID == "")
+}
+
+@MainActor
+@Test func clientAppModelRoutesUnsupportedProjectContextCommandActionThroughProjectScopedSelectionState() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    model.handleSidebarAction(.command(
+        id: "primary:custom-project",
+        title: "カスタム",
+        surface: .projectConversation,
+        action: .openProjectConversation
+    ))
+
+    #expect(model.sidebarProjection.activeConversationTitle == "カスタム")
+    #expect(model.sidebarProjection.activeProjectTitle == "Atelia Kit")
+    #expect(model.sidebarProjection.activeSelection.projectID == "project:repo_123")
+    #expect(model.sidebarProjection.activePrimaryCommandID == "primary:custom-project")
+    #expect(model.sidebarProjection.activeNavigationItemID == "")
+}
+
+@MainActor
 @Test func clientAppModelSidebarClearsWarningWhenDaemonAndStorageAreReady() async throws {
     let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
     let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")

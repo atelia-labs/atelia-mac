@@ -50,26 +50,9 @@ struct AteliaMacClientApp: App {
         case .openSettings:
             break
         case .sidebar(let sidebarAction):
-            handleSidebarAction(sidebarAction)
+            appModel.handleSidebarAction(sidebarAction)
         case .composer:
             break
         }
-    }
-
-    @MainActor
-    private func handleSidebarAction(_ action: SidebarAction) {
-        switch action {
-        case .projectSectionHeaderAction(let headerAction):
-            handleProjectSectionHeaderAction(headerAction)
-        case .dismissProjectAddCandidate:
-            appModel.clearPendingProjectAddSelection()
-        case .command, .chatItem:
-            break
-        }
-    }
-
-    @MainActor
-    private func handleProjectSectionHeaderAction(_ action: ProjectSectionHeaderActionViewData) {
-        appModel.handleProjectSectionHeaderAction(action)
     }
 }

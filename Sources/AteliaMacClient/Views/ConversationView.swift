@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ConversationView: View {
     let conversation: AteliaConversation
+    let activeConversationTitle: String
     let activeProjectTitle: String
     let goal: GoalStatus
     let composer: ComposerConfiguration
@@ -11,7 +12,11 @@ struct ConversationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ConversationTopBar(activeProjectTitle: activeProjectTitle, onOpenSettings: onOpenSettings)
+            ConversationTopBar(
+                activeConversationTitle: activeConversationTitle,
+                activeProjectTitle: activeProjectTitle,
+                onOpenSettings: onOpenSettings
+            )
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
@@ -35,17 +40,18 @@ struct ConversationView: View {
 }
 
 private struct ConversationTopBar: View {
+    let activeConversationTitle: String
     let activeProjectTitle: String
     let onOpenSettings: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Atelia")
+                Text(activeConversationTitle)
                     .font(.atelia(16, weight: .semibold))
                     .foregroundStyle(Color.clientStrongText)
 
-                Text("Global Secretary / \(activeProjectTitle)")
+                Text(activeProjectTitle)
                     .font(.atelia(12.5))
                     .foregroundStyle(Color.clientMutedText)
             }
