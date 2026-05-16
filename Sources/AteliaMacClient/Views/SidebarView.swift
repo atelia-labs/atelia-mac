@@ -570,6 +570,32 @@ private struct ProjectSectionHeaderView: View {
                 .allowsHitTesting(isProjectAddMenuVisible)
                 .accessibilityHidden(!isProjectAddMenuVisible)
                 .accessibilityLabel("プロジェクトを追加")
+            }
+        }
+        .frame(height: 32)
+        .padding(.leading, 14)
+        .padding(.trailing, 8)
+        .projectSectionHeaderAccessibilityActions(header: header, onAction: onAction)
+        .onHover { hovered in
+            withAnimation(.easeOut(duration: 0.12)) {
+                isHovered = hovered
+            }
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func projectSectionHeaderAccessibilityActions(
+        header: ProjectSectionHeaderViewData,
+        onAction: @escaping (SidebarAction) -> Void
+    ) -> some View {
+        if header.actions.isEmpty {
+            self
+        } else {
+            self
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(header.title)
                 .accessibilityAction(named: Text("新規フォルダを作成")) {
                     if let action = header.actions.first(where: { $0.kind == .createFolder }) {
                         onAction(.projectSectionHeaderAction(action))
@@ -580,15 +606,6 @@ private struct ProjectSectionHeaderView: View {
                         onAction(.projectSectionHeaderAction(action))
                     }
                 }
-            }
-        }
-        .frame(height: 32)
-        .padding(.leading, 14)
-        .padding(.trailing, 8)
-        .onHover { hovered in
-            withAnimation(.easeOut(duration: 0.12)) {
-                isHovered = hovered
-            }
         }
     }
 }
