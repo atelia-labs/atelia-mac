@@ -7,7 +7,7 @@ struct AteliaMacClientApp: App {
         WindowGroup {
             ClientBootstrapView()
                 .frame(minWidth: 960, minHeight: 640)
-                .preferredColorScheme(.light)
+                .preferredColorScheme(AteliaClientDesign.supportsLightColorSchemeOnly ? .light : nil)
         }
         .windowStyle(.hiddenTitleBar)
     }

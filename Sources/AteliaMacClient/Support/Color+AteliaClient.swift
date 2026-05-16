@@ -110,9 +110,3 @@ extension Color {
     static let clientWarning = Color(hex: 0xf15a24)
     static let clientFileMention = Color(hex: 0xc4375d)
 }
-
-extension View {
-    func clientLightText() -> some View {
-        fontWeight(.regular)
-    }
-}
