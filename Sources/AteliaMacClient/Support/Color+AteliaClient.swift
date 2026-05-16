@@ -61,7 +61,9 @@ enum AteliaClientDesign {
 
 enum AteliaClientLayout {
     static let sidebarWidth: CGFloat = 270
+    static let sidebarDividerWidth: CGFloat = 1
     static let contentWidth: CGFloat = 736
+    static let minimumWindowWidth = sidebarWidth + sidebarDividerWidth + contentWidth
     static let userBubbleMaxWidth: CGFloat = 566
     static let userBubbleHorizontalPadding: CGFloat = 13
     static let userBubbleVerticalPadding: CGFloat = 13
