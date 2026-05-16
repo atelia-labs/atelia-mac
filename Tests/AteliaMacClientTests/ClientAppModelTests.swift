@@ -378,9 +378,31 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     ))
 
     #expect(model.sidebarProjection.activeConversationTitle == "カスタム")
-    #expect(model.sidebarProjection.activeProjectTitle == "Atelia Kit")
+    #expect(model.sidebarProjection.activeProjectTitle == "全プロジェクト")
     #expect(model.sidebarProjection.activeSelection.projectID == "global")
     #expect(model.sidebarProjection.activePrimaryCommandID == "primary:custom")
+    #expect(model.sidebarProjection.activeNavigationItemID == "")
+}
+
+@MainActor
+@Test func clientAppModelRoutesUnsupportedProjectContextCommandActionThroughProjectScopedSelectionState() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    model.handleSidebarAction(.command(
+        id: "primary:custom-project",
+        title: "カスタム",
+        surface: .projectConversation,
+        action: .openProjectConversation
+    ))
+
+    #expect(model.sidebarProjection.activeConversationTitle == "カスタム")
+    #expect(model.sidebarProjection.activeProjectTitle == "Atelia Kit")
+    #expect(model.sidebarProjection.activeSelection.projectID == "project:repo_123")
+    #expect(model.sidebarProjection.activePrimaryCommandID == "primary:custom-project")
     #expect(model.sidebarProjection.activeNavigationItemID == "")
 }
 

@@ -179,13 +179,14 @@ final class ClientAppModel {
         case .openProjectSettings:
             sidebarSelectionState = .globalSettings(title: title)
         default:
+            let fallbackScope = fallbackScope(for: surface)
             sidebarSelectionState = .selectionState(
-                projectTitle: projectStatusSnapshot?.repositoryDisplayName ?? "プロジェクト未読込",
+                projectTitle: fallbackScope.projectTitle,
                 navigationItemID: nil,
                 primaryCommandID: id,
                 title: title,
                 surface: surface,
-                projectID: "global",
+                projectID: fallbackScope.projectID,
                 resourceID: "surface-command:\(id)"
             )
         }
@@ -225,5 +226,19 @@ final class ClientAppModel {
         }
 
         return projectStatusSnapshot?.repositoryDisplayName ?? "プロジェクト未読込"
+    }
+
+    private func fallbackScope(for surface: MockSurfaceReference) -> (projectID: String, projectTitle: String) {
+        if surface == MockSurfaceReference.projectConversation || surface == MockSurfaceReference.projectHome {
+            return (
+                projectID: projectStatusSnapshot.map { "project:\($0.repositoryId)" } ?? "project:unloaded",
+                projectTitle: projectStatusSnapshot?.repositoryDisplayName ?? "プロジェクト未読込"
+            )
+        }
+
+        return (
+            projectID: "global",
+            projectTitle: "全プロジェクト"
+        )
     }
 }
