@@ -160,8 +160,17 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(globalSecretary.resourceID == "conversation:global:secretary")
     #expect(globalSecretary.surface == .globalSecretary)
     #expect(globalSecretary.action == .openGlobalSecretary)
+    #expect(globalSecretary.surface.trust == .bundledOfficial)
+    #expect(globalSecretary.surface.criticality == .userRemovable)
     #expect(globalSearch.surface == .globalSearch)
     #expect(globalSearch.action == .searchAllProjects)
+    #expect(globalSearch.surface.trust == .bundledOfficial)
+    #expect(globalSearch.surface.criticality == .userRemovable)
+
+    let mobileSetup = try #require(model.sidebarProjection.globalItems.first { $0.id == "global:mobile-setup" })
+    #expect(mobileSetup.surface == .settings)
+    #expect(mobileSetup.action == .openMobileSetup)
+    #expect(mobileSetup.action?.declaredBySurfaceID == MockSurfaceReference.settings.surfaceID)
 }
 
 @MainActor

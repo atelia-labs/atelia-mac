@@ -76,6 +76,14 @@ struct ClientSidebarProjection {
         self.globalItems = Self.globalItems()
     }
 
+    init(mockState: ClientMockState) {
+        self.activeConversationTitle = mockState.activeConversationTitle
+        self.activeProjectTitle = mockState.activeProjectTitle
+        self.activeSelection = mockState.activeSelection
+        self.workspaceGroups = mockState.workspaceGroups
+        self.globalItems = mockState.recentChats
+    }
+
     static var empty: ClientSidebarProjection {
         ClientSidebarProjection(snapshot: nil)
     }
@@ -174,7 +182,7 @@ struct ClientSidebarProjection {
                 resourceID: "settings:global:mobile",
                 title: "Atelia Mobile を設定",
                 trailing: nil,
-                surface: .mobileSetup,
+                surface: .settings,
                 action: .openMobileSetup
             )
         ]

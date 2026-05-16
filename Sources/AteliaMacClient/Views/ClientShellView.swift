@@ -9,15 +9,26 @@ enum ClientShellAction {
 
 struct ClientShellView: View {
     let state: ClientMockState
+    let sidebarProjection: ClientSidebarProjection
     var onAction: (ClientShellAction) -> Void = { _ in }
+
+    init(
+        state: ClientMockState,
+        sidebarProjection: ClientSidebarProjection? = nil,
+        onAction: @escaping (ClientShellAction) -> Void = { _ in }
+    ) {
+        self.state = state
+        self.sidebarProjection = sidebarProjection ?? ClientSidebarProjection(mockState: state)
+        self.onAction = onAction
+    }
 
     var body: some View {
         HStack(spacing: 0) {
             SidebarView(
-                activeSelection: state.activeSelection,
-                activeNavigationItemID: state.activeNavigationItemID,
-                groups: state.workspaceGroups,
-                globalItems: state.recentChats,
+                activeSelection: sidebarProjection.activeSelection,
+                activeNavigationItemID: sidebarProjection.activeNavigationItemID,
+                groups: sidebarProjection.workspaceGroups,
+                globalItems: sidebarProjection.globalItems,
                 onAction: { onAction(.sidebar($0)) }
             )
 

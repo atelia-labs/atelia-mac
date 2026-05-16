@@ -824,29 +824,20 @@ public extension MockSurfaceReference {
     )
 
     static let globalSecretary = MockSurfaceReference(
-        packageID: hostPackageID,
+        packageID: "dev.atelia.packages.official.secretary",
         surfaceID: "global-secretary",
-        lifecycle: .mounted,
-        trust: .hostShippedBuiltIn,
-        criticality: .hostRequired,
+        lifecycle: .available,
+        trust: .bundledOfficial,
+        criticality: .userRemovable,
         schemaVersion: "surface.mock.v1"
     )
 
     static let globalSearch = MockSurfaceReference(
-        packageID: hostPackageID,
+        packageID: "dev.atelia.packages.official.search",
         surfaceID: "global-search",
-        lifecycle: .mounted,
-        trust: .hostShippedBuiltIn,
-        criticality: .hostRequired,
-        schemaVersion: "surface.mock.v1"
-    )
-
-    static let mobileSetup = MockSurfaceReference(
-        packageID: hostPackageID,
-        surfaceID: "mobile-setup",
-        lifecycle: .mounted,
-        trust: .hostShippedBuiltIn,
-        criticality: .hostRequired,
+        lifecycle: .available,
+        trust: .bundledOfficial,
+        criticality: .userRemovable,
         schemaVersion: "surface.mock.v1"
     )
 
@@ -1008,16 +999,16 @@ public extension MockActionReference {
     static let openGlobalSecretary = MockActionReference(
         actionID: "action.global-secretary.open",
         label: "Open Global Secretary",
-        packageID: MockSurfaceReference.hostPackageID,
+        packageID: "dev.atelia.packages.official.secretary",
         surfaceID: "global-secretary",
         actionOwnerComponentID: "global-secretary",
-        capabilityCallerComponentID: "host-navigation",
-        callerCapabilityID: "host_broker.open_surface",
+        capabilityCallerComponentID: "global-secretary-backend",
+        callerCapabilityID: "service.global_secretary.read",
         componentProfile: "GlobalNavigationListItem.v1",
         requiredPermissions: ["workspace.secretary.read"],
         risk: .r1,
-        invokes: .broker(family: "surface", operation: "open"),
-        executionPath: .hostBroker,
+        invokes: .service(service: "global-secretary.surface.v1", method: "open"),
+        executionPath: .serviceBroker,
         confirmationRequired: false,
         redactionProjection: "workspace_default",
         auditEvent: "global_secretary.opened"
@@ -1026,16 +1017,16 @@ public extension MockActionReference {
     static let searchAllProjects = MockActionReference(
         actionID: "action.global-search.search-all-projects",
         label: "Search all projects",
-        packageID: MockSurfaceReference.hostPackageID,
+        packageID: "dev.atelia.packages.official.search",
         surfaceID: "global-search",
         actionOwnerComponentID: "global-search",
-        capabilityCallerComponentID: "host-navigation",
-        callerCapabilityID: "host_broker.open_surface",
+        capabilityCallerComponentID: "global-search-backend",
+        callerCapabilityID: "service.global_search.read",
         componentProfile: "PrimaryNavigationCommand.v1",
         requiredPermissions: ["workspace.search.read"],
         risk: .r1,
-        invokes: .broker(family: "surface", operation: "open"),
-        executionPath: .hostBroker,
+        invokes: .service(service: "global-search.surface.v1", method: "open"),
+        executionPath: .serviceBroker,
         confirmationRequired: false,
         redactionProjection: "workspace_default",
         auditEvent: "global_search.opened"
@@ -1045,8 +1036,8 @@ public extension MockActionReference {
         actionID: "action.mobile-setup.open",
         label: "Open mobile setup",
         packageID: MockSurfaceReference.hostPackageID,
-        surfaceID: "mobile-setup",
-        actionOwnerComponentID: "mobile-setup",
+        surfaceID: "settings",
+        actionOwnerComponentID: "settings-mobile",
         capabilityCallerComponentID: "host-navigation",
         callerCapabilityID: "host_broker.open_surface",
         componentProfile: "GlobalNavigationListItem.v1",
