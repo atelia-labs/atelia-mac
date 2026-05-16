@@ -92,25 +92,26 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 ## Conversation And Diff
 
 - Current conversation content is centered in a 736 pt column. The implemented
-  shell uses 24 pt top and bottom padding around the visible conversation stack.
-  The top bar height is 52 pt with a soft bottom hairline.
+  shell uses 34 pt top padding and 28 pt bottom padding around the visible
+  conversation stack. The top bar height is 52 pt with a soft bottom hairline.
 - Current user messages align right, use `clientSurfaceSofter`, 8 pt radius,
   14 pt text, and max width 566 pt.
 - Current Secretary activity is represented by an activity card with duration,
-  title, checkmark bullets, and document/review preview pills.
-- Intended follow-up: tool output should be rendered as a semantic block, not a
-  screenshot. Show tool name, status, command, and output lines in
-  `JetBrainsMono-Regular` 12 pt inside an 8 pt radius surface.
-- Intended follow-up: change sets should be collapsed by default. The collapsed
-  row should show title, two-line summary, total additions, total deletions, and
-  file count.
-- Intended follow-up: expanded change sets should use a scrollable diff area
+  status, title, and checkmark bullets. Document/review preview pills are an
+  intended follow-up, not current activity rendering.
+- Current mock shell renders tool output as a semantic block, not a screenshot.
+  It shows tool name, status, command, and output lines in mono 12 pt inside an
+  8 pt radius surface.
+- Current mock shell renders change sets collapsed by default. The collapsed row
+  shows title, two-line summary, total additions, total deletions, and file
+  count.
+- Current mock shell renders expanded change sets with a scrollable diff area
   capped at 312 pt high. File headers should be 34 pt high. Diff headers should
   use mono 11 pt and 28 pt minimum height; diff lines should use mono 11 pt and
   22 pt minimum height.
-- Intended follow-up: additions should use success text and success background
-  at 0.08 opacity. Removals should use danger text and danger background at
-  0.08 opacity. Context lines should stay on white.
+- Current mock shell renders additions with success text and success background
+  at 0.08 opacity. Removals use danger text and danger background at 0.08
+  opacity. Context lines stay on white.
 
 ## PR-Safe Implementation Rules
 
@@ -119,9 +120,10 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
   scatter magic numbers across views. Any Codex App references are
   compatibility/reference material only and must not become Atelia API names.
 - Preserve semantic models for conversation blocks. Current rendered blocks are
-  message and activity; tool output and change set rendering remain follow-up
-  surfaces. Rendering should follow the model, not parse strings to infer UI
-  structure.
+  message, activity, tool output, and change set, backed by
+  `AteliaConversationModels`. Production data wiring and production-side
+  behavior remain follow-up work. Rendering should follow the model, not parse
+  strings to infer UI structure.
 - Keep the mock client ready for dynamic data. Sidebar commands and items need
   stable IDs, project/resource IDs where applicable, surface metadata, and
   action metadata. Selection must derive from navigation item ID plus

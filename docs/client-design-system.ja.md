@@ -92,23 +92,25 @@ gradient、遊びの強い illustration は避けます。
 ## Conversation And Diff
 
 - Current conversation content は 736 pt column に置きます。実装済み shell は、
-  表示される conversation stack の上下に 24 pt padding を使います。Top bar height
-  は 52 pt、bottom に soft hairline を置きます。
+  表示される conversation stack の上に 34 pt、下に 28 pt padding を使います。Top
+  bar height は 52 pt、bottom に soft hairline を置きます。
 - Current user message は右寄せ、`clientSurfaceSofter`、8 pt radius、14 pt text、
   最大 width 566 pt です。
-- Current Secretary activity は、duration、title、checkmark bullet、document/review
-  preview pill を持つ activity card として表示します。
-- Intended follow-up: tool output は screenshot ではなく semantic block として表示
-  します。Tool name、status、command、output lines を表示し、8 pt radius surface
-  内に `JetBrainsMono-Regular` 12 pt で置きます。
-- Intended follow-up: change set は collapsed default にします。Collapsed row には
-  title、2 line summary、total additions、total deletions、file count を表示します。
-- Intended follow-up: expanded change set は scrollable diff area を使い、高さは
+- Current Secretary activity は、duration、status、title、checkmark bullet を持つ
+  activity card として表示します。Document/review preview pill は current
+  rendering ではなく intended follow-up です。
+- Current mock shell は tool output を screenshot ではなく semantic block として
+  表示します。Tool name、status、command、output lines を表示し、8 pt radius
+  surface 内に mono 12 pt で置きます。
+- Current mock shell は change set を collapsed default で表示します。Collapsed row
+  には title、2 line summary、total additions、total deletions、file count を表示
+  します。
+- Current mock shell の expanded change set は scrollable diff area を使い、高さは
   312 pt 上限にします。File header は 34 pt。Diff header は mono 11 pt、min height
   28 pt。Diff line は mono 11 pt、min height 22 pt です。
-- Intended follow-up: addition は success text と success background 0.08 opacity。
-  Removal は danger text と danger background 0.08 opacity。Context line は white
-  のままにします。
+- Current mock shell の addition は success text と success background 0.08
+  opacity。Removal は danger text と danger background 0.08 opacity。Context line
+  は white のままにします。
 
 ## PR-Safe Implementation Rules
 
@@ -117,9 +119,10 @@ gradient、遊びの強い illustration は避けます。
   magic number を散らさないでください。Codex App reference は compatibility /
   reference material に限り、Atelia API 名として固定してはいけません。
 - Conversation block の semantic model を保ちます。現在 render される block は
-  message と activity です。Tool output と change set rendering は follow-up
-  surface です。Rendering は model に従い、文字列 parse で UI structure を推測
-  しないでください。
+  message、activity、tool output、change set で、`AteliaConversationModels` に
+  backed されています。Production data wiring と production-side behavior は
+  follow-up work です。Rendering は model に従い、文字列 parse で UI structure を
+  推測しないでください。
 - Dynamic data に置き換えられる状態を維持します。Sidebar command / item は stable
   ID、必要な project/resource ID、surface metadata、action metadata を持ちます。
   Selection は display title ではなく、navigation item ID と
