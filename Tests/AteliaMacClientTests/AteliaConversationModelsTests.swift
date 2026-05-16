@@ -112,33 +112,33 @@ import Testing
     #expect(AteliaConversationBlock.changeSet(changeSet).id == changeSet.id)
 }
 
-@Test func diffLineFactoriesNormalizeUnifiedDiffMarkers() {
+@Test func diffLineFactoriesPreserveSemanticText() {
     let added = AteliaDiffLine.added(id: "line.added", "+let next = value")
     let removed = AteliaDiffLine.removed(id: "line.removed", "-let old = value")
-    let context = AteliaDiffLine.context(id: "line.context", " let stable = value")
+    let context = AteliaDiffLine.context(id: "line.context", "    let stable = value")
 
     #expect(added.marker == "+")
-    #expect(added.text == "let next = value")
+    #expect(added.text == "+let next = value")
     #expect(removed.marker == "-")
-    #expect(removed.text == "let old = value")
+    #expect(removed.text == "-let old = value")
     #expect(context.marker == " ")
-    #expect(context.text == "let stable = value")
+    #expect(context.text == "    let stable = value")
 }
 
-@Test func directDiffLineInitializerNormalizesUnifiedDiffMarkers() {
+@Test func directDiffLineInitializerPreservesSemanticText() {
     let added = AteliaDiffLine(id: "line.added", kind: .added, text: "+let next = value")
     let removed = AteliaDiffLine(id: "line.removed", kind: .removed, text: "-let old = value")
-    let context = AteliaDiffLine(id: "line.context", kind: .context, text: " let stable = value")
+    let context = AteliaDiffLine(id: "line.context", kind: .context, text: "    let stable = value")
 
     #expect(added.marker == "+")
-    #expect(added.text == "let next = value")
+    #expect(added.text == "+let next = value")
     #expect(removed.marker == "-")
-    #expect(removed.text == "let old = value")
+    #expect(removed.text == "-let old = value")
     #expect(context.marker == " ")
-    #expect(context.text == "let stable = value")
+    #expect(context.text == "    let stable = value")
 }
 
-@Test func mappedFixtureDiffLinesNormalizeUnifiedDiffMarkers() {
+@Test func mappedFixtureDiffLinesPreserveAlreadyNormalizedText() {
     let hunk = AteliaDiffHunk(
         fixture: ClientConversationDiffHunkFixture(
             id: "hunk.markers",
@@ -146,15 +146,45 @@ import Testing
             lines: [
                 ClientConversationDiffLineFixture(id: "line.added", kind: .added, text: "+let next = value"),
                 ClientConversationDiffLineFixture(id: "line.removed", kind: .removed, text: "-let old = value"),
-                ClientConversationDiffLineFixture(id: "line.context", kind: .context, text: " let stable = value")
+                ClientConversationDiffLineFixture(id: "line.context", kind: .context, text: "    let stable = value")
             ]
         )
     )
 
     #expect(hunk.lines.map(\.text) == [
-        "let next = value",
-        "let old = value",
-        "let stable = value"
+        "+let next = value",
+        "-let old = value",
+        "    let stable = value"
+    ])
+}
+
+@Test func rawUnifiedDiffLineFactoryStripsMarkerOnce() {
+    let added = AteliaDiffLine.rawUnifiedDiff(id: "line.added", kind: .added, text: "++let next = value")
+    let removed = AteliaDiffLine.rawUnifiedDiff(id: "line.removed", kind: .removed, text: "--let old = value")
+    let context = AteliaDiffLine.rawUnifiedDiff(id: "line.context", kind: .context, text: "    let stable = value")
+
+    #expect(added.text == "+let next = value")
+    #expect(removed.text == "-let old = value")
+    #expect(context.text == "   let stable = value")
+}
+
+@Test func mappedRawUnifiedDiffFixtureLinesAreNotNormalizedTwice() {
+    let hunk = AteliaDiffHunk(
+        fixture: ClientConversationDiffHunkFixture(
+            id: "hunk.raw-markers",
+            header: "@@ raw markers @@",
+            lines: [
+                .rawUnifiedDiff(id: "line.added", kind: .added, text: "++let next = value"),
+                .rawUnifiedDiff(id: "line.removed", kind: .removed, text: "--let old = value"),
+                .rawUnifiedDiff(id: "line.context", kind: .context, text: "    let stable = value")
+            ]
+        )
+    )
+
+    #expect(hunk.lines.map(\.text) == [
+        "+let next = value",
+        "-let old = value",
+        "   let stable = value"
     ])
 }
 

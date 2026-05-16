@@ -238,14 +238,24 @@ import AteliaMacClientModels
     #expect(activityBlock.bullets == activity.bullets)
 }
 
-@Test func directDiffLineFixtureInitializerNormalizesUnifiedDiffMarkers() {
+@Test func directDiffLineFixtureInitializerPreservesSemanticText() {
     let added = ClientConversationDiffLineFixture(id: "line.added", kind: .added, text: "+let next = value")
     let removed = ClientConversationDiffLineFixture(id: "line.removed", kind: .removed, text: "-let old = value")
-    let context = ClientConversationDiffLineFixture(id: "line.context", kind: .context, text: " let stable = value")
+    let context = ClientConversationDiffLineFixture(id: "line.context", kind: .context, text: "    let stable = value")
 
-    #expect(added.text == "let next = value")
-    #expect(removed.text == "let old = value")
-    #expect(context.text == "let stable = value")
+    #expect(added.text == "+let next = value")
+    #expect(removed.text == "-let old = value")
+    #expect(context.text == "    let stable = value")
+}
+
+@Test func rawUnifiedDiffLineFixtureFactoryStripsMarkerOnce() {
+    let added = ClientConversationDiffLineFixture.rawUnifiedDiff(id: "line.added", kind: .added, text: "++let next = value")
+    let removed = ClientConversationDiffLineFixture.rawUnifiedDiff(id: "line.removed", kind: .removed, text: "--let old = value")
+    let context = ClientConversationDiffLineFixture.rawUnifiedDiff(id: "line.context", kind: .context, text: "    let stable = value")
+
+    #expect(added.text == "+let next = value")
+    #expect(removed.text == "-let old = value")
+    #expect(context.text == "   let stable = value")
 }
 
 @Test func mockComposerConfigurationKeepsModelDisplayInState() {

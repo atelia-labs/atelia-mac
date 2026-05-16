@@ -276,6 +276,10 @@ struct AteliaDiffLine: Identifiable {
         AteliaDiffLine(id: id, kind: .context, text: text)
     }
 
+    static func rawUnifiedDiff(id: String, kind: Kind, text: String) -> AteliaDiffLine {
+        AteliaDiffLine(id: id, kind: kind, text: normalizedText(text, kind: kind))
+    }
+
     private static func normalizedText(_ text: String, marker: Character) -> String {
         guard text.first == marker else {
             return text
@@ -287,7 +291,7 @@ struct AteliaDiffLine: Identifiable {
     init(id: String, kind: Kind, text: String) {
         self.id = id
         self.kind = kind
-        self.text = Self.normalizedText(text, kind: kind)
+        self.text = text
     }
 
     init(fixture: ClientConversationDiffLineFixture) {

@@ -485,7 +485,7 @@ public struct ClientConversationDiffLineFixture: Identifiable, Sendable {
     public init(id: String, kind: Kind, text: String) {
         self.id = id
         self.kind = kind
-        self.text = Self.normalizedText(text, kind: kind)
+        self.text = text
     }
 
     public static func added(id: String, _ text: String) -> ClientConversationDiffLineFixture {
@@ -498,6 +498,10 @@ public struct ClientConversationDiffLineFixture: Identifiable, Sendable {
 
     public static func context(id: String, _ text: String) -> ClientConversationDiffLineFixture {
         ClientConversationDiffLineFixture(id: id, kind: .context, text: text)
+    }
+
+    public static func rawUnifiedDiff(id: String, kind: Kind, text: String) -> ClientConversationDiffLineFixture {
+        ClientConversationDiffLineFixture(id: id, kind: kind, text: normalizedText(text, kind: kind))
     }
 
     private static func normalizedText(_ text: String, marker: Character) -> String {
