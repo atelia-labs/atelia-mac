@@ -1,11 +1,17 @@
 import AteliaMacClientModels
 import SwiftUI
 
+enum SidebarAction {
+    case command(id: String, surface: MockSurfaceReference, action: MockActionReference)
+    case chatItem(id: String, projectID: String, resourceID: String, surface: MockSurfaceReference, action: MockActionReference)
+}
+
 struct SidebarView: View {
     let activeNavigationItemID: String
     let activeSurfaceID: String
     let groups: [WorkspaceGroup]
     let globalItems: [ChatListItem]
+    var onAction: (SidebarAction) -> Void = { _ in }
 
     var body: some View {
         let selection = SidebarSelection(
@@ -17,18 +23,18 @@ struct SidebarView: View {
             SidebarToolbar()
                 .frame(height: 48)
 
-            PrimaryNavigation()
+            PrimaryNavigation(onAction: onAction)
                 .padding(.top, 0)
                 .padding(.bottom, 8)
 
             FadingSidebarScroll {
                 VStack(alignment: .leading, spacing: 14) {
-                    GlobalSecretaryView(items: globalItems, selection: selection)
+                    GlobalSecretaryView(items: globalItems, selection: selection, onAction: onAction)
 
                     SidebarSectionLabel(title: "プロジェクト")
 
                     ForEach(groups) { group in
-                        WorkspaceGroupView(group: group, selection: selection)
+                        WorkspaceGroupView(group: group, selection: selection, onAction: onAction)
                     }
                 }
                 .padding(.horizontal, 6)
@@ -36,7 +42,7 @@ struct SidebarView: View {
                 .padding(.bottom, 20)
             }
 
-            SettingsRow()
+            SettingsRow(onAction: onAction)
                 .padding(.horizontal, 14)
                 .frame(height: 54)
         }
@@ -166,6 +172,7 @@ private struct SidebarGlyph: View {
             .symbolRenderingMode(.monochrome)
             .foregroundStyle(Color.clientSidebarIcon)
             .frame(width: 18, height: 18)
+            .accessibilityHidden(true)
     }
 
     private var symbolName: String {
@@ -210,6 +217,8 @@ private struct SidebarGlyph: View {
 }
 
 private struct PrimaryNavigation: View {
+    let onAction: (SidebarAction) -> Void
+
     private let commands = [
         SidebarCommand(
             id: "primary:new-thread",
@@ -230,7 +239,7 @@ private struct PrimaryNavigation: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(commands) { command in
-                SidebarCommandRow(command: command)
+                SidebarCommandRow(command: command, onAction: onAction)
             }
         }
     }
@@ -239,6 +248,7 @@ private struct PrimaryNavigation: View {
 private struct WorkspaceGroupView: View {
     let group: WorkspaceGroup
     let selection: SidebarSelection
+    let onAction: (SidebarAction) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -272,7 +282,7 @@ private struct WorkspaceGroupView: View {
             .padding(.trailing, 8)
 
             ForEach(group.items) { item in
-                SidebarChatRow(item: item, isSelected: selection.contains(item))
+                SidebarChatRow(item: item, isSelected: selection.contains(item), onAction: onAction)
             }
 
             if !group.settings.isEmpty {
@@ -292,7 +302,7 @@ private struct WorkspaceGroupView: View {
                         .frame(height: 29, alignment: .leading)
 
                     ForEach(group.settings) { item in
-                        SidebarChatRow(item: item, isSelected: selection.contains(item))
+                        SidebarChatRow(item: item, isSelected: selection.contains(item), onAction: onAction)
                     }
                 }
                 .padding(.top, 2)
@@ -311,10 +321,13 @@ private struct SidebarCommand: Identifiable {
 
 private struct SidebarCommandRow: View {
     let command: SidebarCommand
+    let onAction: (SidebarAction) -> Void
 
     var body: some View {
-        if command.action != nil {
-            Button {} label: {
+        if let action = command.action {
+            Button {
+                onAction(.command(id: command.id, surface: command.surface, action: action))
+            } label: {
                 rowContent
             }
             .buttonStyle(.plain)
@@ -350,10 +363,19 @@ private struct SidebarCommandRow: View {
 private struct SidebarChatRow: View {
     let item: ChatListItem
     let isSelected: Bool
+    let onAction: (SidebarAction) -> Void
 
     var body: some View {
-        if item.action != nil {
-            Button {} label: {
+        if let action = item.action {
+            Button {
+                onAction(.chatItem(
+                    id: item.id,
+                    projectID: item.projectID,
+                    resourceID: item.resourceID,
+                    surface: item.surface,
+                    action: action
+                ))
+            } label: {
                 rowContent
             }
             .buttonStyle(.plain)
@@ -449,6 +471,7 @@ private struct SidebarChatRow: View {
 private struct GlobalSecretaryView: View {
     let items: [ChatListItem]
     let selection: SidebarSelection
+    let onAction: (SidebarAction) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -476,7 +499,7 @@ private struct GlobalSecretaryView: View {
                 .frame(height: 25, alignment: .leading)
 
             ForEach(items) { item in
-                SidebarChatRow(item: item, isSelected: selection.contains(item))
+                SidebarChatRow(item: item, isSelected: selection.contains(item), onAction: onAction)
             }
         }
         .padding(.top, 2)
@@ -484,6 +507,8 @@ private struct GlobalSecretaryView: View {
 }
 
 private struct SettingsRow: View {
+    let onAction: (SidebarAction) -> Void
+
     private let command = SidebarCommand(
         id: "global:settings",
         icon: .gear,
@@ -493,6 +518,6 @@ private struct SettingsRow: View {
     )
 
     var body: some View {
-        SidebarCommandRow(command: command)
+        SidebarCommandRow(command: command, onAction: onAction)
     }
 }

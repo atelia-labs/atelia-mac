@@ -1,8 +1,13 @@
 import AteliaMacClientModels
 import SwiftUI
 
+enum ClientShellAction {
+    case openSettings
+}
+
 struct ClientShellView: View {
     let state: ClientMockState
+    var onAction: (ClientShellAction) -> Void = { _ in }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -17,20 +22,20 @@ struct ClientShellView: View {
                 .fill(Color.clientSidebarRail)
                 .frame(width: 1)
 
-            ConversationSurfaceView(state: state)
+            ConversationSurfaceView(state: state, onAction: onAction)
         }
         .background(Color.white)
         .font(.atelia(14))
-        .preferredColorScheme(.light)
     }
 }
 
 private struct ConversationSurfaceView: View {
     let state: ClientMockState
+    let onAction: (ClientShellAction) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
-            ConversationTopBar(state: state)
+            ConversationTopBar(state: state, onAction: onAction)
 
             ClientScrollView {
                 VStack(alignment: .leading, spacing: 18) {
@@ -57,6 +62,7 @@ private struct ConversationSurfaceView: View {
 
 private struct ConversationTopBar: View {
     let state: ClientMockState
+    let onAction: (ClientShellAction) -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -72,7 +78,9 @@ private struct ConversationTopBar: View {
 
             Spacer()
 
-            Button {} label: {
+            Button {
+                onAction(.openSettings)
+            } label: {
                 Image(systemName: "gearshape")
                     .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(Color.clientSidebarIcon)

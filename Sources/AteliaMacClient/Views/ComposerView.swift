@@ -1,11 +1,20 @@
 import AteliaMacClientModels
 import SwiftUI
 
+enum ComposerIntent: Equatable {
+    case attachFile
+    case selectPermissionMode(ComposerPermissionMode)
+    case selectModel(ComposerModelSelection)
+    case startVoiceInput
+    case send(text: String, configuration: ComposerConfiguration)
+}
+
 struct ComposerView: View {
     let goal: GoalStatus
     let configuration: ComposerConfiguration
     var hasAttachment = false
     var text = ""
+    var onIntent: (ComposerIntent) -> Void = { _ in }
 
     private var isSendEnabled: Bool {
         !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -16,9 +25,13 @@ struct ComposerView: View {
             ComposerBody(goal: goal, hasAttachment: hasAttachment, text: text)
 
             HStack(spacing: 13) {
-                ComposerExtensionControl()
+                ComposerExtensionControl {
+                    onIntent(.attachFile)
+                }
 
-                Button {} label: {
+                Button {
+                    onIntent(.selectPermissionMode(configuration.permissionMode))
+                } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "exclamationmark.shield")
                             .font(.system(size: 14, weight: .regular))
@@ -40,7 +53,9 @@ struct ComposerView: View {
                     .foregroundStyle(Color.clientMutedText)
                     .accessibilityHidden(true)
 
-                Button {} label: {
+                Button {
+                    onIntent(.selectModel(configuration.selectedModel))
+                } label: {
                     HStack(spacing: 5) {
                         Text(configuration.selectedModel.displayName)
                         Image(systemName: "chevron.down")
@@ -53,9 +68,18 @@ struct ComposerView: View {
                 .font(.atelia(14))
                 .foregroundStyle(Color.clientText)
 
-                PlainIconButton(systemName: "mic", accessibilityLabel: "音声入力")
+                PlainIconButton(
+                    systemName: "mic",
+                    accessibilityLabel: "音声入力",
+                    accessibilityHint: "音声入力を開始"
+                ) {
+                    onIntent(.startVoiceInput)
+                }
 
-                Button {} label: {
+                Button {
+                    guard isSendEnabled else { return }
+                    onIntent(.send(text: text, configuration: configuration))
+                } label: {
                     Image(systemName: "arrow.up")
                         .font(.system(size: 14, weight: .regular))
                         .foregroundStyle(.white)
@@ -142,36 +166,49 @@ private struct ComposerBody: View {
 private struct PlainIconButton: View {
     let systemName: String
     let accessibilityLabel: String
+    let accessibilityHint: String
+    let action: () -> Void
 
     var body: some View {
-        Image(systemName: systemName)
-            .font(.system(size: 15, weight: .regular))
-            .symbolRenderingMode(.monochrome)
-            .foregroundStyle(Color.clientMutedText)
-            .frame(width: 17, height: 17)
-            .accessibilityLabel(accessibilityLabel)
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 15, weight: .regular))
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(Color.clientMutedText)
+                .frame(width: 17, height: 17)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(accessibilityHint)
     }
 }
 
 private struct ComposerExtensionControl: View {
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "plus.circle")
-                .font(.system(size: 14, weight: .regular))
+    let action: () -> Void
 
-            Text("拡張機能")
-                .font(.atelia(13))
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 14, weight: .regular))
+
+                Text("拡張機能")
+                    .font(.atelia(13))
+            }
+            .foregroundStyle(Color.clientMutedText)
+            .frame(height: 26)
+            .padding(.horizontal, 9)
+            .background {
+                Capsule()
+                    .fill(Color.clientSurfaceSofter)
+            }
+            .overlay {
+                Capsule()
+                    .stroke(Color.clientDockHairline, lineWidth: 1)
+            }
         }
-        .foregroundStyle(Color.clientMutedText)
-        .frame(height: 26)
-        .padding(.horizontal, 9)
-        .background {
-            Capsule()
-                .fill(Color.clientSurfaceSofter)
-        }
-        .overlay {
-            Capsule()
-                .stroke(Color.clientDockHairline, lineWidth: 1)
-        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("ファイルを添付")
+        .accessibilityHint("会話にファイルを追加")
     }
 }
