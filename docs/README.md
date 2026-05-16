@@ -6,6 +6,9 @@ This directory contains Atelia Mac client architecture documents.
   Surface Protocol Resolver, including default surface boundaries, trust,
   context, presentation, security, and beta launch gates.
 - [Standard Surfaces JA](standard-surfaces.ja.md): Japanese version.
+- [Mac Client Design System](client-design-system.md): current Atelia Mac client
+  layout, typography, sidebar, composer, and dynamic-data readiness rules.
+- [Mac Client Design System JA](client-design-system.ja.md): Japanese version.
 
 Normative Surface Protocol documents live in the AEP specification family:
 
