@@ -45,7 +45,10 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
             repositoryId: resolvedRepositoryId ?? repositoryId,
             requester: .user(id: "mac-client", displayName: "Atelia Mac"),
             kind: toolIntent.map { _ in "tool" } ?? "message",
+            message: message,
             goal: goal,
+            modelRouteKey: modelRouteKey.isEmpty ? nil : modelRouteKey,
+            permissionModeRouteKey: permissionModeRouteKey.isEmpty ? nil : permissionModeRouteKey,
             pathScope: toolIntent?.pathScope ?? pathScope,
             requestedCapabilities: toolIntent?.requestedCapabilities,
             toolArgs: toolIntent?.toolArgs

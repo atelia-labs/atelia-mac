@@ -23,6 +23,7 @@ final class ClientAppModel {
     private(set) var sidebarSelectionState: ClientSidebarSelectionState?
     private var localConversationDrafts: [String: [ClientConversationTurnFixture]]
     private var registeredRepositoryIDsByLocalProjectID: [String: String]
+    private var composerSubmissionSequence: UInt64
 
     init(
         projectStatusStore: MacProjectStatusStore,
@@ -50,6 +51,7 @@ final class ClientAppModel {
         self.lastComposerSubmissionRequest = nil
         self.lastAteliaSubmitJobRequest = nil
         self.registeredRepositoryIDsByLocalProjectID = [:]
+        self.composerSubmissionSequence = 0
         syncShellState()
     }
 
@@ -79,6 +81,7 @@ final class ClientAppModel {
         lastAteliaSubmitJobRequest = nil
         localConversationDrafts = [:]
         registeredRepositoryIDsByLocalProjectID = [:]
+        composerSubmissionSequence += 1
         syncSidebarProjection()
         lastErrorMessage = nil
     }
@@ -231,6 +234,7 @@ final class ClientAppModel {
             return
         }
 
+        composerSubmissionSequence += 1
         localProjects = localProjectRegistry.listProjects()
         localConversationDrafts[id] = nil
         registeredRepositoryIDsByLocalProjectID[id] = nil
@@ -427,7 +431,8 @@ final class ClientAppModel {
         lastComposerSubmissionRequest = request
         appendLocalComposerDraft(request)
         syncShellState()
-        submitComposerRequest(request)
+        composerSubmissionSequence += 1
+        submitComposerRequest(request, sequence: composerSubmissionSequence)
     }
 
     private func makeComposerJobSubmissionRequest(
@@ -528,17 +533,20 @@ final class ClientAppModel {
         }
     }
 
-    private func submitComposerRequest(_ request: ComposerJobSubmissionRequest) {
+    private func submitComposerRequest(_ request: ComposerJobSubmissionRequest, sequence: UInt64) {
         guard projectLifecycleStore != nil else {
             return
         }
 
         Task { [weak self] in
-            await self?.submitComposerRequestToLifecycleStore(request)
+            await self?.submitComposerRequestToLifecycleStore(request, sequence: sequence)
         }
     }
 
-    private func submitComposerRequestToLifecycleStore(_ request: ComposerJobSubmissionRequest) async {
+    private func submitComposerRequestToLifecycleStore(
+        _ request: ComposerJobSubmissionRequest,
+        sequence: UInt64
+    ) async {
         guard let projectLifecycleStore else {
             return
         }
@@ -546,9 +554,15 @@ final class ClientAppModel {
         do {
             let repositoryId = try await lifecycleRepositoryID(for: request.repositoryId)
             let ateliaRequest = request.ateliaSubmitJobRequest(repositoryId: repositoryId)
-            lastAteliaSubmitJobRequest = ateliaRequest
             _ = try await projectLifecycleStore.submit(request: ateliaRequest)
+            guard sequence == composerSubmissionSequence else {
+                return
+            }
+            lastAteliaSubmitJobRequest = ateliaRequest
         } catch {
+            guard sequence == composerSubmissionSequence else {
+                return
+            }
             lastErrorMessage = error.localizedDescription
         }
     }

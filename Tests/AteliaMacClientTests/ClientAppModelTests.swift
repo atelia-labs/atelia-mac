@@ -41,17 +41,38 @@ private enum ProjectStatusClientFixtureError: Error {
     case failed
 }
 
+private enum ProjectLifecycleStoreFixtureError: LocalizedError {
+    case submitFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .submitFailed:
+            "submit failed"
+        }
+    }
+}
+
 private actor ProjectLifecycleStoreFixture: MacProjectLifecycleStoring {
     private let repository: AteliaRepository
     private let job: AteliaJob
+    private let submitError: (any Error)?
+    private let waitsForSubmitRelease: Bool
     private var openRequests: [AteliaRegisterRepositoryRequest] = []
     private var submitRequests: [AteliaSubmitJobRequest] = []
     private var openContinuations: [CheckedContinuation<AteliaRegisterRepositoryRequest, Never>] = []
     private var submitContinuations: [CheckedContinuation<AteliaSubmitJobRequest, Never>] = []
+    private var submitReleaseContinuations: [CheckedContinuation<Void, Never>] = []
 
-    init(repository: AteliaRepository, job: AteliaJob) {
+    init(
+        repository: AteliaRepository,
+        job: AteliaJob,
+        submitError: (any Error)? = nil,
+        waitsForSubmitRelease: Bool = false
+    ) {
         self.repository = repository
         self.job = job
+        self.submitError = submitError
+        self.waitsForSubmitRelease = waitsForSubmitRelease
     }
 
     func open(request: AteliaRegisterRepositoryRequest) async throws -> AteliaRepository {
@@ -63,6 +84,14 @@ private actor ProjectLifecycleStoreFixture: MacProjectLifecycleStoring {
     func submit(request: AteliaSubmitJobRequest) async throws -> AteliaJob {
         submitRequests.append(request)
         resumeSubmitContinuations(with: request)
+        if waitsForSubmitRelease {
+            await withCheckedContinuation { continuation in
+                submitReleaseContinuations.append(continuation)
+            }
+        }
+        if let submitError {
+            throw submitError
+        }
         return job
     }
 
@@ -91,6 +120,14 @@ private actor ProjectLifecycleStoreFixture: MacProjectLifecycleStoring {
 
         return await withCheckedContinuation { continuation in
             openContinuations.append(continuation)
+        }
+    }
+
+    func releaseSubmit() {
+        let continuations = submitReleaseContinuations
+        submitReleaseContinuations = []
+        for continuation in continuations {
+            continuation.resume()
         }
     }
 
@@ -708,7 +745,10 @@ private let clientAppModelLifecycleJobFixture = AteliaJob(
             routeKey: "models/atelia-balanced",
             displayName: "5.5 中"
         ),
-        permissionMode: ComposerPermissionMode(displayName: "フルアクセス"),
+        permissionMode: ComposerPermissionMode(
+            routeKey: "permissions/full-access",
+            displayName: "フルアクセス"
+        ),
         contextReferences: [
             ComposerContextReference(
                 id: "context:file:standard-surfaces",
@@ -735,7 +775,7 @@ private let clientAppModelLifecycleJobFixture = AteliaJob(
     #expect(request.goal == nil)
     #expect(request.contextIDs == ["context:file:standard-surfaces"])
     #expect(request.modelRouteKey == "models/atelia-balanced")
-    #expect(request.permissionModeRouteKey == "")
+    #expect(request.permissionModeRouteKey == "permissions/full-access")
 }
 
 @MainActor
@@ -752,7 +792,10 @@ private let clientAppModelLifecycleJobFixture = AteliaJob(
     #expect(ateliaRequest.repositoryId == "repo_123")
     #expect(ateliaRequest.requester == .user(id: "mac-client", displayName: "Atelia Mac"))
     #expect(ateliaRequest.kind == "message")
+    #expect(ateliaRequest.message == "進捗を要約して")
     #expect(ateliaRequest.goal == nil)
+    #expect(ateliaRequest.modelRouteKey == "models/atelia-balanced")
+    #expect(ateliaRequest.permissionModeRouteKey == "permissions/full-access")
     #expect(ateliaRequest.pathScope == nil)
     #expect(ateliaRequest.requestedCapabilities == nil)
     #expect(ateliaRequest.toolArgs == nil)
@@ -771,7 +814,10 @@ private let clientAppModelLifecycleJobFixture = AteliaJob(
 
     #expect(ateliaRequest.repositoryId == "repo_registered")
     #expect(ateliaRequest.kind == "tool")
+    #expect(ateliaRequest.message == "search AteliaSubmitJobRequest")
     #expect(ateliaRequest.goal == nil)
+    #expect(ateliaRequest.modelRouteKey == "models/atelia-balanced")
+    #expect(ateliaRequest.permissionModeRouteKey == "permissions/full-access")
     #expect(ateliaRequest.pathScope == AteliaPathScope(kind: .repository))
     #expect(ateliaRequest.requestedCapabilities == ["filesystem.search"])
     #expect(ateliaRequest.toolArgs == AteliaSubmitJobToolArgs(pattern: "AteliaSubmitJobRequest", max: 20))
@@ -814,12 +860,83 @@ private let clientAppModelLifecycleJobFixture = AteliaJob(
     ])
     #expect(ateliaRequest.repositoryId == "repo_lifecycle")
     #expect(ateliaRequest.kind == "tool")
+    #expect(ateliaRequest.message == "search AteliaSubmitJobRequest")
+    #expect(ateliaRequest.modelRouteKey == "models/atelia-balanced")
+    #expect(ateliaRequest.permissionModeRouteKey == "permissions/full-access")
     #expect(ateliaRequest.requestedCapabilities == ["filesystem.search"])
     #expect(ateliaRequest.toolArgs == AteliaSubmitJobToolArgs(pattern: "AteliaSubmitJobRequest", max: 20))
     #expect(model.lastAteliaSubmitJobRequest == ateliaRequest)
     #expect(model.lastErrorMessage == nil)
     #expect(model.lastComposerSubmissionRequest?.repositoryId == localProject.id)
     #expect(model.shellState.conversation.turns.count == originalTurnCount + 2)
+}
+
+@MainActor
+@Test func clientAppModelReportsLifecycleSubmitFailureWithoutMarkingSubmitSuccessful() async throws {
+    let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/LifecycleProject")
+    let localProject = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)
+    let registry = InMemoryLocalProjectRegistry(projects: [localProject])
+    let statusClient = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let statusStore = MacProjectStatusStore(client: statusClient, session: AteliaSession(), repositoryId: "repo_ready")
+    let lifecycleStore = ProjectLifecycleStoreFixture(
+        repository: clientAppModelLifecycleRepositoryFixture,
+        job: clientAppModelLifecycleJobFixture,
+        submitError: ProjectLifecycleStoreFixtureError.submitFailed
+    )
+    let model = ClientAppModel(
+        projectStatusStore: statusStore,
+        projectLifecycleStore: lifecycleStore,
+        localProjectRegistry: registry
+    )
+
+    model.handleComposerIntent(.send(
+        text: "進捗を要約して",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
+
+    let ateliaRequest = await lifecycleStore.waitForSubmitRequest()
+
+    #expect(ateliaRequest.repositoryId == "repo_lifecycle")
+    #expect(ateliaRequest.kind == "message")
+    #expect(ateliaRequest.message == "進捗を要約して")
+    #expect(model.lastAteliaSubmitJobRequest == nil)
+    #expect(model.lastErrorMessage == "submit failed")
+}
+
+@MainActor
+@Test func clientAppModelIgnoresLifecycleSubmitCompletionAfterLocalProjectRemoval() async throws {
+    let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/LifecycleProject")
+    let localProject = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)
+    let registry = InMemoryLocalProjectRegistry(projects: [localProject])
+    let statusClient = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let statusStore = MacProjectStatusStore(client: statusClient, session: AteliaSession(), repositoryId: "repo_ready")
+    let lifecycleStore = ProjectLifecycleStoreFixture(
+        repository: clientAppModelLifecycleRepositoryFixture,
+        job: clientAppModelLifecycleJobFixture,
+        waitsForSubmitRelease: true
+    )
+    let model = ClientAppModel(
+        projectStatusStore: statusStore,
+        projectLifecycleStore: lifecycleStore,
+        localProjectRegistry: registry
+    )
+
+    model.handleComposerIntent(.send(
+        text: "search AteliaSubmitJobRequest",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
+
+    _ = await lifecycleStore.waitForSubmitRequest()
+    model.handleSidebarAction(.removeLocalProject(id: localProject.id))
+    await lifecycleStore.releaseSubmit()
+    await Task.yield()
+    await Task.yield()
+
+    #expect(model.localProjects.isEmpty)
+    #expect(model.lastAteliaSubmitJobRequest == nil)
+    #expect(model.lastErrorMessage == nil)
 }
 
 @MainActor
