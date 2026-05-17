@@ -9,8 +9,11 @@ struct AteliaMacClientApp: App {
 
     init() {
         ClientFontRegistrar.registerBundledFonts()
+        let client = HTTPAteliaClient()
+        let session = AteliaSession()
         _appModel = State(initialValue: ClientAppModel(
-            projectStatusStore: Self.projectStatusStore(),
+            projectStatusStore: Self.projectStatusStore(client: client, session: session),
+            projectLifecycleStore: Self.projectLifecycleStore(client: client, session: session),
             localProjectRegistry: UserDefaultsLocalProjectRegistry()
         ))
     }
@@ -31,12 +34,16 @@ struct AteliaMacClientApp: App {
         .windowStyle(.hiddenTitleBar)
     }
 
-    private static func projectStatusStore() -> MacProjectStatusStore {
+    private static func projectStatusStore(client: HTTPAteliaClient, session: AteliaSession) -> MacProjectStatusStore {
         MacProjectStatusStore(
-            client: HTTPAteliaClient(),
-            session: AteliaSession(),
+            client: client,
+            session: session,
             repositoryId: runtimeRepositoryID()
         )
+    }
+
+    private static func projectLifecycleStore(client: HTTPAteliaClient, session: AteliaSession) -> MacProjectLifecycleStore {
+        MacProjectLifecycleStore(client: client, session: session)
     }
 
     private static func runtimeRepositoryID() -> String {

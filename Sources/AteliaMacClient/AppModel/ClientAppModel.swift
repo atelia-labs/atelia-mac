@@ -1,3 +1,4 @@
+import AteliaKit
 import AteliaMacClientModels
 import AteliaMacCore
 import Foundation
@@ -7,6 +8,7 @@ import Observation
 @Observable
 final class ClientAppModel {
     private let projectStatusStore: MacProjectStatusStore
+    private let projectLifecycleStore: (any MacProjectLifecycleStoring)?
     private let projectFolderSelection: any ProjectFolderSelectionProviding
     private let localProjectRegistry: any LocalProjectRegistry
 
@@ -17,15 +19,19 @@ final class ClientAppModel {
     private(set) var isReloading: Bool
     private(set) var lastErrorMessage: String?
     private(set) var lastComposerSubmissionRequest: ComposerJobSubmissionRequest?
+    private(set) var lastAteliaSubmitJobRequest: AteliaSubmitJobRequest?
     private(set) var sidebarSelectionState: ClientSidebarSelectionState?
     private var localConversationDrafts: [String: [ClientConversationTurnFixture]]
+    private var registeredRepositoryIDsByLocalProjectID: [String: String]
 
     init(
         projectStatusStore: MacProjectStatusStore,
+        projectLifecycleStore: (any MacProjectLifecycleStoring)? = nil,
         projectFolderSelection: any ProjectFolderSelectionProviding = ProjectFolderPicker(),
         localProjectRegistry: any LocalProjectRegistry = InMemoryLocalProjectRegistry()
     ) {
         self.projectStatusStore = projectStatusStore
+        self.projectLifecycleStore = projectLifecycleStore
         self.projectFolderSelection = projectFolderSelection
         self.localProjectRegistry = localProjectRegistry
         self.projectStatusSnapshot = nil
@@ -42,6 +48,8 @@ final class ClientAppModel {
         self.isReloading = false
         self.lastErrorMessage = nil
         self.lastComposerSubmissionRequest = nil
+        self.lastAteliaSubmitJobRequest = nil
+        self.registeredRepositoryIDsByLocalProjectID = [:]
         syncShellState()
     }
 
@@ -68,7 +76,9 @@ final class ClientAppModel {
         localProjectRegistry.clearProjects()
         sidebarSelectionState = .unloaded()
         lastComposerSubmissionRequest = nil
+        lastAteliaSubmitJobRequest = nil
         localConversationDrafts = [:]
+        registeredRepositoryIDsByLocalProjectID = [:]
         syncSidebarProjection()
         lastErrorMessage = nil
     }
@@ -213,6 +223,7 @@ final class ClientAppModel {
         sidebarSelectionState = .projectSecretary(project: project)
         lastErrorMessage = nil
         syncSidebarProjection()
+        openLocalProject(project)
     }
 
     func removeLocalProject(id: String) {
@@ -222,6 +233,7 @@ final class ClientAppModel {
 
         localProjects = localProjectRegistry.listProjects()
         localConversationDrafts[id] = nil
+        registeredRepositoryIDsByLocalProjectID[id] = nil
         if sidebarSelectionState?.activeSelection.projectID == "project:\(id)" {
             if let snapshot = projectStatusSnapshot {
                 sidebarSelectionState = .projectSecretary(snapshot: snapshot)
@@ -400,6 +412,7 @@ final class ClientAppModel {
         contexts: [ComposerContextSelection]
     ) {
         lastComposerSubmissionRequest = nil
+        lastAteliaSubmitJobRequest = nil
         lastErrorMessage = nil
 
         guard let request = makeComposerJobSubmissionRequest(
@@ -414,6 +427,7 @@ final class ClientAppModel {
         lastComposerSubmissionRequest = request
         appendLocalComposerDraft(request)
         syncShellState()
+        submitComposerRequest(request)
     }
 
     private func makeComposerJobSubmissionRequest(
@@ -498,6 +512,88 @@ final class ClientAppModel {
         localConversationDrafts[repositoryId] = repositoryDrafts
     }
 
+    private func openLocalProject(_ project: LocalProjectRegistration) {
+        guard projectLifecycleStore != nil else {
+            return
+        }
+
+        Task { [weak self] in
+            do {
+                _ = try await self?.openLocalProjectIfNeeded(project)
+            } catch {
+                await MainActor.run {
+                    self?.lastErrorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func submitComposerRequest(_ request: ComposerJobSubmissionRequest) {
+        guard projectLifecycleStore != nil else {
+            return
+        }
+
+        Task { [weak self] in
+            await self?.submitComposerRequestToLifecycleStore(request)
+        }
+    }
+
+    private func submitComposerRequestToLifecycleStore(_ request: ComposerJobSubmissionRequest) async {
+        guard let projectLifecycleStore else {
+            return
+        }
+
+        do {
+            let repositoryId = try await lifecycleRepositoryID(for: request.repositoryId)
+            let ateliaRequest = request.ateliaSubmitJobRequest(repositoryId: repositoryId)
+            lastAteliaSubmitJobRequest = ateliaRequest
+            _ = try await projectLifecycleStore.submit(request: ateliaRequest)
+        } catch {
+            lastErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func lifecycleRepositoryID(for repositoryId: String) async throws -> String {
+        if let localProject = localProjects.first(where: { $0.id == repositoryId }) {
+            if let registeredRepositoryID = registeredRepositoryIDsByLocalProjectID[localProject.id] {
+                return registeredRepositoryID
+            }
+
+            let repository = try await openLocalProjectIfNeeded(localProject)
+            return repository.repositoryId
+        }
+
+        return repositoryId
+    }
+
+    @discardableResult
+    private func openLocalProjectIfNeeded(_ project: LocalProjectRegistration) async throws -> AteliaRepository {
+        if let registeredRepositoryID = registeredRepositoryIDsByLocalProjectID[project.id] {
+            return AteliaRepository(
+                repositoryId: registeredRepositoryID,
+                displayName: project.displayName,
+                rootPath: project.rootPath,
+                allowedScope: AteliaPathScope(kind: .repository),
+                trustState: .unspecified,
+                createdAtUnixMilliseconds: 0,
+                updatedAtUnixMilliseconds: 0
+            )
+        }
+
+        guard let projectLifecycleStore else {
+            throw ClientAppModelLifecycleError.lifecycleStoreUnavailable
+        }
+
+        let repository = try await projectLifecycleStore.open(request: AteliaRegisterRepositoryRequest(
+            displayName: project.displayName,
+            rootPath: project.rootPath,
+            allowedScope: AteliaPathScope(kind: .repository),
+            requester: .user(id: "mac-client", displayName: "Atelia Mac")
+        ))
+        registeredRepositoryIDsByLocalProjectID[project.id] = repository.repositoryId
+        return repository
+    }
+
     private func localDraftBullets(for request: ComposerJobSubmissionRequest) -> [String] {
         var bullets = [
             "Goal は未指定のまま会話メッセージとして保持",
@@ -539,5 +635,16 @@ final class ClientAppModel {
         }
 
         return localProject(forProjectID: projectID)?.id
+    }
+}
+
+private enum ClientAppModelLifecycleError: LocalizedError {
+    case lifecycleStoreUnavailable
+
+    var errorDescription: String? {
+        switch self {
+        case .lifecycleStoreUnavailable:
+            return "Project lifecycle store is unavailable."
+        }
     }
 }
