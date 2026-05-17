@@ -77,6 +77,15 @@ final class ClientAppModel {
         let snapshot = await projectStatusStore.snapshot
         projectStatusSnapshot = snapshot
         if let snapshot {
+            let activeSelection = sidebarSelectionState?.activeSelection ?? sidebarProjection.activeSelection
+            if let activeLocalProject = localProject(forProjectID: activeSelection.projectID),
+               activeLocalProject.hasSameRootPath(as: snapshot.repositoryRootPath) {
+                migrateLocalConversationDrafts(
+                    from: activeLocalProject.id,
+                    to: snapshot.repositoryId
+                )
+            }
+
             if let selectionState = sidebarSelectionState,
                let selectedLocalProject = localProject(forProjectID: selectionState.activeSelection.projectID),
                selectedLocalProject.hasSameRootPath(as: snapshot.repositoryRootPath) {
@@ -473,6 +482,18 @@ final class ClientAppModel {
         )
 
         localConversationDrafts[request.repositoryId] = turns
+    }
+
+    private func migrateLocalConversationDrafts(from localRepositoryId: String, to repositoryId: String) {
+        guard localRepositoryId != repositoryId,
+              let localDrafts = localConversationDrafts.removeValue(forKey: localRepositoryId),
+              !localDrafts.isEmpty else {
+            return
+        }
+
+        var repositoryDrafts = localConversationDrafts[repositoryId] ?? []
+        repositoryDrafts.append(contentsOf: localDrafts)
+        localConversationDrafts[repositoryId] = repositoryDrafts
     }
 
     private func localDraftBullets(for request: ComposerJobSubmissionRequest) -> [String] {
