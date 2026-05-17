@@ -212,13 +212,14 @@ final class ClientAppModel {
 
     private func shellComposer(for activeSelection: ClientMockActiveSelection) -> ComposerConfiguration {
         var composer = ClientMockState.ateliaReference.composer
-        guard activeSelection.surfaceID == MockSurfaceReference.projectConversation.surfaceID else {
-            return composer
+        switch activeSelection.surfaceID {
+        case MockSurfaceReference.projectConversation.surfaceID:
+            composer.routeKey = "composer:\(activeSelection.surfaceID):follow-up"
+        default:
+            composer.routeKey = "composer:\(activeSelection.surfaceID)"
+            composer.contextReferences = []
+            composer.attachmentPreview = nil
         }
-
-        composer.routeKey = "composer:\(activeSelection.surfaceID)"
-        composer.contextReferences = []
-        composer.attachmentPreview = nil
         return composer
     }
 
