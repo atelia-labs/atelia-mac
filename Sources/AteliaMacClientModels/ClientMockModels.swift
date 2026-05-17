@@ -288,6 +288,28 @@ public struct ClientMockState: Sendable {
                 routeKey: "permissions/full-access",
                 permissionScope: "workspace.full-access",
                 displayName: "フルアクセス"
+            ),
+            contextReferences: [
+                ComposerContextReference(
+                    id: "context:file:standard-surfaces",
+                    kind: .file,
+                    title: "ファイル",
+                    subtitle: "添付",
+                    systemImageName: "paperclip"
+                ),
+                ComposerContextReference(
+                    id: "context:extension:surface-protocol",
+                    kind: .packageExtension,
+                    title: "拡張機能",
+                    subtitle: "文脈",
+                    systemImageName: "puzzlepiece.extension"
+                )
+            ],
+            attachmentPreview: ComposerAttachmentPreview(
+                id: "attachment:standard-surfaces",
+                contextReferenceID: "context:file:standard-surfaces",
+                title: "standard-surfaces.md",
+                subtitle: "ファイル / 拡張機能の文脈を保持"
             )
         )
     )
@@ -761,15 +783,77 @@ public struct ComposerConfiguration: Equatable, Sendable {
     public var routeKey: String
     public var selectedModel: ComposerModelSelection
     public var permissionMode: ComposerPermissionMode
+    public var contextReferences: [ComposerContextReference]
+    public var attachmentPreview: ComposerAttachmentPreview?
 
     public init(
         routeKey: String = "",
         selectedModel: ComposerModelSelection,
-        permissionMode: ComposerPermissionMode
+        permissionMode: ComposerPermissionMode,
+        contextReferences: [ComposerContextReference] = [],
+        attachmentPreview: ComposerAttachmentPreview? = nil
     ) {
         self.routeKey = routeKey
         self.selectedModel = selectedModel
         self.permissionMode = permissionMode
+        self.contextReferences = contextReferences
+        self.attachmentPreview = attachmentPreview
+    }
+}
+
+public enum ComposerContextKind: String, Equatable, Sendable {
+    case file
+    case packageExtension = "extension"
+}
+
+public struct ComposerContextReference: Identifiable, Equatable, Sendable {
+    public var id: String
+    public var kind: ComposerContextKind
+    public var title: String
+    public var subtitle: String
+    public var systemImageName: String
+
+    public init(
+        id: String,
+        kind: ComposerContextKind,
+        title: String,
+        subtitle: String,
+        systemImageName: String
+    ) {
+        self.id = id
+        self.kind = kind
+        self.title = title
+        self.subtitle = subtitle
+        self.systemImageName = systemImageName
+    }
+}
+
+public struct ComposerContextSelection: Equatable, Sendable {
+    public var id: String
+    public var kind: ComposerContextKind
+
+    public init(id: String, kind: ComposerContextKind) {
+        self.id = id
+        self.kind = kind
+    }
+}
+
+public struct ComposerAttachmentPreview: Identifiable, Equatable, Sendable {
+    public var id: String
+    public var contextReferenceID: String?
+    public var title: String
+    public var subtitle: String
+
+    public init(
+        id: String,
+        contextReferenceID: String? = nil,
+        title: String,
+        subtitle: String
+    ) {
+        self.id = id
+        self.contextReferenceID = contextReferenceID
+        self.title = title
+        self.subtitle = subtitle
     }
 }
 

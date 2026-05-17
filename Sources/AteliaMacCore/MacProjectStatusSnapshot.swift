@@ -16,7 +16,7 @@ public struct MacProjectStatusSnapshot: Sendable, Equatable {
             self.statusLabel = Self.statusLabel(for: job.status)
             self.requesterLabel = Self.requesterLabel(for: job.requester)
             self.kindLabel = job.kind
-            self.goalLabel = job.goal
+            self.goalLabel = (job.goal as String?) ?? ""
             self.latestEventId = job.latestEventId
         }
 
@@ -78,10 +78,27 @@ public struct MacProjectStatusSnapshot: Sendable, Equatable {
         init(policyDecision: AteliaPolicyDecision) {
             self.id = policyDecision.decisionId
             self.outcomeLabel = Self.outcomeLabel(for: policyDecision.outcome)
-            self.riskTierLabel = policyDecision.riskTier.rawValue
+            self.riskTierLabel = Self.riskTierLabel(for: policyDecision.riskTier)
             self.requestedCapabilityLabel = policyDecision.requestedCapability
             self.reasonCodeLabel = policyDecision.reasonCode
             self.reasonLabel = policyDecision.reason
+        }
+
+        private static func riskTierLabel(for riskTier: AteliaPolicyDecision.RiskTier) -> String {
+            switch riskTier {
+            case .r0:
+                return "R0"
+            case .r1:
+                return "R1"
+            case .r2:
+                return "R2"
+            case .r3:
+                return "R3"
+            case .r4:
+                return "R4"
+            case .unknown(let rawValue):
+                return rawValue
+            }
         }
 
         private static func outcomeLabel(for outcome: AteliaPolicyDecision.Outcome) -> String {

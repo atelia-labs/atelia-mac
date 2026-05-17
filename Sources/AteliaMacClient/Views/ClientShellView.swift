@@ -50,9 +50,11 @@ struct ClientShellView: View {
             conversation: AteliaConversation(fixture: state.conversation),
             activeConversationTitle: sidebarProjection.activeConversationTitle,
             activeProjectTitle: sidebarProjection.activeProjectTitle,
+            sidebarProjection: sidebarProjection,
             goal: state.goal,
             composer: state.composer,
             onOpenSettings: { onAction(.openSettings) },
+            onProjectMenuAction: { onAction(.sidebar($0)) },
             onComposerIntent: { onAction(.composer($0)) }
         )
     }

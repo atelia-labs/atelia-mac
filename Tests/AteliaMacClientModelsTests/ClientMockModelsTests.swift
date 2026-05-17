@@ -293,6 +293,14 @@ import AteliaMacClientModels
     #expect(state.composer.permissionMode.routeKey == "permissions/full-access")
     #expect(state.composer.permissionMode.permissionScope == "workspace.full-access")
     #expect(state.composer.permissionMode.displayName == "フルアクセス")
+    #expect(state.composer.contextReferences.map(\.id) == [
+        "context:file:standard-surfaces",
+        "context:extension:surface-protocol"
+    ])
+    #expect(state.composer.contextReferences.map(\.kind) == [.file, .packageExtension])
+    #expect(state.composer.attachmentPreview?.id == "attachment:standard-surfaces")
+    #expect(state.composer.attachmentPreview?.contextReferenceID == "context:file:standard-surfaces")
+    #expect(state.composer.attachmentPreview?.title == "standard-surfaces.md")
 }
 
 @Test func mockActionsCarrySurfaceProtocolRoutingMetadata() {

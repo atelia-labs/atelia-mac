@@ -149,6 +149,18 @@ struct ClientSidebarProjection {
         "\(activeSelection.surfacePackageID)#\(activeSelection.surfaceID)"
     }
 
+    var projectMenuItems: [ChatListItem] {
+        if let activeProjectGroup = workspaceGroups.first(where: { $0.id == activeSelection.projectID }) {
+            return activeProjectGroup.items + activeProjectGroup.settings
+        }
+
+        guard let fallbackProjectGroup = workspaceGroups.first(where: { $0.id.hasPrefix("project:") }) else {
+            return []
+        }
+
+        return fallbackProjectGroup.items + fallbackProjectGroup.settings
+    }
+
     init(
         snapshot: MacProjectStatusSnapshot?,
         pendingProjectAddSelection: ProjectAddSelection?,

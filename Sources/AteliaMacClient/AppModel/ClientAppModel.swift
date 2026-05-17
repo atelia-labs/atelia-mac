@@ -26,8 +26,10 @@ final class ClientAppModel {
 
     private(set) var projectStatusSnapshot: MacProjectStatusSnapshot?
     private(set) var sidebarProjection: ClientSidebarProjection
+    private(set) var shellState: ClientMockState
     private(set) var isReloading: Bool
     private(set) var lastErrorMessage: String?
+    private(set) var lastComposerSubmissionRequest: ComposerJobSubmissionRequest?
     private(set) var pendingProjectAddSelection: ProjectAddSelection?
     private(set) var sidebarSelectionState: ClientSidebarSelectionState?
 
@@ -45,8 +47,11 @@ final class ClientAppModel {
             pendingProjectAddSelection: nil,
             selectionState: nil
         )
+        self.shellState = .ateliaReference
         self.isReloading = false
         self.lastErrorMessage = nil
+        self.lastComposerSubmissionRequest = nil
+        syncShellState()
     }
 
     func reloadProjectStatus() async throws {
@@ -70,6 +75,7 @@ final class ClientAppModel {
         projectStatusSnapshot = nil
         pendingProjectAddSelection = nil
         sidebarSelectionState = .unloaded()
+        lastComposerSubmissionRequest = nil
         syncSidebarProjection()
         lastErrorMessage = nil
     }
@@ -128,6 +134,37 @@ final class ClientAppModel {
         }
     }
 
+    func activeConversationTarget() -> ComposerConversationTarget {
+        let activeSelection = sidebarSelectionState?.activeSelection ?? sidebarProjection.activeSelection
+        if activeSelection.projectID == "global" {
+            return .global
+        }
+
+        guard let snapshot = projectStatusSnapshot else {
+            return .unavailable
+        }
+
+        if activeSelection.projectID == "project:\(snapshot.repositoryId)",
+           activeSelection.surfaceID == MockSurfaceReference.projectConversation.surfaceID {
+            return .project(repositoryId: snapshot.repositoryId)
+        }
+
+        return .unavailable
+    }
+
+    func handleComposerIntent(_ intent: ComposerIntent) {
+        switch intent {
+        case .send(let text, let configuration, let contexts):
+            handleComposerSend(
+                text: text,
+                configuration: configuration,
+                contexts: contexts
+            )
+        default:
+            break
+        }
+    }
+
     func handleProjectSectionHeaderAction(_ action: ProjectSectionHeaderActionViewData) {
         switch action.kind {
         case .createFolder:
@@ -157,6 +194,45 @@ final class ClientAppModel {
             pendingProjectAddSelection: pendingProjectAddSelection,
             selectionState: sidebarSelectionState
         )
+        syncShellState()
+    }
+
+    private func syncShellState() {
+        var state = ClientMockState.ateliaReference
+        let activeSelection = sidebarProjection.activeSelection
+
+        state.activeSelection = activeSelection
+        state.activeConversationTitle = sidebarProjection.activeConversationTitle
+        state.activeProjectTitle = sidebarProjection.activeProjectTitle
+        state.conversation.title = sidebarProjection.activeConversationTitle
+        state.goal = shellGoal(for: activeSelection)
+        state.composer = shellComposer(for: activeSelection)
+
+        shellState = state
+    }
+
+    private func shellComposer(for activeSelection: ClientMockActiveSelection) -> ComposerConfiguration {
+        var composer = ClientMockState.ateliaReference.composer
+        switch activeSelection.surfaceID {
+        case MockSurfaceReference.projectConversation.surfaceID:
+            composer.routeKey = "composer:\(activeSelection.surfaceID):follow-up"
+        default:
+            composer.routeKey = "composer:\(activeSelection.surfaceID)"
+            composer.contextReferences = []
+            composer.attachmentPreview = nil
+        }
+        return composer
+    }
+
+    private func shellGoal(for activeSelection: ClientMockActiveSelection) -> GoalStatus {
+        if activeSelection.surfaceID == MockSurfaceReference.globalSecretary.surfaceID {
+            return GoalStatus(
+                title: "Global Secretary に接続",
+                elapsed: ClientMockState.ateliaReference.goal.elapsed
+            )
+        }
+
+        return ClientMockState.ateliaReference.goal
     }
 
     private func handleSidebarCommandAction(
@@ -240,5 +316,48 @@ final class ClientAppModel {
             projectID: "global",
             projectTitle: "全プロジェクト"
         )
+    }
+
+    private func handleComposerSend(
+        text: String,
+        configuration: ComposerConfiguration,
+        contexts: [ComposerContextSelection]
+    ) {
+        lastComposerSubmissionRequest = nil
+        lastErrorMessage = nil
+
+        guard let request = makeComposerJobSubmissionRequest(
+            text: text,
+            configuration: configuration,
+            contexts: contexts,
+            target: activeConversationTarget()
+        ) else {
+            return
+        }
+
+        lastComposerSubmissionRequest = request
+    }
+
+    private func makeComposerJobSubmissionRequest(
+        text: String,
+        configuration: ComposerConfiguration,
+        contexts: [ComposerContextSelection],
+        target: ComposerConversationTarget
+    ) -> ComposerJobSubmissionRequest? {
+        guard case .project(let repositoryId) = target else {
+            lastErrorMessage = "プロジェクトを選択してください。"
+            return nil
+        }
+
+        guard let request = ComposerJobSubmissionRequest.fromSendIntent(
+            text: text,
+            repositoryId: repositoryId,
+            configuration: configuration,
+            contexts: contexts
+        ) else {
+            return nil
+        }
+
+        return request
     }
 }
