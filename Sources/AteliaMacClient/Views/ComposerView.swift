@@ -134,6 +134,9 @@ struct ComposerView: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(Color.clientDockBorder, lineWidth: 1)
         }
+        .onChange(of: configuration) { _, newConfiguration in
+            selectedContexts = newConfiguration.visibleContextSelections
+        }
     }
 }
 
