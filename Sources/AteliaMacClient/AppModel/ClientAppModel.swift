@@ -77,14 +77,10 @@ final class ClientAppModel {
         let snapshot = await projectStatusStore.snapshot
         projectStatusSnapshot = snapshot
         if let snapshot {
-            let activeSelection = sidebarSelectionState?.activeSelection ?? sidebarProjection.activeSelection
-            if let activeLocalProject = localProject(forProjectID: activeSelection.projectID),
-               activeLocalProject.hasSameRootPath(as: snapshot.repositoryRootPath) {
-                migrateLocalConversationDrafts(
-                    from: activeLocalProject.id,
-                    to: snapshot.repositoryId
-                )
-            }
+            migrateLocalConversationDrafts(
+                matchingRootPath: snapshot.repositoryRootPath,
+                to: snapshot.repositoryId
+            )
 
             if let selectionState = sidebarSelectionState,
                let selectedLocalProject = localProject(forProjectID: selectionState.activeSelection.projectID),
@@ -482,6 +478,12 @@ final class ClientAppModel {
         )
 
         localConversationDrafts[request.repositoryId] = turns
+    }
+
+    private func migrateLocalConversationDrafts(matchingRootPath rootPath: String, to repositoryId: String) {
+        for localProject in localProjects where localProject.hasSameRootPath(as: rootPath) {
+            migrateLocalConversationDrafts(from: localProject.id, to: repositoryId)
+        }
     }
 
     private func migrateLocalConversationDrafts(from localRepositoryId: String, to repositoryId: String) {

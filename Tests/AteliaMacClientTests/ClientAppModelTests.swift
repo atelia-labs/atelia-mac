@@ -734,6 +734,69 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientAppModelMigratesHiddenLocalDraftsWhenBackendSnapshotReplacesInactiveProject() async throws {
+    let matchingProject = LocalProjectRegistration.make(
+        folderURL: URL(fileURLWithPath: "/workspace/ready-repo"),
+        source: .existingFolder
+    )
+    let otherProject = LocalProjectRegistration.make(
+        folderURL: URL(fileURLWithPath: "/Users/yohaku/Projects/Other"),
+        source: .existingFolder
+    )
+    let registry = InMemoryLocalProjectRegistry(projects: [matchingProject, otherProject])
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, localProjectRegistry: registry)
+    let originalTurnCount = model.shellState.conversation.turns.count
+
+    model.handleComposerIntent(.send(
+        text: "非アクティブでも下書きを保持",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
+
+    #expect(model.activeConversationTarget() == .project(repositoryId: matchingProject.id))
+    #expect(model.shellState.conversation.turns.count == originalTurnCount + 2)
+
+    let otherSecretary = try #require(model.sidebarProjection.workspaceGroups
+        .first { $0.id == otherProject.projectID }?
+        .items.first { $0.surface == .projectConversation })
+    model.handleSidebarAction(.chatItem(
+        id: otherSecretary.id,
+        projectID: otherSecretary.projectID,
+        resourceID: otherSecretary.resourceID,
+        title: otherSecretary.title,
+        surface: otherSecretary.surface,
+        action: try #require(otherSecretary.action)
+    ))
+
+    #expect(model.activeConversationTarget() == .project(repositoryId: otherProject.id))
+
+    try await model.reloadProjectStatus()
+
+    #expect(model.sidebarProjection.activeSelection.projectID == otherProject.projectID)
+    #expect(model.sidebarProjection.workspaceGroups.map(\.id) == ["project:repo_ready", otherProject.projectID])
+
+    let backendSecretary = try #require(model.sidebarProjection.workspaceGroups
+        .first { $0.id == "project:repo_ready" }?
+        .items.first { $0.surface == .projectConversation })
+    model.handleSidebarAction(.chatItem(
+        id: backendSecretary.id,
+        projectID: backendSecretary.projectID,
+        resourceID: backendSecretary.resourceID,
+        title: backendSecretary.title,
+        surface: backendSecretary.surface,
+        action: try #require(backendSecretary.action)
+    ))
+
+    #expect(model.activeConversationTarget() == .project(repositoryId: "repo_ready"))
+    #expect(model.shellState.conversation.turns.count == originalTurnCount + 2)
+    #expect(model.shellState.conversation.turns.contains { turn in
+        turn.id == "turn.user.local-draft:\(matchingProject.id):1"
+    })
+}
+
+@MainActor
 @Test func clientAppModelUsesInjectedLocalProjectRegistryForInitialProjection() {
     let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/Registered")
     let project = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)
