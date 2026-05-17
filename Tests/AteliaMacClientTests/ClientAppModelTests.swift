@@ -676,6 +676,35 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientAppModelRemovesVisibleLocalDraftStateWhenLocalProjectIsRemoved() throws {
+    let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/DraftProject")
+    let project = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)
+    let registry = InMemoryLocalProjectRegistry(projects: [project])
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, localProjectRegistry: registry)
+    let originalTurnCount = model.shellState.conversation.turns.count
+
+    model.handleComposerIntent(.send(
+        text: "ローカル下書きを作成",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
+
+    #expect(model.shellState.conversation.turns.count == originalTurnCount + 2)
+
+    model.handleSidebarAction(.removeLocalProject(id: project.id))
+    model.registerLocalProject(folderURL: folderURL, source: .existingFolder)
+
+    #expect(model.localProjects == [project])
+    #expect(model.sidebarProjection.activeSelection.projectID == project.projectID)
+    #expect(model.shellState.conversation.turns.count == originalTurnCount)
+    #expect(model.shellState.conversation.turns.allSatisfy { turn in
+        !turn.id.contains("local-draft:\(project.id)")
+    })
+}
+
+@MainActor
 @Test func clientAppModelUsesInjectedLocalProjectRegistryForInitialProjection() {
     let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/Registered")
     let project = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)

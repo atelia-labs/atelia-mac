@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 enum LocalProjectRegistrationSource: String, Codable, Equatable, Sendable {
     case newFolder
@@ -74,6 +75,7 @@ protocol LocalProjectRegistry: AnyObject {
 final class UserDefaultsLocalProjectRegistry: LocalProjectRegistry {
     private let defaults: UserDefaults
     private let key: String
+    private static let logger = Logger(subsystem: "com.atelia.mac.client", category: "LocalProjectRegistry")
 
     init(
         defaults: UserDefaults = .standard,
@@ -117,11 +119,15 @@ final class UserDefaultsLocalProjectRegistry: LocalProjectRegistry {
     }
 
     private func persist(_ projects: [LocalProjectRegistration]) {
-        guard let data = try? JSONEncoder().encode(projects) else {
-            return
+        do {
+            let data = try JSONEncoder().encode(projects)
+            defaults.set(data, forKey: key)
+        } catch {
+            Self.logger.error("Failed to persist local project registry: \(error.localizedDescription, privacy: .public)")
+            #if DEBUG
+            assertionFailure("Failed to persist local project registry: \(error)")
+            #endif
         }
-
-        defaults.set(data, forKey: key)
     }
 }
 
