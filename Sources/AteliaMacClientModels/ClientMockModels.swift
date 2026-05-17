@@ -1184,6 +1184,7 @@ public struct WorkspaceGroup: Identifiable, Sendable {
     public var settings: [ChatListItem] = []
     public var status: Status?
     public var emptyText: String?
+    public var localProjectID: String?
 
     public init(
         id: String,
@@ -1193,7 +1194,8 @@ public struct WorkspaceGroup: Identifiable, Sendable {
         items: [ChatListItem],
         settings: [ChatListItem] = [],
         status: Status? = nil,
-        emptyText: String? = nil
+        emptyText: String? = nil,
+        localProjectID: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -1203,6 +1205,7 @@ public struct WorkspaceGroup: Identifiable, Sendable {
         self.settings = settings
         self.status = status
         self.emptyText = emptyText
+        self.localProjectID = localProjectID
     }
 }
 

@@ -29,7 +29,6 @@ struct ClientShellView: View {
                 activeNavigationItemID: sidebarProjection.activeNavigationItemID,
                 activePrimaryCommandID: sidebarProjection.activePrimaryCommandID,
                 projectSectionHeader: sidebarProjection.projectSectionHeader,
-                projectAddCandidateLabel: sidebarProjection.projectAddCandidateLabel,
                 groups: sidebarProjection.workspaceGroups,
                 globalItems: sidebarProjection.globalItems,
                 onAction: { onAction(.sidebar($0)) }

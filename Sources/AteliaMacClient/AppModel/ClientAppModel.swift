@@ -3,48 +3,39 @@ import AteliaMacCore
 import Foundation
 import Observation
 
-struct ProjectAddSelection: Equatable, Sendable {
-    enum Source: Equatable, Sendable {
-        case newFolder
-        case existingFolder
-    }
-
-    var source: Source
-    var folderURL: URL
-
-    var label: String {
-        let folderName = folderURL.lastPathComponent
-        return folderName.isEmpty ? folderURL.path : folderName
-    }
-}
-
 @MainActor
 @Observable
 final class ClientAppModel {
     private let projectStatusStore: MacProjectStatusStore
     private let projectFolderSelection: any ProjectFolderSelectionProviding
+    private let localProjectRegistry: any LocalProjectRegistry
 
     private(set) var projectStatusSnapshot: MacProjectStatusSnapshot?
+    private(set) var localProjects: [LocalProjectRegistration]
     private(set) var sidebarProjection: ClientSidebarProjection
     private(set) var shellState: ClientMockState
     private(set) var isReloading: Bool
     private(set) var lastErrorMessage: String?
     private(set) var lastComposerSubmissionRequest: ComposerJobSubmissionRequest?
-    private(set) var pendingProjectAddSelection: ProjectAddSelection?
     private(set) var sidebarSelectionState: ClientSidebarSelectionState?
+    private var localConversationDrafts: [String: [ClientConversationTurnFixture]]
 
     init(
         projectStatusStore: MacProjectStatusStore,
-        projectFolderSelection: any ProjectFolderSelectionProviding = ProjectFolderPicker()
+        projectFolderSelection: any ProjectFolderSelectionProviding = ProjectFolderPicker(),
+        localProjectRegistry: any LocalProjectRegistry = InMemoryLocalProjectRegistry()
     ) {
         self.projectStatusStore = projectStatusStore
         self.projectFolderSelection = projectFolderSelection
+        self.localProjectRegistry = localProjectRegistry
         self.projectStatusSnapshot = nil
-        self.pendingProjectAddSelection = nil
+        let loadedLocalProjects = localProjectRegistry.listProjects()
+        self.localProjects = loadedLocalProjects
         self.sidebarSelectionState = nil
+        self.localConversationDrafts = [:]
         self.sidebarProjection = ClientSidebarProjection(
             snapshot: nil,
-            pendingProjectAddSelection: nil,
+            localProjects: loadedLocalProjects,
             selectionState: nil
         )
         self.shellState = .ateliaReference
@@ -73,23 +64,38 @@ final class ClientAppModel {
     func clearProjectStatus() async {
         await projectStatusStore.clear()
         projectStatusSnapshot = nil
-        pendingProjectAddSelection = nil
+        localProjects = []
+        localProjectRegistry.clearProjects()
         sidebarSelectionState = .unloaded()
         lastComposerSubmissionRequest = nil
+        localConversationDrafts = [:]
         syncSidebarProjection()
         lastErrorMessage = nil
-    }
-
-    func clearPendingProjectAddSelection() {
-        pendingProjectAddSelection = nil
-        syncSidebarProjection()
     }
 
     func syncProjectStatusFromStore() async {
         let snapshot = await projectStatusStore.snapshot
         projectStatusSnapshot = snapshot
         if let snapshot {
-            if let selectionState = sidebarSelectionState, selectionState.isUnloaded {
+            migrateLocalConversationDrafts(
+                matchingRootPath: snapshot.repositoryRootPath,
+                to: snapshot.repositoryId
+            )
+
+            if let selectionState = sidebarSelectionState,
+               let selectedLocalProject = localProject(forProjectID: selectionState.activeSelection.projectID),
+               selectedLocalProject.hasSameRootPath(as: snapshot.repositoryRootPath) {
+                if selectionState.activePrimaryCommandID == "primary:new-thread" {
+                    sidebarSelectionState = .newThread(
+                        commandID: "primary:new-thread",
+                        title: selectionState.activeConversationTitle,
+                        projectSnapshot: snapshot,
+                        surface: MockSurfaceReference.projectConversation
+                    )
+                } else {
+                    sidebarSelectionState = .projectSecretary(snapshot: snapshot)
+                }
+            } else if let selectionState = sidebarSelectionState, selectionState.isUnloaded {
                 if selectionState.activePrimaryCommandID == "primary:new-thread" {
                     sidebarSelectionState = .newThread(
                         commandID: "primary:new-thread",
@@ -129,8 +135,8 @@ final class ClientAppModel {
             )
         case .projectSectionHeaderAction(let headerAction):
             handleProjectSectionHeaderAction(headerAction)
-        case .dismissProjectAddCandidate:
-            clearPendingProjectAddSelection()
+        case .removeLocalProject(let id):
+            removeLocalProject(id: id)
         }
     }
 
@@ -141,12 +147,22 @@ final class ClientAppModel {
         }
 
         guard let snapshot = projectStatusSnapshot else {
-            return .unavailable
+            guard activeSelection.surfaceID == MockSurfaceReference.projectConversation.surfaceID,
+                  let localProject = localProject(forProjectID: activeSelection.projectID) else {
+                return .unavailable
+            }
+
+            return .project(repositoryId: localProject.id)
         }
 
         if activeSelection.projectID == "project:\(snapshot.repositoryId)",
            activeSelection.surfaceID == MockSurfaceReference.projectConversation.surfaceID {
             return .project(repositoryId: snapshot.repositoryId)
+        }
+
+        if activeSelection.surfaceID == MockSurfaceReference.projectConversation.surfaceID,
+           let localProject = localProject(forProjectID: activeSelection.projectID) {
+            return .project(repositoryId: localProject.id)
         }
 
         return .unavailable
@@ -172,18 +188,49 @@ final class ClientAppModel {
                 return
             }
 
-            recordPendingProjectAddSelection(folderURL: folderURL, source: .newFolder)
+            registerLocalProject(folderURL: folderURL, source: .newFolder)
         case .useExistingFolder:
             guard let folderURL = projectFolderSelection.chooseExistingFolder() else {
                 return
             }
 
-            recordPendingProjectAddSelection(folderURL: folderURL, source: .existingFolder)
+            registerLocalProject(folderURL: folderURL, source: .existingFolder)
         }
     }
 
-    func recordPendingProjectAddSelection(folderURL: URL, source: ProjectAddSelection.Source) {
-        pendingProjectAddSelection = ProjectAddSelection(source: source, folderURL: folderURL)
+    func registerLocalProject(folderURL: URL, source: LocalProjectRegistrationSource) {
+        if let snapshot = projectStatusSnapshot,
+           LocalProjectRegistration.make(folderURL: folderURL, source: source)
+            .hasSameRootPath(as: snapshot.repositoryRootPath) {
+            sidebarSelectionState = .projectSecretary(snapshot: snapshot)
+            lastErrorMessage = nil
+            syncSidebarProjection()
+            return
+        }
+
+        let project = localProjectRegistry.registerProject(folderURL: folderURL, source: source)
+        localProjects = localProjectRegistry.listProjects()
+        sidebarSelectionState = .projectSecretary(project: project)
+        lastErrorMessage = nil
+        syncSidebarProjection()
+    }
+
+    func removeLocalProject(id: String) {
+        guard localProjectRegistry.removeProject(id: id) else {
+            return
+        }
+
+        localProjects = localProjectRegistry.listProjects()
+        localConversationDrafts[id] = nil
+        if sidebarSelectionState?.activeSelection.projectID == "project:\(id)" {
+            if let snapshot = projectStatusSnapshot {
+                sidebarSelectionState = .projectSecretary(snapshot: snapshot)
+            } else if let firstLocalProject = localProjects.first {
+                sidebarSelectionState = .projectSecretary(project: firstLocalProject)
+            } else {
+                sidebarSelectionState = .unloaded()
+            }
+        }
         lastErrorMessage = nil
         syncSidebarProjection()
     }
@@ -191,7 +238,7 @@ final class ClientAppModel {
     private func syncSidebarProjection() {
         sidebarProjection = ClientSidebarProjection(
             snapshot: projectStatusSnapshot,
-            pendingProjectAddSelection: pendingProjectAddSelection,
+            localProjects: localProjects,
             selectionState: sidebarSelectionState
         )
         syncShellState()
@@ -204,7 +251,7 @@ final class ClientAppModel {
         state.activeSelection = activeSelection
         state.activeConversationTitle = sidebarProjection.activeConversationTitle
         state.activeProjectTitle = sidebarProjection.activeProjectTitle
-        state.conversation.title = sidebarProjection.activeConversationTitle
+        state.conversation = shellConversation(for: activeSelection, title: sidebarProjection.activeConversationTitle)
         state.goal = shellGoal(for: activeSelection)
         state.composer = shellComposer(for: activeSelection)
 
@@ -235,6 +282,23 @@ final class ClientAppModel {
         return ClientMockState.ateliaReference.goal
     }
 
+    private func shellConversation(
+        for activeSelection: ClientMockActiveSelection,
+        title: String
+    ) -> ClientConversationFixture {
+        var conversation = ClientMockState.ateliaReference.conversation
+        conversation.title = title
+
+        guard activeSelection.surfaceID == MockSurfaceReference.projectConversation.surfaceID,
+              let repositoryId = repositoryId(forProjectID: activeSelection.projectID),
+              let drafts = localConversationDrafts[repositoryId] else {
+            return conversation
+        }
+
+        conversation.turns.append(contentsOf: drafts)
+        return conversation
+    }
+
     private func handleSidebarCommandAction(
         id: String,
         title: String,
@@ -246,7 +310,8 @@ final class ClientAppModel {
             let selectionState = ClientSidebarSelectionState.newThread(
                 commandID: id,
                 title: title,
-                projectSnapshot: projectStatusSnapshot,
+                projectSnapshot: projectSnapshotForProjectCommand(),
+                localProject: localProjectForProjectCommand(),
                 surface: surface
             )
             sidebarSelectionState = selectionState
@@ -301,11 +366,22 @@ final class ClientAppModel {
             return "全プロジェクト"
         }
 
+        if let localProject = localProject(forProjectID: projectID) {
+            return localProject.displayName
+        }
+
         return projectStatusSnapshot?.repositoryDisplayName ?? "プロジェクト未読込"
     }
 
     private func fallbackScope(for surface: MockSurfaceReference) -> (projectID: String, projectTitle: String) {
         if surface == MockSurfaceReference.projectConversation || surface == MockSurfaceReference.projectHome {
+            if let localProject = selectedLocalProject() {
+                return (
+                    projectID: localProject.projectID,
+                    projectTitle: localProject.displayName
+                )
+            }
+
             return (
                 projectID: projectStatusSnapshot.map { "project:\($0.repositoryId)" } ?? "project:unloaded",
                 projectTitle: projectStatusSnapshot?.repositoryDisplayName ?? "プロジェクト未読込"
@@ -336,6 +412,8 @@ final class ClientAppModel {
         }
 
         lastComposerSubmissionRequest = request
+        appendLocalComposerDraft(request)
+        syncShellState()
     }
 
     private func makeComposerJobSubmissionRequest(
@@ -359,5 +437,107 @@ final class ClientAppModel {
         }
 
         return request
+    }
+
+    private func appendLocalComposerDraft(_ request: ComposerJobSubmissionRequest) {
+        let draftIndex = (localConversationDrafts[request.repositoryId]?.count ?? 0) / 2 + 1
+        let draftID = "local-draft:\(request.repositoryId):\(draftIndex)"
+        var turns = localConversationDrafts[request.repositoryId] ?? []
+
+        turns.append(
+            ClientConversationTurnFixture(
+                id: "turn.user.\(draftID)",
+                actor: .user,
+                blocks: [
+                    .message(
+                        ChatMessage(
+                            id: "message.user.\(draftID)",
+                            text: request.message,
+                            attachmentName: request.contextIDs.first
+                        )
+                    )
+                ]
+            )
+        )
+        turns.append(
+            ClientConversationTurnFixture(
+                id: "turn.secretary.\(draftID)",
+                actor: .secretary,
+                blocks: [
+                    .activity(
+                        ClientConversationActivityFixture(
+                            id: "activity.secretary.\(draftID)",
+                            duration: "draft",
+                            status: "下書き",
+                            title: "Secretary ジョブ下書きをローカルに追加しました。",
+                            bullets: localDraftBullets(for: request)
+                        )
+                    )
+                ]
+            )
+        )
+
+        localConversationDrafts[request.repositoryId] = turns
+    }
+
+    private func migrateLocalConversationDrafts(matchingRootPath rootPath: String, to repositoryId: String) {
+        for localProject in localProjects where localProject.hasSameRootPath(as: rootPath) {
+            migrateLocalConversationDrafts(from: localProject.id, to: repositoryId)
+        }
+    }
+
+    private func migrateLocalConversationDrafts(from localRepositoryId: String, to repositoryId: String) {
+        guard localRepositoryId != repositoryId,
+              let localDrafts = localConversationDrafts.removeValue(forKey: localRepositoryId),
+              !localDrafts.isEmpty else {
+            return
+        }
+
+        var repositoryDrafts = localConversationDrafts[repositoryId] ?? []
+        repositoryDrafts.append(contentsOf: localDrafts)
+        localConversationDrafts[repositoryId] = repositoryDrafts
+    }
+
+    private func localDraftBullets(for request: ComposerJobSubmissionRequest) -> [String] {
+        var bullets = [
+            "Goal は未指定のまま会話メッセージとして保持",
+            "Backend 送信前の request contract を保持"
+        ]
+
+        if !request.contextIDs.isEmpty {
+            let contextLabel = request.contextIDs.joined(separator: ", ")
+            bullets.append("Context \(contextLabel)")
+        }
+
+        return bullets
+    }
+
+    private func selectedLocalProject() -> LocalProjectRegistration? {
+        let projectID = sidebarSelectionState?.activeSelection.projectID ?? sidebarProjection.activeSelection.projectID
+        return localProject(forProjectID: projectID)
+    }
+
+    private func localProjectForProjectCommand() -> LocalProjectRegistration? {
+        selectedLocalProject() ?? (projectStatusSnapshot == nil ? localProjects.first : nil)
+    }
+
+    private func projectSnapshotForProjectCommand() -> MacProjectStatusSnapshot? {
+        guard selectedLocalProject() == nil else {
+            return nil
+        }
+
+        return projectStatusSnapshot
+    }
+
+    private func localProject(forProjectID projectID: String) -> LocalProjectRegistration? {
+        localProjects.first { $0.projectID == projectID }
+    }
+
+    private func repositoryId(forProjectID projectID: String) -> String? {
+        if let snapshot = projectStatusSnapshot, projectID == "project:\(snapshot.repositoryId)" {
+            return snapshot.repositoryId
+        }
+
+        return localProject(forProjectID: projectID)?.id
     }
 }

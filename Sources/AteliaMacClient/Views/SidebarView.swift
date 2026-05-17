@@ -5,7 +5,7 @@ enum SidebarAction {
     case command(id: String, title: String, surface: MockSurfaceReference, action: MockActionReference)
     case chatItem(id: String, projectID: String, resourceID: String, title: String, surface: MockSurfaceReference, action: MockActionReference)
     case projectSectionHeaderAction(ProjectSectionHeaderActionViewData)
-    case dismissProjectAddCandidate
+    case removeLocalProject(id: String)
 }
 
 struct SidebarView: View {
@@ -13,7 +13,6 @@ struct SidebarView: View {
     let activeNavigationItemID: String
     let activePrimaryCommandID: String?
     let projectSectionHeader: ProjectSectionHeaderViewData
-    let projectAddCandidateLabel: String?
     let groups: [WorkspaceGroup]
     let globalItems: [ChatListItem]
     var onAction: (SidebarAction) -> Void = { _ in }
@@ -40,12 +39,6 @@ struct SidebarView: View {
                         header: projectSectionHeader,
                         onAction: onAction
                     )
-
-                    if let projectAddCandidateLabel {
-                        ProjectAddCandidateView(label: projectAddCandidateLabel) {
-                            onAction(.dismissProjectAddCandidate)
-                        }
-                    }
 
                     ForEach(groups) { group in
                         WorkspaceGroupView(group: group, selection: selection, onAction: onAction)
@@ -290,6 +283,7 @@ private struct WorkspaceGroupView: View {
             .frame(height: 32)
             .padding(.leading, 14)
             .padding(.trailing, 8)
+            .localProjectContextMenu(group: group, onAction: onAction)
 
             ForEach(group.items) { item in
                 SidebarChatRow(item: item, isSelected: selection.contains(item), onAction: onAction)
@@ -317,6 +311,23 @@ private struct WorkspaceGroupView: View {
                 }
                 .padding(.top, 2)
             }
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func localProjectContextMenu(group: WorkspaceGroup, onAction: @escaping (SidebarAction) -> Void) -> some View {
+        if let localProjectID = group.localProjectID {
+            self.contextMenu {
+                Button(role: .destructive) {
+                    onAction(.removeLocalProject(id: localProjectID))
+                } label: {
+                    Label("サイドバーから削除", systemImage: "minus.circle")
+                }
+            }
+        } else {
+            self
         }
     }
 }
@@ -607,53 +618,6 @@ private extension View {
                     }
                 }
         }
-    }
-}
-
-private struct ProjectAddCandidateView: View {
-    let label: String
-    let onDismiss: () -> Void
-
-    private let dismissButtonSize: CGFloat = 16
-
-    var body: some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 8) {
-                    SidebarGlyph(.folderAdd)
-
-                    Text("追加候補")
-                        .font(.atelia(12.25))
-                        .tracking(0.25)
-                        .foregroundStyle(Color.clientMutedText)
-
-                    Text(label)
-                        .font(.atelia(12.25))
-                        .tracking(0.25)
-                        .foregroundStyle(Color.clientSidebarText)
-                        .lineLimit(1)
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("追加候補")
-                .accessibilityValue(label)
-                .accessibilityHint("選択中のフォルダ候補")
-            }
-
-            Spacer(minLength: 0)
-
-            Button(action: onDismiss) {
-                Image(systemName: "xmark.circle")
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundStyle(Color.clientMutedText)
-                    .frame(width: dismissButtonSize, height: dismissButtonSize)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("候補を閉じる")
-            .accessibilityHint("追加候補を非表示にします")
-        }
-        .frame(height: 26)
-        .padding(.leading, 14)
-        .padding(.trailing, 8)
     }
 }
 
