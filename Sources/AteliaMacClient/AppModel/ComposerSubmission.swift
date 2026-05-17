@@ -32,7 +32,7 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
             repositoryId: repositoryId,
             message: trimmedText,
             goal: nil,
-            modelRouteKey: configuration.routeKey,
+            modelRouteKey: configuration.selectedModel.routeKey,
             permissionModeRouteKey: configuration.permissionMode.routeKey,
             contextIDs: contexts.map(\.id),
             pathScope: nil

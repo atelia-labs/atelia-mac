@@ -154,12 +154,11 @@ struct ClientSidebarProjection {
             return activeProjectGroup.items + activeProjectGroup.settings
         }
 
-        guard workspaceGroups.count == 1, let onlyProjectGroup = workspaceGroups.first else {
-            assertionFailure("ClientSidebarProjection.projectMenuItems requires an active project group for multi-project data.")
+        guard let fallbackProjectGroup = workspaceGroups.first(where: { $0.id.hasPrefix("project:") }) else {
             return []
         }
 
-        return onlyProjectGroup.items + onlyProjectGroup.settings
+        return fallbackProjectGroup.items + fallbackProjectGroup.settings
     }
 
     init(

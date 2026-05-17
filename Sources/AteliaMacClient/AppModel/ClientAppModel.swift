@@ -135,16 +135,17 @@ final class ClientAppModel {
     }
 
     func activeConversationTarget() -> ComposerConversationTarget {
+        let activeSelection = sidebarSelectionState?.activeSelection ?? sidebarProjection.activeSelection
+        if activeSelection.projectID == "global" {
+            return .global
+        }
+
         guard let snapshot = projectStatusSnapshot else {
             return .unavailable
         }
 
-        let activeProjectID = sidebarSelectionState?.activeSelection.projectID ?? sidebarProjection.activeSelection.projectID
-        if activeProjectID == "global" {
-            return .global
-        }
-
-        if activeProjectID == "project:\(snapshot.repositoryId)" {
+        if activeSelection.projectID == "project:\(snapshot.repositoryId)",
+           activeSelection.surfaceID == MockSurfaceReference.projectConversation.surfaceID {
             return .project(repositoryId: snapshot.repositoryId)
         }
 

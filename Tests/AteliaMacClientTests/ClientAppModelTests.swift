@@ -557,12 +557,74 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientAppModelOnlyReportsProjectTargetForProjectConversationSurface() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    let projectHome = try #require(model.sidebarProjection.workspaceGroups.first?.items.first { $0.surface == .projectHome })
+    model.handleSidebarAction(.chatItem(
+        id: projectHome.id,
+        projectID: projectHome.projectID,
+        resourceID: projectHome.resourceID,
+        title: projectHome.title,
+        surface: projectHome.surface,
+        action: try #require(projectHome.action)
+    ))
+    #expect(model.activeConversationTarget() == .unavailable)
+
+    let permissionRecovery = try #require(model.sidebarProjection.workspaceGroups.first?.settings.first { $0.surface == .permissionRecovery })
+    model.handleSidebarAction(.chatItem(
+        id: permissionRecovery.id,
+        projectID: permissionRecovery.projectID,
+        resourceID: permissionRecovery.resourceID,
+        title: permissionRecovery.title,
+        surface: permissionRecovery.surface,
+        action: try #require(permissionRecovery.action)
+    ))
+    #expect(model.activeConversationTarget() == .unavailable)
+
+    let settings = try #require(model.sidebarProjection.workspaceGroups.first?.settings.first { $0.surface == .settings })
+    model.handleSidebarAction(.chatItem(
+        id: settings.id,
+        projectID: settings.projectID,
+        resourceID: settings.resourceID,
+        title: settings.title,
+        surface: settings.surface,
+        action: try #require(settings.action)
+    ))
+    #expect(model.activeConversationTarget() == .unavailable)
+}
+
+@MainActor
 @Test func clientAppModelReportsUnavailableConversationTargetWhenNoProjectStatusLoaded() async {
     let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
     let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
     let model = ClientAppModel(projectStatusStore: store)
 
     #expect(model.activeConversationTarget() == .unavailable)
+}
+
+@MainActor
+@Test func clientAppModelPreservesGlobalConversationTargetWithoutProjectStatusLoaded() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+    let globalSecretary = try #require(model.sidebarProjection.globalItems.first { $0.id == "global:secretary" })
+
+    model.handleSidebarAction(.chatItem(
+        id: globalSecretary.id,
+        projectID: globalSecretary.projectID,
+        resourceID: globalSecretary.resourceID,
+        title: globalSecretary.title,
+        surface: globalSecretary.surface,
+        action: try #require(globalSecretary.action)
+    ))
+
+    #expect(model.projectStatusSnapshot == nil)
+    #expect(model.activeConversationTarget() == .global)
 }
 
 @MainActor
@@ -592,7 +654,11 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 
     let configuration = ComposerConfiguration(
         routeKey: "composer:project-conversation:follow-up",
-        selectedModel: ComposerModelSelection(displayName: "5.5 中"),
+        selectedModel: ComposerModelSelection(
+            id: "model:atelia-balanced",
+            routeKey: "models/atelia-balanced",
+            displayName: "5.5 中"
+        ),
         permissionMode: ComposerPermissionMode(displayName: "フルアクセス"),
         contextReferences: [
             ComposerContextReference(
@@ -619,7 +685,7 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(request.message == "進捗を要約して")
     #expect(request.goal == nil)
     #expect(request.contextIDs == ["context:file:standard-surfaces"])
-    #expect(request.modelRouteKey == "composer:project-conversation:follow-up")
+    #expect(request.modelRouteKey == "models/atelia-balanced")
     #expect(request.permissionModeRouteKey == "")
 }
 
@@ -712,6 +778,23 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 
     #expect(projection.projectMenuItems.map(\.id) == (activeProjectGroup.items + activeProjectGroup.settings).map(\.id))
     #expect(projection.projectMenuItems.map(\.id) != (state.workspaceGroups.first?.items.map(\.id) ?? []))
+}
+
+@MainActor
+@Test func clientSidebarProjectionProjectMenuItemsFallbackToFirstProjectGroup() throws {
+    var state = ClientMockState.ateliaReference
+    let fallbackProjectGroup = try #require(state.workspaceGroups.first { $0.id.hasPrefix("project:") })
+
+    state.activeSelection = ClientMockActiveSelection(
+        projectID: "global",
+        surfacePackageID: MockSurfaceReference.globalSecretary.packageID,
+        surfaceID: MockSurfaceReference.globalSecretary.surfaceID,
+        resourceID: "conversation:global:secretary"
+    )
+
+    let projection = ClientSidebarProjection(mockState: state)
+
+    #expect(projection.projectMenuItems.map(\.id) == (fallbackProjectGroup.items + fallbackProjectGroup.settings).map(\.id))
 }
 
 @MainActor
