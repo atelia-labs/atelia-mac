@@ -9,7 +9,10 @@ struct AteliaMacClientApp: App {
 
     init() {
         ClientFontRegistrar.registerBundledFonts()
-        _appModel = State(initialValue: ClientAppModel(projectStatusStore: Self.projectStatusStore()))
+        _appModel = State(initialValue: ClientAppModel(
+            projectStatusStore: Self.projectStatusStore(),
+            localProjectRegistry: UserDefaultsLocalProjectRegistry()
+        ))
     }
 
     var body: some Scene {

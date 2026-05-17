@@ -51,6 +51,21 @@ struct ClientSidebarSelectionState: Equatable, Sendable {
         )
     }
 
+    static func projectSecretary(project: LocalProjectRegistration) -> ClientSidebarSelectionState {
+        ClientSidebarSelectionState(
+            activeSelection: ClientMockActiveSelection(
+                projectID: project.projectID,
+                surfacePackageID: MockSurfaceReference.hostPackageID,
+                surfaceID: MockSurfaceReference.projectConversation.surfaceID,
+                resourceID: "conversation:\(project.id):secretary"
+            ),
+            activeConversationTitle: "Secretary",
+            activeProjectTitle: project.displayName,
+            activeNavigationItemID: "nav:\(project.id):project-conversation",
+            activePrimaryCommandID: nil
+        )
+    }
+
     static func unloaded() -> ClientSidebarSelectionState {
         ClientSidebarSelectionState(
             activeSelection: ClientMockActiveSelection(
@@ -115,10 +130,11 @@ struct ClientSidebarSelectionState: Equatable, Sendable {
         commandID: String,
         title: String,
         projectSnapshot: MacProjectStatusSnapshot?,
+        localProject: LocalProjectRegistration? = nil,
         surface: MockSurfaceReference
     ) -> ClientSidebarSelectionState {
-        let repositoryId = projectSnapshot?.repositoryId ?? "unloaded"
-        let projectID = projectSnapshot.map { "project:\($0.repositoryId)" } ?? "project:unloaded"
+        let repositoryId = projectSnapshot?.repositoryId ?? localProject?.id ?? "unloaded"
+        let projectID = projectSnapshot.map { "project:\($0.repositoryId)" } ?? localProject?.projectID ?? "project:unloaded"
         return ClientSidebarSelectionState(
             activeSelection: ClientMockActiveSelection(
                 projectID: projectID,
@@ -127,8 +143,8 @@ struct ClientSidebarSelectionState: Equatable, Sendable {
                 resourceID: "conversation:\(repositoryId):draft"
             ),
             activeConversationTitle: title,
-            activeProjectTitle: projectSnapshot?.repositoryDisplayName ?? "プロジェクト未読込",
-            activeNavigationItemID: projectSnapshot.map { "nav:\($0.repositoryId):project-conversation" } ?? "nav:unloaded:project-conversation",
+            activeProjectTitle: projectSnapshot?.repositoryDisplayName ?? localProject?.displayName ?? "プロジェクト未読込",
+            activeNavigationItemID: projectSnapshot.map { "nav:\($0.repositoryId):project-conversation" } ?? localProject.map { "nav:\($0.id):project-conversation" } ?? "nav:unloaded:project-conversation",
             activePrimaryCommandID: commandID
         )
     }
@@ -163,18 +179,21 @@ struct ClientSidebarProjection {
 
     init(
         snapshot: MacProjectStatusSnapshot?,
+        localProjects: [LocalProjectRegistration] = [],
         pendingProjectAddSelection: ProjectAddSelection?,
         selectionState: ClientSidebarSelectionState? = nil
     ) {
+        let projectGroups = Self.projectGroups(snapshot: snapshot, localProjects: localProjects)
+
         guard let snapshot else {
-            let selectionState = selectionState ?? .unloaded()
+            let selectionState = selectionState ?? localProjects.first.map(ClientSidebarSelectionState.projectSecretary(project:)) ?? .unloaded()
             self.activeConversationTitle = selectionState.activeConversationTitle
             self.activeProjectTitle = selectionState.activeProjectTitle
             self.activeSelection = selectionState.activeSelection
             self.activeNavigationItemID = selectionState.activeNavigationItemID ?? ""
             self.activePrimaryCommandID = selectionState.activePrimaryCommandID
             self.projectSectionHeader = .projectSectionHeader
-            self.workspaceGroups = [
+            self.workspaceGroups = projectGroups.isEmpty ? [
                 WorkspaceGroup(
                     id: "project:unloaded",
                     title: "プロジェクト未読込",
@@ -194,32 +213,23 @@ struct ClientSidebarProjection {
                     ],
                     emptyText: "Project status has not been loaded."
                 )
-            ]
+            ] : projectGroups
             self.globalItems = Self.globalItems()
             self.projectAddCandidateLabel = pendingProjectAddSelection?.label
             return
         }
 
         let selectionState = selectionState ?? .projectSecretary(snapshot: snapshot)
-        let projectGroup = WorkspaceGroup(
-            id: "project:\(snapshot.repositoryId)",
-            title: snapshot.repositoryDisplayName,
-            subtitle: Self.repositorySubtitle(for: snapshot.repositoryRootPath),
-            surface: .projectHome,
-            items: Self.projectItems(for: snapshot),
-            settings: Self.projectSettings(for: snapshot),
-            status: Self.status(for: snapshot)
-        )
         let globalItems = Self.globalItems()
 
         self.activeConversationTitle = selectionState.activeConversationTitle
         self.activeProjectTitle = selectionState.activeProjectTitle
         self.activeSelection = selectionState.activeSelection
-        self.activeNavigationItemID = selectionState.activeNavigationItemID ?? (projectGroup.items + projectGroup.settings + globalItems).first { selectionState.activeSelection.matches($0) }?.id ?? ""
+        self.activeNavigationItemID = selectionState.activeNavigationItemID ?? (projectGroups.flatMap { $0.items + $0.settings } + globalItems).first { selectionState.activeSelection.matches($0) }?.id ?? ""
         self.activePrimaryCommandID = selectionState.activePrimaryCommandID
         self.projectSectionHeader = .projectSectionHeader
         self.projectAddCandidateLabel = pendingProjectAddSelection?.label
-        self.workspaceGroups = [projectGroup]
+        self.workspaceGroups = projectGroups
         self.globalItems = globalItems
     }
 
@@ -260,6 +270,104 @@ struct ClientSidebarProjection {
                 leadingAffordance: snapshot.recentJobs.isEmpty ? nil : .delegatedWork,
                 surface: .projectHome,
                 action: .inspectDelegatedWork
+            )
+        ]
+    }
+
+    private static func projectGroups(
+        snapshot: MacProjectStatusSnapshot?,
+        localProjects: [LocalProjectRegistration]
+    ) -> [WorkspaceGroup] {
+        var groups = localProjects.map(projectGroup(for:))
+
+        if let snapshot {
+            let snapshotGroup = projectGroup(for: snapshot)
+            if let existingIndex = groups.firstIndex(where: { $0.id == snapshotGroup.id }) {
+                groups[existingIndex] = snapshotGroup
+            } else {
+                groups.insert(snapshotGroup, at: 0)
+            }
+        }
+
+        return groups
+    }
+
+    private static func projectGroup(for snapshot: MacProjectStatusSnapshot) -> WorkspaceGroup {
+        WorkspaceGroup(
+            id: "project:\(snapshot.repositoryId)",
+            title: snapshot.repositoryDisplayName,
+            subtitle: Self.repositorySubtitle(for: snapshot.repositoryRootPath),
+            surface: .projectHome,
+            items: Self.projectItems(for: snapshot),
+            settings: Self.projectSettings(for: snapshot),
+            status: Self.status(for: snapshot)
+        )
+    }
+
+    private static func projectGroup(for project: LocalProjectRegistration) -> WorkspaceGroup {
+        WorkspaceGroup(
+            id: project.projectID,
+            title: project.displayName,
+            subtitle: project.subtitle,
+            surface: .projectHome,
+            items: Self.projectItems(for: project),
+            settings: Self.projectSettings(for: project)
+        )
+    }
+
+    private static func projectItems(for project: LocalProjectRegistration) -> [ChatListItem] {
+        [
+            ChatListItem(
+                id: "nav:\(project.id):project-conversation",
+                projectID: project.projectID,
+                resourceID: "conversation:\(project.id):secretary",
+                title: "Secretary",
+                trailing: nil,
+                leadingAffordance: .assistantConversation,
+                surface: .projectConversation,
+                action: .openProjectConversation
+            ),
+            ChatListItem(
+                id: "nav:\(project.id):delegated-work",
+                projectID: project.projectID,
+                resourceID: "work:\(project.id):delegated",
+                title: "ジョブ",
+                trailing: nil,
+                leadingAffordance: nil,
+                surface: .projectHome,
+                action: .inspectDelegatedWork
+            )
+        ]
+    }
+
+    private static func projectSettings(for project: LocalProjectRegistration) -> [ChatListItem] {
+        [
+            ChatListItem(
+                id: "nav:\(project.id):extensions",
+                projectID: project.projectID,
+                resourceID: "packages:\(project.id):installed",
+                title: "拡張機能",
+                trailing: nil,
+                surface: .packageManagement,
+                action: nil
+            ),
+            ChatListItem(
+                id: "nav:\(project.id):automations",
+                projectID: project.projectID,
+                resourceID: "package-surface:official-automations:home",
+                title: "オートメーション",
+                trailing: nil,
+                surface: .officialAutomations,
+                action: nil
+            ),
+            ChatListItem(
+                id: "nav:\(project.id):settings",
+                projectID: project.projectID,
+                resourceID: "settings:\(project.id):project",
+                title: "プロジェクト設定",
+                trailing: nil,
+                surface: .settings,
+                action: .openProjectSettings
             )
         ]
     }
