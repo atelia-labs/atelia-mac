@@ -652,6 +652,50 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientAppModelUpdatesShellStateWhenSelectionChanges() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    #expect(model.shellState.activeSelection == model.sidebarProjection.activeSelection)
+    #expect(model.shellState.activeConversationTitle == model.sidebarProjection.activeConversationTitle)
+    #expect(model.shellState.activeProjectTitle == model.sidebarProjection.activeProjectTitle)
+    #expect(model.shellState.composer.routeKey == "composer:project-conversation:follow-up")
+    #expect(!model.shellState.composer.contextReferences.isEmpty)
+
+    let globalSecretary = try #require(model.sidebarProjection.globalItems.first { $0.id == "global:secretary" })
+    model.handleSidebarAction(.chatItem(
+        id: globalSecretary.id,
+        projectID: globalSecretary.projectID,
+        resourceID: globalSecretary.resourceID,
+        title: globalSecretary.title,
+        surface: globalSecretary.surface,
+        action: try #require(globalSecretary.action)
+    ))
+
+    #expect(model.shellState.activeSelection == model.sidebarProjection.activeSelection)
+    #expect(model.shellState.composer.routeKey == "composer:global-secretary")
+    #expect(model.shellState.composer.contextReferences.isEmpty)
+    #expect(model.shellState.activeConversationTitle == "Global Secretary")
+
+    let projectSecretary = try #require(model.sidebarProjection.workspaceGroups.first?.items.first { $0.id == "nav:repo_123:project-conversation" })
+    model.handleSidebarAction(.chatItem(
+        id: projectSecretary.id,
+        projectID: projectSecretary.projectID,
+        resourceID: projectSecretary.resourceID,
+        title: projectSecretary.title,
+        surface: projectSecretary.surface,
+        action: try #require(projectSecretary.action)
+    ))
+
+    #expect(model.shellState.activeSelection == model.sidebarProjection.activeSelection)
+    #expect(model.shellState.composer.routeKey == "composer:project-conversation:follow-up")
+    #expect(!model.shellState.composer.contextReferences.isEmpty)
+}
+
+@MainActor
 @Test func clientSidebarProjectionProjectMenuItemsUseActiveProjectGroup() throws {
     var state = ClientMockState.ateliaReference
     let activeProjectGroup = try #require(state.workspaceGroups.first { $0.id == "project:atelia-secretary" })

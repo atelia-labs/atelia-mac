@@ -26,6 +26,7 @@ final class ClientAppModel {
 
     private(set) var projectStatusSnapshot: MacProjectStatusSnapshot?
     private(set) var sidebarProjection: ClientSidebarProjection
+    private(set) var shellState: ClientMockState
     private(set) var isReloading: Bool
     private(set) var lastErrorMessage: String?
     private(set) var lastComposerSubmissionRequest: ComposerJobSubmissionRequest?
@@ -46,9 +47,11 @@ final class ClientAppModel {
             pendingProjectAddSelection: nil,
             selectionState: nil
         )
+        self.shellState = .ateliaReference
         self.isReloading = false
         self.lastErrorMessage = nil
         self.lastComposerSubmissionRequest = nil
+        syncShellState()
     }
 
     func reloadProjectStatus() async throws {
@@ -190,6 +193,44 @@ final class ClientAppModel {
             pendingProjectAddSelection: pendingProjectAddSelection,
             selectionState: sidebarSelectionState
         )
+        syncShellState()
+    }
+
+    private func syncShellState() {
+        var state = ClientMockState.ateliaReference
+        let activeSelection = sidebarProjection.activeSelection
+
+        state.activeSelection = activeSelection
+        state.activeConversationTitle = sidebarProjection.activeConversationTitle
+        state.activeProjectTitle = sidebarProjection.activeProjectTitle
+        state.conversation.title = sidebarProjection.activeConversationTitle
+        state.goal = shellGoal(for: activeSelection)
+        state.composer = shellComposer(for: activeSelection)
+
+        shellState = state
+    }
+
+    private func shellComposer(for activeSelection: ClientMockActiveSelection) -> ComposerConfiguration {
+        var composer = ClientMockState.ateliaReference.composer
+        guard activeSelection.surfaceID == MockSurfaceReference.projectConversation.surfaceID else {
+            return composer
+        }
+
+        composer.routeKey = "composer:\(activeSelection.surfaceID)"
+        composer.contextReferences = []
+        composer.attachmentPreview = nil
+        return composer
+    }
+
+    private func shellGoal(for activeSelection: ClientMockActiveSelection) -> GoalStatus {
+        if activeSelection.surfaceID == MockSurfaceReference.globalSecretary.surfaceID {
+            return GoalStatus(
+                title: "Global Secretary に接続",
+                elapsed: ClientMockState.ateliaReference.goal.elapsed
+            )
+        }
+
+        return ClientMockState.ateliaReference.goal
     }
 
     private func handleSidebarCommandAction(

@@ -15,7 +15,7 @@ struct AteliaMacClientApp: App {
     var body: some Scene {
         WindowGroup {
             ClientShellView(
-                state: .ateliaReference,
+                state: appModel.shellState,
                 sidebarProjection: appModel.sidebarProjection,
                 onAction: handleClientShellAction
             )
