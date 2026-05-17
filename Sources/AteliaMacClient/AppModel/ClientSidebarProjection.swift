@@ -313,7 +313,8 @@ struct ClientSidebarProjection {
             subtitle: project.subtitle,
             surface: .projectHome,
             items: Self.projectItems(for: project),
-            settings: Self.projectSettings(for: project)
+            settings: Self.projectSettings(for: project),
+            localProjectID: project.id
         )
     }
 

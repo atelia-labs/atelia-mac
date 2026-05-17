@@ -130,6 +130,8 @@ final class ClientAppModel {
             )
         case .projectSectionHeaderAction(let headerAction):
             handleProjectSectionHeaderAction(headerAction)
+        case .removeLocalProject(let id):
+            removeLocalProject(id: id)
         }
     }
 
@@ -192,6 +194,15 @@ final class ClientAppModel {
     }
 
     func registerLocalProject(folderURL: URL, source: LocalProjectRegistrationSource) {
+        if let snapshot = projectStatusSnapshot,
+           LocalProjectRegistration.make(folderURL: folderURL, source: source)
+            .hasSameRootPath(as: snapshot.repositoryRootPath) {
+            sidebarSelectionState = .projectSecretary(snapshot: snapshot)
+            lastErrorMessage = nil
+            syncSidebarProjection()
+            return
+        }
+
         let project = localProjectRegistry.registerProject(folderURL: folderURL, source: source)
         localProjects = localProjectRegistry.listProjects()
         sidebarSelectionState = .projectSecretary(project: project)

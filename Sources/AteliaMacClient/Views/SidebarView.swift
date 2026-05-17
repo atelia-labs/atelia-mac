@@ -5,6 +5,7 @@ enum SidebarAction {
     case command(id: String, title: String, surface: MockSurfaceReference, action: MockActionReference)
     case chatItem(id: String, projectID: String, resourceID: String, title: String, surface: MockSurfaceReference, action: MockActionReference)
     case projectSectionHeaderAction(ProjectSectionHeaderActionViewData)
+    case removeLocalProject(id: String)
 }
 
 struct SidebarView: View {
@@ -282,6 +283,7 @@ private struct WorkspaceGroupView: View {
             .frame(height: 32)
             .padding(.leading, 14)
             .padding(.trailing, 8)
+            .localProjectContextMenu(group: group, onAction: onAction)
 
             ForEach(group.items) { item in
                 SidebarChatRow(item: item, isSelected: selection.contains(item), onAction: onAction)
@@ -309,6 +311,23 @@ private struct WorkspaceGroupView: View {
                 }
                 .padding(.top, 2)
             }
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func localProjectContextMenu(group: WorkspaceGroup, onAction: @escaping (SidebarAction) -> Void) -> some View {
+        if let localProjectID = group.localProjectID {
+            self.contextMenu {
+                Button(role: .destructive) {
+                    onAction(.removeLocalProject(id: localProjectID))
+                } label: {
+                    Label("サイドバーから削除", systemImage: "minus.circle")
+                }
+            }
+        } else {
+            self
         }
     }
 }

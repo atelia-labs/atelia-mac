@@ -708,10 +708,11 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(model.sidebarProjection.workspaceGroups.map(\.id) == ["project:repo_ready"])
     #expect(model.sidebarProjection.activeProjectTitle == "Ready Repo")
     #expect(model.sidebarProjection.activeSelection.projectID == "project:repo_ready")
+    #expect(model.sidebarProjection.workspaceGroups.first?.localProjectID == nil)
 }
 
 @MainActor
-@Test func clientAppModelRemovesSelectedLocalProjectAndFallsBackToNextProject() {
+@Test func clientAppModelRemovesSelectedLocalProjectFromSidebarActionAndFallsBackToNextProject() {
     let firstProject = LocalProjectRegistration.make(
         folderURL: URL(fileURLWithPath: "/Users/yohaku/Projects/First"),
         source: .existingFolder
@@ -725,13 +726,59 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
     let model = ClientAppModel(projectStatusStore: store, localProjectRegistry: registry)
 
-    model.removeLocalProject(id: firstProject.id)
+    model.handleSidebarAction(.removeLocalProject(id: firstProject.id))
 
     #expect(model.localProjects == [secondProject])
     #expect(registry.listProjects() == [secondProject])
     #expect(model.sidebarProjection.activeProjectTitle == "Second")
     #expect(model.sidebarProjection.activeSelection.projectID == secondProject.projectID)
     #expect(model.sidebarProjection.workspaceGroups.map(\.id) == [secondProject.projectID])
+    #expect(model.sidebarProjection.workspaceGroups.first?.localProjectID == secondProject.id)
+}
+
+@MainActor
+@Test func clientAppModelRemovesNonSelectedLocalProjectFromSidebarActionWithoutChangingSelection() {
+    let firstProject = LocalProjectRegistration.make(
+        folderURL: URL(fileURLWithPath: "/Users/yohaku/Projects/First"),
+        source: .existingFolder
+    )
+    let secondProject = LocalProjectRegistration.make(
+        folderURL: URL(fileURLWithPath: "/Users/yohaku/Projects/Second"),
+        source: .newFolder
+    )
+    let registry = InMemoryLocalProjectRegistry(projects: [firstProject, secondProject])
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, localProjectRegistry: registry)
+
+    model.handleSidebarAction(.removeLocalProject(id: secondProject.id))
+
+    #expect(model.localProjects == [firstProject])
+    #expect(registry.listProjects() == [firstProject])
+    #expect(model.sidebarProjection.activeProjectTitle == "First")
+    #expect(model.sidebarProjection.activeSelection.projectID == firstProject.projectID)
+    #expect(model.sidebarProjection.workspaceGroups.map(\.id) == [firstProject.projectID])
+}
+
+@MainActor
+@Test func clientAppModelDoesNotRemoveBackendProjectFromSidebarAction() async throws {
+    let localProject = LocalProjectRegistration.make(
+        folderURL: URL(fileURLWithPath: "/Users/yohaku/Projects/LocalOnly"),
+        source: .existingFolder
+    )
+    let registry = InMemoryLocalProjectRegistry(projects: [localProject])
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, localProjectRegistry: registry)
+
+    try await model.reloadProjectStatus()
+
+    model.handleSidebarAction(.removeLocalProject(id: "repo_ready"))
+
+    #expect(model.localProjects == [localProject])
+    #expect(registry.listProjects() == [localProject])
+    #expect(model.sidebarProjection.workspaceGroups.map(\.id) == ["project:repo_ready", localProject.projectID])
+    #expect(model.sidebarProjection.workspaceGroups.first { $0.id == "project:repo_ready" }?.localProjectID == nil)
 }
 
 @MainActor
@@ -880,6 +927,32 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     #expect(model.sidebarProjection.activeSelection.projectID == expectedProject.projectID)
     #expect(model.sidebarProjection.activeNavigationItemID == "nav:\(expectedProject.id):project-conversation")
     #expect(model.sidebarProjection.workspaceGroups.map(\.id) == [expectedProject.projectID])
+    #expect(model.sidebarProjection.workspaceGroups.first?.localProjectID == expectedProject.id)
+}
+
+@MainActor
+@Test func clientAppModelSelectsBackendProjectWhenRegisteringLoadedBackendRoot() async throws {
+    let picker = ProjectFolderSelectionClientFixture()
+    let backendRootURL = URL(fileURLWithPath: "/workspace/ready-repo")
+    picker.existingFolderURL = backendRootURL
+    let registry = InMemoryLocalProjectRegistry()
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, projectFolderSelection: picker, localProjectRegistry: registry)
+
+    try await model.reloadProjectStatus()
+
+    let useExistingFolderAction = ProjectSectionHeaderViewData.projectSectionHeader.actions.first(where: { $0.kind == .useExistingFolder })!
+    model.handleProjectSectionHeaderAction(useExistingFolderAction)
+
+    #expect(picker.existingFolderCallCount == 1)
+    #expect(model.localProjects == [])
+    #expect(registry.listProjects() == [])
+    #expect(model.sidebarProjection.activeProjectTitle == "Ready Repo")
+    #expect(model.sidebarProjection.activeSelection.projectID == "project:repo_ready")
+    #expect(model.sidebarProjection.activeNavigationItemID == "nav:repo_ready:project-conversation")
+    #expect(model.activeConversationTarget() == .project(repositoryId: "repo_ready"))
+    #expect(model.sidebarProjection.workspaceGroups.map(\.id) == ["project:repo_ready"])
 }
 
 @MainActor
