@@ -2,6 +2,10 @@ import AteliaMacClientModels
 import AteliaKit
 import Foundation
 
+enum ClientLifecycleRequestIdentity {
+    static let requester = AteliaActor.user(id: "mac-client", displayName: "Atelia Mac")
+}
+
 enum ComposerConversationTarget: Equatable, Sendable {
     case project(repositoryId: String)
     case global
@@ -21,12 +25,14 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
         text: String,
         repositoryId: String,
         configuration: ComposerConfiguration,
-        contexts: [ComposerContextSelection]
+        contexts: [ComposerContextSelection],
+        repositoryRootPath: String? = nil
     ) -> ComposerJobSubmissionRequest? {
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else {
             return nil
         }
+        let pathScope = Self.explicitRootPathScope(for: repositoryRootPath)
 
         return ComposerJobSubmissionRequest(
             repositoryId: repositoryId,
@@ -35,7 +41,7 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
             modelRouteKey: configuration.selectedModel.routeKey,
             permissionModeRouteKey: configuration.permissionMode.routeKey,
             contextIDs: contexts.map(\.id),
-            pathScope: nil
+            pathScope: pathScope
         )
     }
 
@@ -43,13 +49,13 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
         let toolIntent = Self.toolIntent(for: message)
         return AteliaSubmitJobRequest(
             repositoryId: resolvedRepositoryId ?? repositoryId,
-            requester: .user(id: "mac-client", displayName: "Atelia Mac"),
+            requester: ClientLifecycleRequestIdentity.requester,
             kind: toolIntent.map { _ in "tool" } ?? "message",
             message: message,
             goal: goal,
             modelRouteKey: modelRouteKey.isEmpty ? nil : modelRouteKey,
             permissionModeRouteKey: permissionModeRouteKey.isEmpty ? nil : permissionModeRouteKey,
-            pathScope: toolIntent?.pathScope ?? pathScope,
+            pathScope: pathScope,
             requestedCapabilities: toolIntent?.requestedCapabilities,
             toolArgs: toolIntent?.toolArgs
         )
@@ -69,7 +75,6 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
         ], in: trimmedMessage) {
             return ComposerToolIntent(
                 requestedCapabilities: ["filesystem.search"],
-                pathScope: AteliaPathScope(kind: .repository),
                 toolArgs: AteliaSubmitJobToolArgs(pattern: query, max: 20)
             )
         }
@@ -82,7 +87,6 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
         ], in: trimmedMessage) {
             return ComposerToolIntent(
                 requestedCapabilities: ["filesystem.diff"],
-                pathScope: AteliaPathScope(kind: .repository),
                 toolArgs: AteliaSubmitJobToolArgs(
                     comparisonPath: comparisonPath,
                     maxBytes: 131_072,
@@ -94,9 +98,19 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
         return nil
     }
 
+    private static func explicitRootPathScope(for path: String?) -> AteliaPathScope? {
+        guard let path,
+              !path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return AteliaPathScope(kind: .explicitPaths, roots: [path])
+    }
+
     private static func argument(afterAnyPrefix prefixes: [String], in message: String) -> String? {
         let lowercasedMessage = message.lowercased()
         for prefix in prefixes where lowercasedMessage.hasPrefix(prefix) {
+            // Command prefixes are ASCII-only, so their character count is safe
+            // to apply to the original message after lowercased matching.
             let index = message.index(message.startIndex, offsetBy: prefix.count)
             let argument = message[index...].trimmingCharacters(in: .whitespacesAndNewlines)
             return argument.isEmpty ? nil : argument
@@ -107,6 +121,5 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
 
 private struct ComposerToolIntent: Equatable, Sendable {
     let requestedCapabilities: [String]
-    let pathScope: AteliaPathScope
     let toolArgs: AteliaSubmitJobToolArgs
 }

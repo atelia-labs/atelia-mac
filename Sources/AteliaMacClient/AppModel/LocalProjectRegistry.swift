@@ -41,6 +41,10 @@ struct LocalProjectRegistration: Codable, Equatable, Identifiable, Sendable {
         URL(fileURLWithPath: path).standardizedFileURL.path.precomposedStringWithCanonicalMapping
     }
 
+    static func isLocalProjectID(_ id: String) -> Bool {
+        id.hasPrefix("local_")
+    }
+
     func hasSameRootPath(as path: String) -> Bool {
         normalizedRootPath == Self.normalizedRootPath(path)
     }
