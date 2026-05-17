@@ -449,7 +449,7 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
-@Test func clientAppModelClearProjectStatusAlsoClearsPendingProjectAddSelection() async throws {
+@Test func clientAppModelClearProjectStatusAlsoClearsLocalProjects() async throws {
     let picker = ProjectFolderSelectionClientFixture()
     picker.existingFolderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit")
     let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
@@ -461,49 +461,8 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
     model.handleProjectSectionHeaderAction(useExistingFolderAction)
     await model.clearProjectStatus()
 
-    #expect(model.pendingProjectAddSelection == nil)
-    #expect(model.sidebarProjection.projectAddCandidateLabel == nil)
-}
-
-@MainActor
-@Test func clientAppModelClearPendingProjectAddSelectionKeepsProjectStatusSnapshot() async throws {
-    let picker = ProjectFolderSelectionClientFixture()
-    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
-    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
-    let model = ClientAppModel(projectStatusStore: store, projectFolderSelection: picker)
-
-    try await model.reloadProjectStatus()
-
-    model.recordPendingProjectAddSelection(
-        folderURL: URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit"),
-        source: .existingFolder
-    )
-    model.clearPendingProjectAddSelection()
-
-    #expect(model.projectStatusSnapshot == MacProjectStatusSnapshot(status: readyClientAppModelProjectStatusFixture))
-    #expect(model.pendingProjectAddSelection == nil)
-    #expect(model.sidebarProjection.projectAddCandidateLabel == nil)
-    #expect(model.sidebarProjection.activeProjectTitle == "Ready Repo")
-}
-
-@MainActor
-@Test func clientAppModelRoutesDismissProjectAddCandidateActionToClearSelection() async throws {
-    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
-    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
-    let model = ClientAppModel(projectStatusStore: store)
-
-    model.recordPendingProjectAddSelection(
-        folderURL: URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit"),
-        source: .existingFolder
-    )
-
-    #expect(model.pendingProjectAddSelection?.folderURL == URL(fileURLWithPath: "/Users/yohaku/Projects/AteliaKit"))
-    #expect(model.sidebarProjection.projectAddCandidateLabel == "AteliaKit")
-
-    model.handleSidebarAction(.dismissProjectAddCandidate)
-
-    #expect(model.pendingProjectAddSelection == nil)
-    #expect(model.sidebarProjection.projectAddCandidateLabel == nil)
+    #expect(model.localProjects == [])
+    #expect(model.sidebarProjection.workspaceGroups.map(\.id) == ["project:unloaded"])
 }
 
 @MainActor
@@ -733,6 +692,49 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 }
 
 @MainActor
+@Test func clientAppModelHidesLocalProjectWhenBackendSnapshotHasSameRootPath() async throws {
+    let folderURL = URL(fileURLWithPath: "/workspace/ready-repo")
+    let project = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)
+    let registry = InMemoryLocalProjectRegistry(projects: [project])
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, localProjectRegistry: registry)
+
+    #expect(model.sidebarProjection.workspaceGroups.map(\.id) == [project.projectID])
+
+    try await model.reloadProjectStatus()
+
+    #expect(model.localProjects == [project])
+    #expect(model.sidebarProjection.workspaceGroups.map(\.id) == ["project:repo_ready"])
+    #expect(model.sidebarProjection.activeProjectTitle == "Ready Repo")
+    #expect(model.sidebarProjection.activeSelection.projectID == "project:repo_ready")
+}
+
+@MainActor
+@Test func clientAppModelRemovesSelectedLocalProjectAndFallsBackToNextProject() {
+    let firstProject = LocalProjectRegistration.make(
+        folderURL: URL(fileURLWithPath: "/Users/yohaku/Projects/First"),
+        source: .existingFolder
+    )
+    let secondProject = LocalProjectRegistration.make(
+        folderURL: URL(fileURLWithPath: "/Users/yohaku/Projects/Second"),
+        source: .newFolder
+    )
+    let registry = InMemoryLocalProjectRegistry(projects: [firstProject, secondProject])
+    let client = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_ready")
+    let model = ClientAppModel(projectStatusStore: store, localProjectRegistry: registry)
+
+    model.removeLocalProject(id: firstProject.id)
+
+    #expect(model.localProjects == [secondProject])
+    #expect(registry.listProjects() == [secondProject])
+    #expect(model.sidebarProjection.activeProjectTitle == "Second")
+    #expect(model.sidebarProjection.activeSelection.projectID == secondProject.projectID)
+    #expect(model.sidebarProjection.workspaceGroups.map(\.id) == [secondProject.projectID])
+}
+
+@MainActor
 @Test func clientAppModelRejectsComposerSendWhenGlobalConversationIsSelected() async throws {
     let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
     let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
@@ -873,9 +875,7 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 
     #expect(picker.existingFolderCallCount == 1)
     #expect(picker.newFolderCallCount == 0)
-    #expect(model.pendingProjectAddSelection == nil)
     #expect(model.localProjects == [expectedProject])
-    #expect(model.sidebarProjection.projectAddCandidateLabel == nil)
     #expect(model.sidebarProjection.activeProjectTitle == "AteliaKit")
     #expect(model.sidebarProjection.activeSelection.projectID == expectedProject.projectID)
     #expect(model.sidebarProjection.activeNavigationItemID == "nav:\(expectedProject.id):project-conversation")
@@ -898,9 +898,7 @@ private let readyClientAppModelProjectStatusFixture = AteliaProjectStatus(
 
     #expect(picker.existingFolderCallCount == 0)
     #expect(picker.newFolderCallCount == 1)
-    #expect(model.pendingProjectAddSelection == nil)
     #expect(model.localProjects == [expectedProject])
-    #expect(model.sidebarProjection.projectAddCandidateLabel == nil)
     #expect(model.sidebarProjection.activeProjectTitle == "NewAteliaProject")
     #expect(model.sidebarProjection.activeSelection.projectID == expectedProject.projectID)
 }

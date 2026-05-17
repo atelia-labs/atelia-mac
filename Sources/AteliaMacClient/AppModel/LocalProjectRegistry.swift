@@ -1,10 +1,15 @@
 import Foundation
 
+enum LocalProjectRegistrationSource: String, Codable, Equatable, Sendable {
+    case newFolder
+    case existingFolder
+}
+
 struct LocalProjectRegistration: Codable, Equatable, Identifiable, Sendable {
     var id: String
     var displayName: String
     var rootPath: String
-    var source: ProjectAddSelection.Source
+    var source: LocalProjectRegistrationSource
 
     var projectID: String {
         "project:\(id)"
@@ -15,7 +20,11 @@ struct LocalProjectRegistration: Codable, Equatable, Identifiable, Sendable {
         return lastPathComponent.isEmpty ? nil : lastPathComponent
     }
 
-    static func make(folderURL: URL, source: ProjectAddSelection.Source) -> LocalProjectRegistration {
+    var normalizedRootPath: String {
+        Self.normalizedRootPath(rootPath)
+    }
+
+    static func make(folderURL: URL, source: LocalProjectRegistrationSource) -> LocalProjectRegistration {
         let standardizedURL = folderURL.standardizedFileURL
         let path = standardizedURL.path
         let folderName = standardizedURL.lastPathComponent
@@ -27,13 +36,24 @@ struct LocalProjectRegistration: Codable, Equatable, Identifiable, Sendable {
         )
     }
 
+    static func normalizedRootPath(_ path: String) -> String {
+        URL(fileURLWithPath: path).standardizedFileURL.path.precomposedStringWithCanonicalMapping
+    }
+
+    func hasSameRootPath(as path: String) -> Bool {
+        normalizedRootPath == Self.normalizedRootPath(path)
+    }
+
     private static func stableProjectID(forPath path: String) -> String {
-        let normalizedPath = path.precomposedStringWithCanonicalMapping
-        var hash: UInt64 = 0xcbf29ce484222325
+        // FNV-1a is only for stable local IDs; backend registration must replace this identity.
+        let fnvOffsetBasis: UInt64 = 0xcbf29ce484222325
+        let fnvPrime: UInt64 = 0x100000001b3
+        let normalizedPath = Self.normalizedRootPath(path)
+        var hash = fnvOffsetBasis
 
         for byte in normalizedPath.utf8 {
             hash ^= UInt64(byte)
-            hash &*= 0x100000001b3
+            hash &*= fnvPrime
         }
 
         return "local_\(String(hash, radix: 16))"
@@ -44,7 +64,9 @@ struct LocalProjectRegistration: Codable, Equatable, Identifiable, Sendable {
 protocol LocalProjectRegistry: AnyObject {
     func listProjects() -> [LocalProjectRegistration]
     @discardableResult
-    func registerProject(folderURL: URL, source: ProjectAddSelection.Source) -> LocalProjectRegistration
+    func registerProject(folderURL: URL, source: LocalProjectRegistrationSource) -> LocalProjectRegistration
+    @discardableResult
+    func removeProject(id: String) -> Bool
     func clearProjects()
 }
 
@@ -70,12 +92,24 @@ final class UserDefaultsLocalProjectRegistry: LocalProjectRegistry {
     }
 
     @discardableResult
-    func registerProject(folderURL: URL, source: ProjectAddSelection.Source) -> LocalProjectRegistration {
+    func registerProject(folderURL: URL, source: LocalProjectRegistrationSource) -> LocalProjectRegistration {
         let project = LocalProjectRegistration.make(folderURL: folderURL, source: source)
         var projects = listProjects().filter { $0.id != project.id }
         projects.append(project)
         persist(projects)
         return project
+    }
+
+    @discardableResult
+    func removeProject(id: String) -> Bool {
+        let projects = listProjects()
+        let remainingProjects = projects.filter { $0.id != id }
+        guard remainingProjects.count != projects.count else {
+            return false
+        }
+
+        persist(remainingProjects)
+        return true
     }
 
     func clearProjects() {
@@ -104,11 +138,18 @@ final class InMemoryLocalProjectRegistry: LocalProjectRegistry {
     }
 
     @discardableResult
-    func registerProject(folderURL: URL, source: ProjectAddSelection.Source) -> LocalProjectRegistration {
+    func registerProject(folderURL: URL, source: LocalProjectRegistrationSource) -> LocalProjectRegistration {
         let project = LocalProjectRegistration.make(folderURL: folderURL, source: source)
         projects.removeAll { $0.id == project.id }
         projects.append(project)
         return project
+    }
+
+    @discardableResult
+    func removeProject(id: String) -> Bool {
+        let originalCount = projects.count
+        projects.removeAll { $0.id == id }
+        return projects.count != originalCount
     }
 
     func clearProjects() {

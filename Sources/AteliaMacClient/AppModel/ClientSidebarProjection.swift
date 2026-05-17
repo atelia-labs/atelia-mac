@@ -157,7 +157,6 @@ struct ClientSidebarProjection {
     var activeNavigationItemID: String
     var activePrimaryCommandID: String?
     var projectSectionHeader: ProjectSectionHeaderViewData
-    var projectAddCandidateLabel: String?
     var workspaceGroups: [WorkspaceGroup]
     var globalItems: [ChatListItem]
 
@@ -180,7 +179,6 @@ struct ClientSidebarProjection {
     init(
         snapshot: MacProjectStatusSnapshot?,
         localProjects: [LocalProjectRegistration] = [],
-        pendingProjectAddSelection: ProjectAddSelection?,
         selectionState: ClientSidebarSelectionState? = nil
     ) {
         let projectGroups = Self.projectGroups(snapshot: snapshot, localProjects: localProjects)
@@ -215,7 +213,6 @@ struct ClientSidebarProjection {
                 )
             ] : projectGroups
             self.globalItems = Self.globalItems()
-            self.projectAddCandidateLabel = pendingProjectAddSelection?.label
             return
         }
 
@@ -228,7 +225,6 @@ struct ClientSidebarProjection {
         self.activeNavigationItemID = selectionState.activeNavigationItemID ?? (projectGroups.flatMap { $0.items + $0.settings } + globalItems).first { selectionState.activeSelection.matches($0) }?.id ?? ""
         self.activePrimaryCommandID = selectionState.activePrimaryCommandID
         self.projectSectionHeader = .projectSectionHeader
-        self.projectAddCandidateLabel = pendingProjectAddSelection?.label
         self.workspaceGroups = projectGroups
         self.globalItems = globalItems
     }
@@ -240,13 +236,12 @@ struct ClientSidebarProjection {
         self.activeNavigationItemID = mockState.activeNavigationItemID
         self.activePrimaryCommandID = nil
         self.projectSectionHeader = mockState.projection.projectSectionHeader
-        self.projectAddCandidateLabel = nil
         self.workspaceGroups = mockState.workspaceGroups
         self.globalItems = mockState.recentChats
     }
 
     static var empty: ClientSidebarProjection {
-        ClientSidebarProjection(snapshot: nil, pendingProjectAddSelection: nil)
+        ClientSidebarProjection(snapshot: nil)
     }
 
     private static func projectItems(for snapshot: MacProjectStatusSnapshot) -> [ChatListItem] {
@@ -278,7 +273,14 @@ struct ClientSidebarProjection {
         snapshot: MacProjectStatusSnapshot?,
         localProjects: [LocalProjectRegistration]
     ) -> [WorkspaceGroup] {
-        var groups = localProjects.map(projectGroup(for:))
+        let visibleLocalProjects = localProjects.filter { project in
+            guard let snapshot else {
+                return true
+            }
+
+            return !project.hasSameRootPath(as: snapshot.repositoryRootPath)
+        }
+        var groups = visibleLocalProjects.map(projectGroup(for:))
 
         if let snapshot {
             let snapshotGroup = projectGroup(for: snapshot)

@@ -3,21 +3,6 @@ import AteliaMacCore
 import Foundation
 import Observation
 
-struct ProjectAddSelection: Equatable, Sendable {
-    enum Source: String, Codable, Equatable, Sendable {
-        case newFolder
-        case existingFolder
-    }
-
-    var source: Source
-    var folderURL: URL
-
-    var label: String {
-        let folderName = folderURL.lastPathComponent
-        return folderName.isEmpty ? folderURL.path : folderName
-    }
-}
-
 @MainActor
 @Observable
 final class ClientAppModel {
@@ -32,7 +17,6 @@ final class ClientAppModel {
     private(set) var isReloading: Bool
     private(set) var lastErrorMessage: String?
     private(set) var lastComposerSubmissionRequest: ComposerJobSubmissionRequest?
-    private(set) var pendingProjectAddSelection: ProjectAddSelection?
     private(set) var sidebarSelectionState: ClientSidebarSelectionState?
     private var localConversationDrafts: [String: [ClientConversationTurnFixture]]
 
@@ -47,13 +31,11 @@ final class ClientAppModel {
         self.projectStatusSnapshot = nil
         let loadedLocalProjects = localProjectRegistry.listProjects()
         self.localProjects = loadedLocalProjects
-        self.pendingProjectAddSelection = nil
         self.sidebarSelectionState = nil
         self.localConversationDrafts = [:]
         self.sidebarProjection = ClientSidebarProjection(
             snapshot: nil,
             localProjects: loadedLocalProjects,
-            pendingProjectAddSelection: nil,
             selectionState: nil
         )
         self.shellState = .ateliaReference
@@ -84,7 +66,6 @@ final class ClientAppModel {
         projectStatusSnapshot = nil
         localProjects = []
         localProjectRegistry.clearProjects()
-        pendingProjectAddSelection = nil
         sidebarSelectionState = .unloaded()
         lastComposerSubmissionRequest = nil
         localConversationDrafts = [:]
@@ -92,16 +73,24 @@ final class ClientAppModel {
         lastErrorMessage = nil
     }
 
-    func clearPendingProjectAddSelection() {
-        pendingProjectAddSelection = nil
-        syncSidebarProjection()
-    }
-
     func syncProjectStatusFromStore() async {
         let snapshot = await projectStatusStore.snapshot
         projectStatusSnapshot = snapshot
         if let snapshot {
-            if let selectionState = sidebarSelectionState, selectionState.isUnloaded {
+            if let selectionState = sidebarSelectionState,
+               let selectedLocalProject = localProject(forProjectID: selectionState.activeSelection.projectID),
+               selectedLocalProject.hasSameRootPath(as: snapshot.repositoryRootPath) {
+                if selectionState.activePrimaryCommandID == "primary:new-thread" {
+                    sidebarSelectionState = .newThread(
+                        commandID: "primary:new-thread",
+                        title: selectionState.activeConversationTitle,
+                        projectSnapshot: snapshot,
+                        surface: MockSurfaceReference.projectConversation
+                    )
+                } else {
+                    sidebarSelectionState = .projectSecretary(snapshot: snapshot)
+                }
+            } else if let selectionState = sidebarSelectionState, selectionState.isUnloaded {
                 if selectionState.activePrimaryCommandID == "primary:new-thread" {
                     sidebarSelectionState = .newThread(
                         commandID: "primary:new-thread",
@@ -141,8 +130,6 @@ final class ClientAppModel {
             )
         case .projectSectionHeaderAction(let headerAction):
             handleProjectSectionHeaderAction(headerAction)
-        case .dismissProjectAddCandidate:
-            clearPendingProjectAddSelection()
         }
     }
 
@@ -204,17 +191,30 @@ final class ClientAppModel {
         }
     }
 
-    func recordPendingProjectAddSelection(folderURL: URL, source: ProjectAddSelection.Source) {
-        pendingProjectAddSelection = ProjectAddSelection(source: source, folderURL: folderURL)
+    func registerLocalProject(folderURL: URL, source: LocalProjectRegistrationSource) {
+        let project = localProjectRegistry.registerProject(folderURL: folderURL, source: source)
+        localProjects = localProjectRegistry.listProjects()
+        sidebarSelectionState = .projectSecretary(project: project)
         lastErrorMessage = nil
         syncSidebarProjection()
     }
 
-    func registerLocalProject(folderURL: URL, source: ProjectAddSelection.Source) {
-        let project = localProjectRegistry.registerProject(folderURL: folderURL, source: source)
+    func removeLocalProject(id: String) {
+        guard localProjectRegistry.removeProject(id: id) else {
+            return
+        }
+
         localProjects = localProjectRegistry.listProjects()
-        pendingProjectAddSelection = nil
-        sidebarSelectionState = .projectSecretary(project: project)
+        localConversationDrafts[id] = nil
+        if sidebarSelectionState?.activeSelection.projectID == "project:\(id)" {
+            if let snapshot = projectStatusSnapshot {
+                sidebarSelectionState = .projectSecretary(snapshot: snapshot)
+            } else if let firstLocalProject = localProjects.first {
+                sidebarSelectionState = .projectSecretary(project: firstLocalProject)
+            } else {
+                sidebarSelectionState = .unloaded()
+            }
+        }
         lastErrorMessage = nil
         syncSidebarProjection()
     }
@@ -223,7 +223,6 @@ final class ClientAppModel {
         sidebarProjection = ClientSidebarProjection(
             snapshot: projectStatusSnapshot,
             localProjects: localProjects,
-            pendingProjectAddSelection: pendingProjectAddSelection,
             selectionState: sidebarSelectionState
         )
         syncShellState()
