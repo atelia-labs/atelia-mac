@@ -16,7 +16,7 @@ public struct MacProjectStatusSnapshot: Sendable, Equatable {
             self.statusLabel = Self.statusLabel(for: job.status)
             self.requesterLabel = Self.requesterLabel(for: job.requester)
             self.kindLabel = job.kind
-            self.goalLabel = job.goal
+            self.goalLabel = (job.goal as String?) ?? ""
             self.latestEventId = job.latestEventId
         }
 
