@@ -32,12 +32,14 @@ import Testing
     #expect(notice.contains("NotoSansJP-Thin_Regular"))
 }
 
-@Test func bundledFontRegistrationReportsSuccessAndExposesPostScriptNames() {
+@Test func bundledFontRegistrationReportsSuccessAndExposesPostScriptNames() throws {
     let result = ClientFontRegistrar.registerBundledFonts()
+    let expectedPostScriptNames = Set(ClientFontRegistrar.bundledFonts.map(\.postScriptName))
+    let registeredPostScriptNames = Set(result.registeredFonts + result.alreadyRegisteredFonts)
 
     #expect(result.missingFonts.isEmpty)
     #expect(result.failedFonts.isEmpty)
-    #expect(result.registeredFonts.count + result.alreadyRegisteredFonts.count == ClientFontRegistrar.bundledFonts.count)
+    #expect(registeredPostScriptNames == expectedPostScriptNames)
     #expect(ClientFontRegistrar.japaneseFallbackPostScriptName == "NotoSansJP-Thin_Regular")
     #expect(ClientFontRegistrar.bundledFonts.contains(
         ClientFontRegistrar.FontResource(
@@ -47,9 +49,20 @@ import Testing
     ))
 
     for font in ClientFontRegistrar.bundledFonts {
-        let registeredFont = CTFontCreateWithName(font.postScriptName as CFString, 14, nil)
-        #expect(CTFontCopyPostScriptName(registeredFont) as String == font.postScriptName)
+        let exposedPostScriptNames = try bundledPostScriptNames(for: font)
+        #expect(exposedPostScriptNames.contains(font.postScriptName))
     }
+}
+
+private func bundledPostScriptNames(for font: ClientFontRegistrar.FontResource) throws -> Set<String> {
+    let url = try #require(ClientFontRegistrar.bundledFontURL(for: font))
+    let descriptors = try #require(
+        CTFontManagerCreateFontDescriptorsFromURL(url as CFURL) as? [CTFontDescriptor]
+    )
+
+    return Set(descriptors.compactMap { descriptor in
+        CTFontDescriptorCopyAttribute(descriptor, kCTFontNameAttribute) as? String
+    })
 }
 
 @Test func clientTextFontUsesBundledNotoSansJPForJapaneseFallbackAcrossInterWeights() {
