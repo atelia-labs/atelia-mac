@@ -49,6 +49,7 @@ enum ClientFontRegistrar {
     ]
 
     private static let logger = Logger(subsystem: "com.atelia.mac.client", category: "Fonts")
+    private static let registrationLock = NSLock()
 
     static func bundledFontURL(for font: FontResource, in bundle: Bundle = .module) -> URL? {
         if let url = bundle.url(forResource: font.fileName, withExtension: "ttf") {
@@ -72,6 +73,9 @@ enum ClientFontRegistrar {
 
     @discardableResult
     static func registerBundledFonts(bundle: Bundle = .module) -> RegistrationResult {
+        registrationLock.lock()
+        defer { registrationLock.unlock() }
+
         var registeredFonts: [String] = []
         var alreadyRegisteredFonts: [String] = []
         var missingFonts: [String] = []
