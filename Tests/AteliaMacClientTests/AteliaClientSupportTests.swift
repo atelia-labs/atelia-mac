@@ -1,5 +1,6 @@
 import AppKit
 import CoreText
+import SwiftUI
 @testable import AteliaMacClient
 import Testing
 
@@ -81,5 +82,25 @@ func attributedTextUsesJapaneseCascadeForBundledInterWeights() throws {
 
         #expect(CTFontCopyPostScriptName(font as CTFont) as String == interPostScriptName)
         #expect(CTFontCopyPostScriptName(fallbackFont) as String == ClientFontRegistrar.japaneseFallbackPostScriptName)
+    }
+}
+
+@MainActor
+@Test
+func clientScrollViewDocumentHeightShrinksBelowViewport() throws {
+    let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 240, height: 500))
+    let hostingView = NSHostingView(rootView: FixedHeightTestView())
+    let coordinator = ClientScrollView<FixedHeightTestView>.Coordinator()
+    coordinator.hostingView = hostingView
+
+    coordinator.resizeDocumentView(in: scrollView)
+
+    #expect(hostingView.frame.height == hostingView.fittingSize.height)
+    #expect(hostingView.frame.height < scrollView.contentSize.height)
+}
+
+private struct FixedHeightTestView: View {
+    var body: some View {
+        Color.clear.frame(width: 240, height: 80)
     }
 }

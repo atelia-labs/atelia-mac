@@ -50,7 +50,7 @@ struct ClientScrollView<Content: View>: NSViewRepresentable {
             hostingView.setFrameSize(
                 NSSize(
                     width: contentWidth,
-                    height: max(fittingHeight, scrollView.contentSize.height)
+                    height: fittingHeight
                 )
             )
         }
