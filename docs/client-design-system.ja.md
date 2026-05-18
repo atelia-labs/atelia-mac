@@ -89,13 +89,14 @@ Atelia Mac は、`Secretary` の作業、`project context`、`tool activity`、`
   prompt は `作成` です。`既存のフォルダを使用` は `NSOpenPanel` を使い、
   title は `既存のフォルダを使用`、message は
   `Atelia で使うフォルダを選択してください。`、prompt は `選択` です。
-- フォルダが確定したら sidebar に compact な candidate row を出します。
-  row には `追加候補`、選択された folder name、そして shell が将来つなぐ
-  dismiss slot を置きます。選択中の folder name が自然に読み上げられるよう、
-  combined accessibility label と value を付けてください。
-- candidate row は transient です。panel の cancel は sidebar を変えず、
-  folder の confirm で candidate を表示し、project status を clear したら
-  pending candidate selection も同時に消します。
+- フォルダが確定したら即座に `LocalProjectRegistration` として永続化し、
+  normal project group として sidebar に表示します。選択された folder name を
+  group title にし、registration subtitle を使ってください。別の `追加候補`
+  candidate row や pending dismiss slot は表示しません。
+- folder の confirm では registered project group を選択して開きます。
+  panel の cancel は sidebar を変えません。選択された folder が現在の project
+  status snapshot と一致する場合は、local registration を重複作成せず、
+  既存の project group を選択します。
 
 ## Composer
 
@@ -108,8 +109,8 @@ Atelia Mac は、`Secretary` の作業、`project context`、`tool activity`、`
 - Placeholder copy は行動を促す contextual copy にします。現在の composer は
   active goal/scope を placeholder の上に表示し、空入力時は
   `@Global Secretary にフォローアップの変更を求める` を使います。
-- 左端 control は raw plus icon ではなく extension affordance です。`plus.circle` と
-  `拡張機能` label を使い、compact capsule、soft surface fill、hairline border を
+- 左端 control は file attachment affordance です。`paperclip` と
+  `ファイル` label を使い、compact capsule、soft surface fill、hairline border を
   持たせます。
 - Permission mode は footer 上で見える状態にし、shield warning icon と warning
   color を使います。現在の risky mode copy は `フルアクセス` ですが、表示値は
