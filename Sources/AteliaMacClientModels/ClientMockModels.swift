@@ -1307,6 +1307,8 @@ public extension MockSurfaceReference {
             return "magnifyingglass"
         case Self.officialAutomations.surfaceID:
             return "clock"
+        case Self.officialReview.surfaceID:
+            return "doc.text.magnifyingglass"
         case Self.projectConversation.surfaceID:
             return "message"
         default:
