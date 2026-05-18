@@ -523,25 +523,23 @@ public struct ClientConversationDiffLineFixture: Identifiable, Sendable {
     }
 
     public static func rawUnifiedDiff(id: String, kind: Kind, text: String) -> ClientConversationDiffLineFixture {
-        ClientConversationDiffLineFixture(id: id, kind: kind, text: normalizedText(text, kind: kind))
+        ClientConversationDiffLineFixture(
+            id: id,
+            kind: kind,
+            text: ClientUnifiedDiffText.normalized(text, marker: kind.unifiedDiffMarker)
+        )
     }
+}
 
-    private static func normalizedText(_ text: String, marker: Character) -> String {
-        guard text.first == marker else {
-            return text
-        }
-
-        return String(text.dropFirst())
-    }
-
-    private static func normalizedText(_ text: String, kind: Kind) -> String {
-        switch kind {
+private extension ClientConversationDiffLineFixture.Kind {
+    var unifiedDiffMarker: ClientUnifiedDiffLineMarker {
+        switch self {
         case .added:
-            normalizedText(text, marker: "+")
+            .added
         case .removed:
-            normalizedText(text, marker: "-")
+            .removed
         case .context:
-            normalizedText(text, marker: " ")
+            .context
         }
     }
 }

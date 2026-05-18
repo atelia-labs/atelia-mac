@@ -96,6 +96,19 @@ final class ClientAppModel {
         let snapshot = await projectStatusStore.snapshot
         projectStatusSnapshot = snapshot
         if let snapshot {
+            func upgradedProjectSelection(from selectionState: ClientSidebarSelectionState) -> ClientSidebarSelectionState {
+                if selectionState.activePrimaryCommandID == "primary:new-thread" {
+                    return .newThread(
+                        commandID: "primary:new-thread",
+                        title: selectionState.activeConversationTitle,
+                        projectSnapshot: snapshot,
+                        surface: MockSurfaceReference.projectConversation
+                    )
+                }
+
+                return .projectSecretary(snapshot: snapshot)
+            }
+
             migrateLocalConversationDrafts(
                 matchingRootPath: snapshot.repositoryRootPath,
                 to: snapshot.repositoryId
@@ -104,27 +117,9 @@ final class ClientAppModel {
             if let selectionState = sidebarSelectionState,
                let selectedLocalProject = localProject(forProjectID: selectionState.activeSelection.projectID),
                selectedLocalProject.hasSameRootPath(as: snapshot.repositoryRootPath) {
-                if selectionState.activePrimaryCommandID == "primary:new-thread" {
-                    sidebarSelectionState = .newThread(
-                        commandID: "primary:new-thread",
-                        title: selectionState.activeConversationTitle,
-                        projectSnapshot: snapshot,
-                        surface: MockSurfaceReference.projectConversation
-                    )
-                } else {
-                    sidebarSelectionState = .projectSecretary(snapshot: snapshot)
-                }
+                sidebarSelectionState = upgradedProjectSelection(from: selectionState)
             } else if let selectionState = sidebarSelectionState, selectionState.isUnloaded {
-                if selectionState.activePrimaryCommandID == "primary:new-thread" {
-                    sidebarSelectionState = .newThread(
-                        commandID: "primary:new-thread",
-                        title: selectionState.activeConversationTitle,
-                        projectSnapshot: snapshot,
-                        surface: MockSurfaceReference.projectConversation
-                    )
-                } else {
-                    sidebarSelectionState = .projectSecretary(snapshot: snapshot)
-                }
+                sidebarSelectionState = upgradedProjectSelection(from: selectionState)
             } else if sidebarSelectionState == nil {
                 sidebarSelectionState = .projectSecretary(snapshot: snapshot)
             }
@@ -557,6 +552,12 @@ final class ClientAppModel {
                     }
                     self.registeredRepositoryIDsByLocalProjectID[project.id] = repository.repositoryId
                     if self.localProjectOpenTasksByID[project.id] === openTask {
+                        self.localProjectOpenTasksByID[project.id] = nil
+                    }
+                }
+            } catch is CancellationError {
+                await MainActor.run {
+                    if let self, self.localProjectOpenTasksByID[project.id] === openTask {
                         self.localProjectOpenTasksByID[project.id] = nil
                     }
                 }

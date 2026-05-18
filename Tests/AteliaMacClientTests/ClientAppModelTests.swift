@@ -1624,6 +1624,34 @@ private let clientAppModelLifecycleJobFixture = AteliaJob(
 }
 
 @MainActor
+@Test func clientAppModelSuppressesLocalProjectOpenCancellationError() async throws {
+    let picker = ProjectFolderSelectionClientFixture()
+    let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/LifecycleProject")
+    picker.existingFolderURL = folderURL
+    let statusClient = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let statusStore = MacProjectStatusStore(client: statusClient, session: AteliaSession(), repositoryId: "repo_ready")
+    let lifecycleStore = ProjectLifecycleStoreFixture(
+        repository: clientAppModelLifecycleRepositoryFixture,
+        job: clientAppModelLifecycleJobFixture,
+        openError: CancellationError()
+    )
+    let model = ClientAppModel(
+        projectStatusStore: statusStore,
+        projectLifecycleStore: lifecycleStore,
+        projectFolderSelection: picker
+    )
+
+    let useExistingFolderAction = ProjectSectionHeaderViewData.projectSectionHeader.actions.first(where: { $0.kind == .useExistingFolder })!
+    model.handleProjectSectionHeaderAction(useExistingFolderAction)
+    _ = await lifecycleStore.waitForOpenRequest()
+    for _ in 0..<10 {
+        await Task.yield()
+    }
+
+    #expect(model.lastErrorMessage == nil)
+}
+
+@MainActor
 @Test func clientAppModelIgnoresLocalProjectOpenFailureAfterRemoval() async throws {
     let picker = ProjectFolderSelectionClientFixture()
     let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/LifecycleProject")

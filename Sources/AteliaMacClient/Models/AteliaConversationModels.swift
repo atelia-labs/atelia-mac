@@ -277,15 +277,11 @@ struct AteliaDiffLine: Identifiable {
     }
 
     static func rawUnifiedDiff(id: String, kind: Kind, text: String) -> AteliaDiffLine {
-        AteliaDiffLine(id: id, kind: kind, text: normalizedText(text, kind: kind))
-    }
-
-    private static func normalizedText(_ text: String, marker: Character) -> String {
-        guard text.first == marker else {
-            return text
-        }
-
-        return String(text.dropFirst())
+        AteliaDiffLine(
+            id: id,
+            kind: kind,
+            text: ClientUnifiedDiffText.normalized(text, marker: kind.unifiedDiffMarker)
+        )
     }
 
     init(id: String, kind: Kind, text: String) {
@@ -307,14 +303,17 @@ struct AteliaDiffLine: Identifiable {
         self.init(id: fixture.id, kind: mappedKind, text: fixture.text)
     }
 
-    private static func normalizedText(_ text: String, kind: Kind) -> String {
-        switch kind {
+}
+
+private extension AteliaDiffLine.Kind {
+    var unifiedDiffMarker: ClientUnifiedDiffLineMarker {
+        switch self {
         case .added:
-            normalizedText(text, marker: "+")
+            .added
         case .removed:
-            normalizedText(text, marker: "-")
+            .removed
         case .context:
-            normalizedText(text, marker: " ")
+            .context
         }
     }
 }
