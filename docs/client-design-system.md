@@ -103,7 +103,9 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
 - Composer width is 736 pt. Height is 112 pt normally and 193 pt with an
   attachment preview. The current footer control row is 42 pt high. The
   `composerFooterHeight` token is reserved sketch/future spacing and must not
-  be treated as current implementation layout.
+  be treated as current implementation layout. Derive the 42 pt footer row from
+  actual control/component height plus padding tokens, or reference the
+  dedicated implementation token if one exists.
 - Composer corner radius is 18 pt. Keep it as the only docked input surface at
   the bottom of the conversation; do not nest it inside another card.
 - Placeholder copy is action-oriented and contextual. The current composer

@@ -103,7 +103,9 @@ Atelia Mac は、`Secretary` の作業、`project context`、`tool activity`、`
 - Composer width は 736 pt。通常 height は 112 pt、attachment preview がある場合は
   193 pt です。現在の footer control row は 42 pt high です。
   `composerFooterHeight` token は sketch / future spacing 用の reserve であり、
-  current implementation layout として扱ってはいけません。
+  current implementation layout として扱ってはいけません。42 pt の footer row は、
+  実際の control/component height と padding token から導出するか、専用の
+  implementation token がある場合はそれを参照してください。
 - Composer corner radius は 18 pt。Conversation 下部に dock された唯一の input
   surface として扱い、別 card の中に nest しないでください。
 - Placeholder copy は行動を促す contextual copy にします。現在の composer は
