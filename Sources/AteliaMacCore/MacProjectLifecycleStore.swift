@@ -9,6 +9,10 @@ public protocol MacProjectLifecycleStoring: Sendable {
     /// Submits a project-scoped Secretary job and returns the persisted projection.
     @discardableResult
     func submit(request: AteliaSubmitJobRequest) async throws -> AteliaJob
+
+    /// Loads polling-friendly events for one project-scoped job.
+    @discardableResult
+    func listJobEvents(jobId: String, request: AteliaListEventsRequest) async throws -> [AteliaEvent]
 }
 
 /// Mac-facing wrapper around the shared project lifecycle store.
@@ -35,6 +39,12 @@ public actor MacProjectLifecycleStore: MacProjectLifecycleStoring {
     @discardableResult
     public func submit(request: AteliaSubmitJobRequest) async throws -> AteliaJob {
         try await store.submit(request: request)
+    }
+
+    /// Loads polling-friendly events for one project-scoped job.
+    @discardableResult
+    public func listJobEvents(jobId: String, request: AteliaListEventsRequest = .init()) async throws -> [AteliaEvent] {
+        try await store.listJobEvents(jobId: jobId, request: request)
     }
 
     /// Clears all cached project lifecycle state.
