@@ -9,6 +9,7 @@ import Observation
 final class ClientAppModel {
     private let projectStatusStore: MacProjectStatusStore
     private let projectLifecycleStore: (any MacProjectLifecycleStoring)?
+    private let toolOutputRenderStore: (any MacToolOutputRendering)?
     private let projectFolderSelection: any ProjectFolderSelectionProviding
     private let localProjectRegistry: any LocalProjectRegistry
 
@@ -23,6 +24,8 @@ final class ClientAppModel {
     private(set) var sidebarSelectionState: ClientSidebarSelectionState?
     private var localConversationDrafts: [String: [ClientConversationTurnFixture]]
     private var registeredRepositoryIDsByLocalProjectID: [String: String]
+    private var localProjectGenerationsByID: [String: UInt64]
+    private var localProjectGenerationCounter: UInt64
     private var composerSubmissionSequence: UInt64
     private var localProjectOpenTasksByID: [String: LocalProjectOpenTask]
     private var projectTopologyGeneration: UInt64
@@ -30,11 +33,13 @@ final class ClientAppModel {
     init(
         projectStatusStore: MacProjectStatusStore,
         projectLifecycleStore: (any MacProjectLifecycleStoring)? = nil,
+        toolOutputRenderStore: (any MacToolOutputRendering)? = nil,
         projectFolderSelection: any ProjectFolderSelectionProviding = ProjectFolderPicker(),
         localProjectRegistry: any LocalProjectRegistry = InMemoryLocalProjectRegistry()
     ) {
         self.projectStatusStore = projectStatusStore
         self.projectLifecycleStore = projectLifecycleStore
+        self.toolOutputRenderStore = toolOutputRenderStore
         self.projectFolderSelection = projectFolderSelection
         self.localProjectRegistry = localProjectRegistry
         self.projectStatusSnapshot = nil
@@ -53,6 +58,10 @@ final class ClientAppModel {
         self.lastComposerSubmissionRequest = nil
         self.lastAteliaSubmitJobRequest = nil
         self.registeredRepositoryIDsByLocalProjectID = [:]
+        self.localProjectGenerationsByID = Dictionary(uniqueKeysWithValues: loadedLocalProjects.enumerated().map { index, project in
+            (project.id, UInt64(index + 1))
+        })
+        self.localProjectGenerationCounter = UInt64(loadedLocalProjects.count)
         self.composerSubmissionSequence = 0
         self.localProjectOpenTasksByID = [:]
         self.projectTopologyGeneration = 0
@@ -87,6 +96,8 @@ final class ClientAppModel {
         lastAteliaSubmitJobRequest = nil
         localConversationDrafts = [:]
         registeredRepositoryIDsByLocalProjectID = [:]
+        localProjectGenerationCounter += 1
+        localProjectGenerationsByID = [:]
         composerSubmissionSequence += 1
         syncSidebarProjection()
         lastErrorMessage = nil
@@ -229,6 +240,8 @@ final class ClientAppModel {
 
         let project = localProjectRegistry.registerProject(folderURL: folderURL, source: source)
         localProjects = localProjectRegistry.listProjects()
+        localProjectGenerationCounter += 1
+        localProjectGenerationsByID[project.id] = localProjectGenerationCounter
         sidebarSelectionState = .projectSecretary(project: project)
         lastErrorMessage = nil
         syncSidebarProjection()
@@ -243,6 +256,8 @@ final class ClientAppModel {
         localProjects = localProjectRegistry.listProjects()
         localConversationDrafts[id] = nil
         registeredRepositoryIDsByLocalProjectID[id] = nil
+        localProjectGenerationCounter += 1
+        localProjectGenerationsByID[id] = localProjectGenerationCounter
         localProjectOpenTasksByID.removeValue(forKey: id)?.task.cancel()
         if sidebarSelectionState?.activeSelection.projectID == "project:\(id)" {
             if let snapshot = projectStatusSnapshot {
@@ -435,11 +450,13 @@ final class ClientAppModel {
         }
 
         lastComposerSubmissionRequest = request
-        appendLocalComposerDraft(request)
+        let draftID = appendLocalComposerDraft(request)
         syncShellState()
         composerSubmissionSequence += 1
         submitComposerRequest(
             request,
+            draftID: draftID,
+            localProjectGeneration: localProjectGeneration(for: request.repositoryId),
             generation: projectTopologyGeneration,
             sequence: composerSubmissionSequence
         )
@@ -481,7 +498,7 @@ final class ClientAppModel {
         return nil
     }
 
-    private func appendLocalComposerDraft(_ request: ComposerJobSubmissionRequest) {
+    private func appendLocalComposerDraft(_ request: ComposerJobSubmissionRequest) -> String {
         let draftIndex = (localConversationDrafts[request.repositoryId]?.count ?? 0) / 2 + 1
         let draftID = "local-draft:\(request.repositoryId):\(draftIndex)"
         var turns = localConversationDrafts[request.repositoryId] ?? []
@@ -520,6 +537,7 @@ final class ClientAppModel {
         )
 
         localConversationDrafts[request.repositoryId] = turns
+        return draftID
     }
 
     private func migrateLocalConversationDrafts(matchingRootPath rootPath: String, to repositoryId: String) {
@@ -584,6 +602,8 @@ final class ClientAppModel {
 
     private func submitComposerRequest(
         _ request: ComposerJobSubmissionRequest,
+        draftID: String,
+        localProjectGeneration: UInt64?,
         generation: UInt64,
         sequence: UInt64
     ) {
@@ -599,6 +619,8 @@ final class ClientAppModel {
         Task { [weak self] in
             await self?.submitComposerRequestToLifecycleStore(
                 request,
+                draftID: draftID,
+                localProjectGeneration: localProjectGeneration,
                 generation: generation,
                 sequence: sequence
             )
@@ -607,6 +629,8 @@ final class ClientAppModel {
 
     private func submitComposerRequestToLifecycleStore(
         _ request: ComposerJobSubmissionRequest,
+        draftID: String,
+        localProjectGeneration: UInt64?,
         generation: UInt64,
         sequence: UInt64
     ) async {
@@ -615,8 +639,7 @@ final class ClientAppModel {
         }
 
         do {
-            if LocalProjectRegistration.isLocalProjectID(request.repositoryId),
-               !hasLocalProject(id: request.repositoryId) {
+            if !hasCurrentLocalProjectGeneration(request.repositoryId, generation: localProjectGeneration) {
                 return
             }
             guard generation == projectTopologyGeneration else {
@@ -627,25 +650,253 @@ final class ClientAppModel {
                 return
             }
             let ateliaRequest = request.ateliaSubmitJobRequest(repositoryId: repositoryId)
-            _ = try await projectLifecycleStore.submit(request: ateliaRequest)
-            if LocalProjectRegistration.isLocalProjectID(request.repositoryId),
-               !hasLocalProject(id: request.repositoryId) {
+            let job = try await projectLifecycleStore.submit(request: ateliaRequest)
+            guard generation == projectTopologyGeneration else {
                 return
             }
-            guard sequence == composerSubmissionSequence else {
+            if !hasCurrentLocalProjectGeneration(request.repositoryId, generation: localProjectGeneration) {
                 return
             }
-            lastAteliaSubmitJobRequest = ateliaRequest
+            if sequence == composerSubmissionSequence {
+                lastAteliaSubmitJobRequest = ateliaRequest
+            }
+            updateLocalComposerDraft(
+                request,
+                draftID: draftID,
+                job: job,
+                events: [],
+                renderedOutputs: []
+            )
+            let events: [AteliaEvent]
+            let renderedOutputs: [ClientRenderedToolOutput]
+            do {
+                events = try await projectLifecycleStore.listJobEvents(
+                    jobId: job.jobId,
+                    request: .init(repositoryId: job.repositoryId)
+                )
+            } catch {
+                guard generation == projectTopologyGeneration else {
+                    return
+                }
+                if !hasCurrentLocalProjectGeneration(request.repositoryId, generation: localProjectGeneration) {
+                    return
+                }
+                if sequence == composerSubmissionSequence {
+                    lastErrorMessage = error.localizedDescription
+                }
+                markLocalComposerDraftObservationFailed(request, draftID: draftID, job: job, error: error)
+                return
+            }
+            guard generation == projectTopologyGeneration else {
+                return
+            }
+            if !hasCurrentLocalProjectGeneration(request.repositoryId, generation: localProjectGeneration) {
+                return
+            }
+            renderedOutputs = await renderedToolOutputs(from: events)
+            guard generation == projectTopologyGeneration else {
+                return
+            }
+            if !hasCurrentLocalProjectGeneration(request.repositoryId, generation: localProjectGeneration) {
+                return
+            }
+            updateLocalComposerDraft(
+                request,
+                draftID: draftID,
+                job: job,
+                events: events,
+                renderedOutputs: renderedOutputs
+            )
         } catch {
-            guard sequence == composerSubmissionSequence else {
+            guard generation == projectTopologyGeneration else {
                 return
             }
-            if LocalProjectRegistration.isLocalProjectID(request.repositoryId),
-               !hasLocalProject(id: request.repositoryId) {
+            if !hasCurrentLocalProjectGeneration(request.repositoryId, generation: localProjectGeneration) {
                 return
             }
-            lastErrorMessage = error.localizedDescription
+            markLocalComposerDraftFailed(request, draftID: draftID, error: error)
+            if sequence == composerSubmissionSequence {
+                lastErrorMessage = error.localizedDescription
+            }
         }
+    }
+
+    private func renderedToolOutputs(from events: [AteliaEvent]) async -> [ClientRenderedToolOutput] {
+        guard let toolOutputRenderStore else {
+            return []
+        }
+
+        var renderedOutputs: [ClientRenderedToolOutput] = []
+        for event in events {
+            guard let toolResult = AteliaToolResultRef(event: event) else {
+                continue
+            }
+
+            do {
+                let response = try await toolOutputRenderStore.render(
+                    request: AteliaToolOutputRenderRequest(toolResult: toolResult, format: .text)
+                )
+                renderedOutputs.append(ClientRenderedToolOutput(event: event, response: response, error: nil))
+            } catch {
+                renderedOutputs.append(ClientRenderedToolOutput(event: event, response: nil, error: error.localizedDescription))
+            }
+        }
+        return renderedOutputs
+    }
+
+    private func updateLocalComposerDraft(
+        _ request: ComposerJobSubmissionRequest,
+        draftID: String,
+        job: AteliaJob,
+        events: [AteliaEvent],
+        renderedOutputs: [ClientRenderedToolOutput]
+    ) {
+        guard let storageKey = localConversationDraftStorageKey(for: request, draftID: draftID),
+              var turns = localConversationDrafts[storageKey],
+              let turnIndex = turns.firstIndex(where: { $0.id == "turn.secretary.\(draftID)" }) else {
+            return
+        }
+
+        var blocks: [ClientConversationBlockFixture] = [
+            .activity(
+                ClientConversationActivityFixture(
+                    id: "activity.secretary.\(draftID)",
+                    duration: "job \(job.jobId)",
+                    status: job.status.conversationStatusLabel,
+                    title: job.status.conversationTitle,
+                    bullets: jobConversationBullets(for: request, job: job, events: events)
+                )
+            )
+        ]
+        blocks.append(contentsOf: renderedOutputs.map { renderedOutputBlock(for: $0, request: request) })
+        turns[turnIndex] = ClientConversationTurnFixture(
+            id: "turn.secretary.\(draftID)",
+            actor: .secretary,
+            blocks: blocks
+        )
+        localConversationDrafts[storageKey] = turns
+        syncShellState()
+    }
+
+    private func markLocalComposerDraftObservationFailed(
+        _ request: ComposerJobSubmissionRequest,
+        draftID: String,
+        job: AteliaJob,
+        error: any Error
+    ) {
+        guard let storageKey = localConversationDraftStorageKey(for: request, draftID: draftID),
+              var turns = localConversationDrafts[storageKey],
+              let turnIndex = turns.firstIndex(where: { $0.id == "turn.secretary.\(draftID)" }) else {
+            return
+        }
+
+        turns[turnIndex] = ClientConversationTurnFixture(
+            id: "turn.secretary.\(draftID)",
+            actor: .secretary,
+            blocks: [
+                .activity(
+                    ClientConversationActivityFixture(
+                        id: "activity.secretary.\(draftID)",
+                        duration: "job \(job.jobId)",
+                        status: "結果取得失敗",
+                        title: "Secretary ジョブは送信されましたが、結果を取得できませんでした。",
+                        bullets: [
+                            "Job \(job.jobId)",
+                            error.localizedDescription
+                        ]
+                    )
+                )
+            ]
+        )
+        localConversationDrafts[storageKey] = turns
+        syncShellState()
+    }
+
+    private func markLocalComposerDraftFailed(
+        _ request: ComposerJobSubmissionRequest,
+        draftID: String,
+        error: any Error
+    ) {
+        guard let storageKey = localConversationDraftStorageKey(for: request, draftID: draftID),
+              var turns = localConversationDrafts[storageKey],
+              let turnIndex = turns.firstIndex(where: { $0.id == "turn.secretary.\(draftID)" }) else {
+            return
+        }
+
+        turns[turnIndex] = ClientConversationTurnFixture(
+            id: "turn.secretary.\(draftID)",
+            actor: .secretary,
+            blocks: [
+                .activity(
+                    ClientConversationActivityFixture(
+                        id: "activity.secretary.\(draftID)",
+                        duration: "error",
+                        status: "失敗",
+                        title: "Secretary ジョブの送信に失敗しました。",
+                        bullets: [error.localizedDescription]
+                    )
+                )
+            ]
+        )
+        localConversationDrafts[storageKey] = turns
+        syncShellState()
+    }
+
+    private func localConversationDraftStorageKey(
+        for request: ComposerJobSubmissionRequest,
+        draftID: String
+    ) -> String? {
+        let secretaryTurnID = "turn.secretary.\(draftID)"
+        if localConversationDrafts[request.repositoryId]?.contains(where: { $0.id == secretaryTurnID }) == true {
+            return request.repositoryId
+        }
+
+        return localConversationDrafts.first { _, turns in
+            turns.contains { $0.id == secretaryTurnID }
+        }?.key
+    }
+
+    private func jobConversationBullets(
+        for request: ComposerJobSubmissionRequest,
+        job: AteliaJob,
+        events: [AteliaEvent]
+    ) -> [String] {
+        var bullets = [
+            "Job \(job.jobId)",
+            "Capability \(request.primaryCapabilityLabel)"
+        ]
+        if let latestEventId = job.latestEventId {
+            bullets.append("Latest event \(latestEventId)")
+        }
+        if let resultEvent = events.first(where: { $0.refs.toolResultId != nil }) {
+            bullets.append("Tool result \(resultEvent.refs.toolResultId ?? "")")
+        }
+        return bullets
+    }
+
+    private func renderedOutputBlock(
+        for renderedOutput: ClientRenderedToolOutput,
+        request: ComposerJobSubmissionRequest
+    ) -> ClientConversationBlockFixture {
+        let toolResultId = renderedOutput.event.refs.toolResultId ?? renderedOutput.event.eventId
+        let status: ClientConversationToolOutputFixture.Status = renderedOutput.error != nil || renderedOutput.event.severity == .error ? .failed : .succeeded
+        let output: [String]
+        if let response = renderedOutput.response {
+            output = response.renderedOutput
+                .split(whereSeparator: \.isNewline)
+                .map(String.init)
+        } else {
+            output = [renderedOutput.error ?? "Tool output rendering failed."]
+        }
+        return .toolOutput(
+            ClientConversationToolOutputFixture(
+                id: "tool-output.\(toolResultId)",
+                toolName: request.primaryCapabilityLabel,
+                command: request.message,
+                status: status,
+                output: output.isEmpty ? ["No output."] : output
+            )
+        )
     }
 
     private func lifecycleRepositoryID(for repositoryId: String, generation: UInt64) async throws -> String {
@@ -734,6 +985,23 @@ final class ClientAppModel {
         localProjects.contains { $0.id == id }
     }
 
+    private func localProjectGeneration(for repositoryId: String) -> UInt64? {
+        guard LocalProjectRegistration.isLocalProjectID(repositoryId) else {
+            return nil
+        }
+        return localProjectGenerationsByID[repositoryId]
+    }
+
+    private func hasCurrentLocalProjectGeneration(_ repositoryId: String, generation: UInt64?) -> Bool {
+        guard LocalProjectRegistration.isLocalProjectID(repositoryId) else {
+            return true
+        }
+        guard let generation else {
+            return false
+        }
+        return hasLocalProject(id: repositoryId) && localProjectGenerationsByID[repositoryId] == generation
+    }
+
     private func cancelLocalProjectOpenTasks() {
         let tasks = localProjectOpenTasksByID.values
         localProjectOpenTasksByID = [:]
@@ -794,6 +1062,18 @@ private final class LocalProjectOpenTask {
     }
 }
 
+private struct ClientRenderedToolOutput {
+    var event: AteliaEvent
+    var response: AteliaToolOutputRenderResponse?
+    var error: String?
+}
+
+private extension ComposerJobSubmissionRequest {
+    var primaryCapabilityLabel: String {
+        ateliaSubmitJobRequest().requestedCapabilities?.first ?? "message"
+    }
+}
+
 private enum ClientAppModelLifecycleError: LocalizedError {
     case lifecycleStoreUnavailable
     case staleLocalProject
@@ -804,6 +1084,48 @@ private enum ClientAppModelLifecycleError: LocalizedError {
             return "Project lifecycle store is unavailable."
         case .staleLocalProject:
             return "Local project is no longer available."
+        }
+    }
+}
+
+private extension AteliaJob.Status {
+    var conversationStatusLabel: String {
+        switch self {
+        case .queued:
+            return "queued"
+        case .running:
+            return "running"
+        case .succeeded:
+            return "succeeded"
+        case .failed:
+            return "failed"
+        case .blocked:
+            return "blocked"
+        case .canceled:
+            return "canceled"
+        case .unknown:
+            return "unknown"
+        case .unrecognized(let rawValue):
+            return rawValue
+        }
+    }
+
+    var conversationTitle: String {
+        switch self {
+        case .queued:
+            return "Secretary ジョブをキューに追加しました。"
+        case .running:
+            return "Secretary ジョブを実行しています。"
+        case .succeeded:
+            return "Secretary ジョブが完了しました。"
+        case .failed:
+            return "Secretary ジョブが失敗しました。"
+        case .blocked:
+            return "Secretary ジョブがポリシーで停止しました。"
+        case .canceled:
+            return "Secretary ジョブがキャンセルされました。"
+        case .unknown, .unrecognized:
+            return "Secretary ジョブの状態を確認しました。"
         }
     }
 }

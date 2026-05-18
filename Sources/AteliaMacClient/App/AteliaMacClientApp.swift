@@ -14,6 +14,7 @@ struct AteliaMacClientApp: App {
         _appModel = State(initialValue: ClientAppModel(
             projectStatusStore: Self.projectStatusStore(client: client, session: session),
             projectLifecycleStore: Self.projectLifecycleStore(client: client, session: session),
+            toolOutputRenderStore: Self.toolOutputRenderStore(client: client, session: session),
             localProjectRegistry: UserDefaultsLocalProjectRegistry()
         ))
     }
@@ -44,6 +45,10 @@ struct AteliaMacClientApp: App {
 
     private static func projectLifecycleStore(client: HTTPAteliaClient, session: AteliaSession) -> MacProjectLifecycleStore {
         MacProjectLifecycleStore(client: client, session: session)
+    }
+
+    private static func toolOutputRenderStore(client: HTTPAteliaClient, session: AteliaSession) -> MacToolOutputRenderStore {
+        MacToolOutputRenderStore(client: client, session: session)
     }
 
     private static func runtimeRepositoryID() -> String {

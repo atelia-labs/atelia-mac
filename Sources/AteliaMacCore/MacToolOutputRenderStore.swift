@@ -1,7 +1,14 @@
 import AteliaKit
 
+/// Mac-facing boundary for rendering canonical tool output for conversation display.
+public protocol MacToolOutputRendering: Sendable {
+    /// Renders a tool-output payload and returns the rendered projection.
+    @discardableResult
+    func render(request: AteliaToolOutputRenderRequest) async throws -> AteliaToolOutputRenderResponse
+}
+
 /// Mac-facing wrapper for tool output render operations and cached render state.
-public actor MacToolOutputRenderStore {
+public actor MacToolOutputRenderStore: MacToolOutputRendering {
     private let store: AteliaToolOutputRenderStore
 
     /// Creates a tool-output render store for a client/session pair.
