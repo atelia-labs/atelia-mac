@@ -585,6 +585,11 @@ final class ClientAppModel {
             return
         }
 
+        if LocalProjectRegistration.isLocalProjectID(request.repositoryId),
+           !hasLocalProject(id: request.repositoryId) {
+            return
+        }
+
         Task { [weak self] in
             await self?.submitComposerRequestToLifecycleStore(
                 request,
@@ -617,11 +622,11 @@ final class ClientAppModel {
             }
             let ateliaRequest = request.ateliaSubmitJobRequest(repositoryId: repositoryId)
             _ = try await projectLifecycleStore.submit(request: ateliaRequest)
-            guard sequence == composerSubmissionSequence else {
-                return
-            }
             if LocalProjectRegistration.isLocalProjectID(request.repositoryId),
                !hasLocalProject(id: request.repositoryId) {
+                return
+            }
+            guard sequence == composerSubmissionSequence else {
                 return
             }
             lastAteliaSubmitJobRequest = ateliaRequest
