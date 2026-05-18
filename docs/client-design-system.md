@@ -108,7 +108,7 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
   the bottom of the conversation; do not nest it inside another card.
 - Placeholder copy is action-oriented and contextual. The current composer
   keeps the active goal/scope visible above the placeholder and uses
-  `@Global Secretary にフォローアップの変更を求める` when the input is empty.
+  `コマンドを入力` when the input is empty.
 - The left control is a file attachment affordance. Use `paperclip` plus the
   label `ファイル`, with a compact capsule, soft surface fill, and hairline
   border.

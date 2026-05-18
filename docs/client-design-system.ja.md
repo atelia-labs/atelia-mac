@@ -108,7 +108,7 @@ Atelia Mac は、`Secretary` の作業、`project context`、`tool activity`、`
   surface として扱い、別 card の中に nest しないでください。
 - Placeholder copy は行動を促す contextual copy にします。現在の composer は
   active goal/scope を placeholder の上に表示し、空入力時は
-  `@Global Secretary にフォローアップの変更を求める` を使います。
+  `コマンドを入力` を使います。
 - 左端 control は file attachment affordance です。`paperclip` と
   `ファイル` label を使い、compact capsule、soft surface fill、hairline border を
   持たせます。
