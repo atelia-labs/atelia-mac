@@ -1267,6 +1267,50 @@ public extension LeadingAffordanceRole {
     }
 }
 
+public extension ChatListItem {
+    var conversationMenuSymbolName: String {
+        if let leadingAffordance {
+            return leadingAffordance.presentation.conversationMenuSymbolName
+        }
+
+        return surface.conversationMenuSymbolName
+    }
+}
+
+public extension LeadingAffordancePresentation {
+    var conversationMenuSymbolName: String {
+        switch self {
+        case .statusDot:
+            return "circle.fill"
+        case .assistantMark:
+            return "sparkles"
+        case .branchGlyph:
+            return "arrow.triangle.branch"
+        case .addGlyph:
+            return "plus.circle"
+        }
+    }
+}
+
+public extension MockSurfaceReference {
+    var conversationMenuSymbolName: String {
+        switch surfaceID {
+        case Self.settings.surfaceID:
+            return "gearshape"
+        case Self.packageManagement.surfaceID:
+            return "square.grid.2x2"
+        case Self.permissionRecovery.surfaceID:
+            return "checklist"
+        case Self.officialAutomations.surfaceID:
+            return "clock"
+        case Self.projectConversation.surfaceID:
+            return "message"
+        default:
+            return "circle.questionmark"
+        }
+    }
+}
+
 public struct ClientMockProjection: Sendable {
     public var projectSectionHeader: ProjectSectionHeaderViewData
     public var workspaceGroups: [WorkspaceGroupViewData]

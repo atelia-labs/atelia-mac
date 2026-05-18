@@ -112,6 +112,37 @@ import Testing
     #expect(AteliaConversationBlock.changeSet(changeSet).id == changeSet.id)
 }
 
+@Test func activityAndToolOutputRowsUseContentStableIdentities() {
+    let activity = AteliaActivityBlock(
+        id: "activity.id",
+        duration: "1s",
+        status: "完了",
+        title: "Done",
+        bullets: ["Read manifest", "Run tests", "Run tests"]
+    )
+    let toolOutput = AteliaToolOutputBlock(
+        id: "tool.id",
+        toolName: "swift test",
+        command: "swift test",
+        status: .succeeded,
+        output: ["Build complete", "Test passed"]
+    )
+
+    #expect(activity.identifiedBullets.map(\.text) == activity.bullets)
+    #expect(Set(activity.identifiedBullets.map(\.id)).count == activity.bullets.count)
+    #expect(toolOutput.identifiedOutputLines.map(\.text) == toolOutput.output)
+
+    let updatedActivity = AteliaActivityBlock(
+        id: activity.id,
+        duration: activity.duration,
+        status: activity.status,
+        title: activity.title,
+        bullets: ["Inspect CodeRabbit"] + activity.bullets
+    )
+    #expect(updatedActivity.identifiedBullets[1].id == activity.identifiedBullets[0].id)
+    #expect(updatedActivity.identifiedBullets[2].id == activity.identifiedBullets[1].id)
+}
+
 @Test func diffLineFactoriesPreserveSemanticText() {
     let added = AteliaDiffLine.added(id: "line.added", "+let next = value")
     let removed = AteliaDiffLine.removed(id: "line.removed", "-let old = value")

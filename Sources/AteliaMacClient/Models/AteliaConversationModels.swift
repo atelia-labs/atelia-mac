@@ -95,6 +95,9 @@ struct AteliaActivityBlock: Identifiable {
     var status: String
     var title: String
     var bullets: [String]
+    var identifiedBullets: [AteliaIdentifiedTextLine] {
+        AteliaIdentifiedTextLine.rows(parentID: id, role: "bullet", texts: bullets)
+    }
 
     init(id: String, duration: String, status: String, title: String, bullets: [String]) {
         self.id = id
@@ -127,6 +130,9 @@ struct AteliaToolOutputBlock: Identifiable {
     var command: String
     var status: Status
     var output: [String]
+    var identifiedOutputLines: [AteliaIdentifiedTextLine] {
+        AteliaIdentifiedTextLine.rows(parentID: id, role: "output", texts: output)
+    }
 
     init(id: String, toolName: String, command: String, status: Status, output: [String]) {
         self.id = id
@@ -153,6 +159,34 @@ struct AteliaToolOutputBlock: Identifiable {
             status: mappedStatus,
             output: fixture.output
         )
+    }
+}
+
+struct AteliaIdentifiedTextLine: Identifiable, Equatable {
+    var id: String
+    var text: String
+
+    static func rows(parentID: String, role: String, texts: [String]) -> [AteliaIdentifiedTextLine] {
+        var occurrenceByFingerprint: [String: Int] = [:]
+
+        return texts.map { text in
+            let fingerprint = stableFingerprint(for: text)
+            let occurrence = occurrenceByFingerprint[fingerprint, default: 0]
+            occurrenceByFingerprint[fingerprint] = occurrence + 1
+            return AteliaIdentifiedTextLine(
+                id: "\(parentID).\(role).\(fingerprint).\(occurrence)",
+                text: text
+            )
+        }
+    }
+
+    private static func stableFingerprint(for text: String) -> String {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in text.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x100000001b3
+        }
+        return String(hash, radix: 16)
     }
 }
 

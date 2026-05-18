@@ -64,6 +64,28 @@ import Testing
     ])
 }
 
+@Test func composerAttachmentVisibilityFollowsCurrentConfigurationOrOverride() {
+    let emptyConfiguration = ComposerConfiguration(
+        routeKey: "composer:test",
+        selectedModel: ComposerModelSelection(displayName: "Test"),
+        permissionMode: ComposerPermissionMode(displayName: "Allowed")
+    )
+    let attachmentConfiguration = ComposerConfiguration(
+        routeKey: "composer:test",
+        selectedModel: ComposerModelSelection(displayName: "Test"),
+        permissionMode: ComposerPermissionMode(displayName: "Allowed"),
+        attachmentPreview: ComposerAttachmentPreview(
+            id: "attachment:standalone",
+            title: "standalone.md",
+            subtitle: "ファイル文脈"
+        )
+    )
+
+    #expect(!composerShowsAttachment(hasAttachment: false, configuration: emptyConfiguration))
+    #expect(composerShowsAttachment(hasAttachment: true, configuration: emptyConfiguration))
+    #expect(composerShowsAttachment(hasAttachment: false, configuration: attachmentConfiguration))
+}
+
 @Test func composerInsertMentionNormalizesSpacingForEmptyDraft() {
     #expect(
         composerTextAfterInsertingMention(draftText: "", mention: "@Secretary") == "@Secretary "

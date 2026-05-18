@@ -25,6 +25,7 @@ struct ClientScrollView<Content: View>: NSViewRepresentable {
             hostingView.leadingAnchor.constraint(equalTo: scrollView.contentView.leadingAnchor),
             hostingView.trailingAnchor.constraint(equalTo: scrollView.contentView.trailingAnchor),
             hostingView.topAnchor.constraint(equalTo: scrollView.contentView.topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: scrollView.contentView.bottomAnchor),
             hostingView.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor)
         ])
 

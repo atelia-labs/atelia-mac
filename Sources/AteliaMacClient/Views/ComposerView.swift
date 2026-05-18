@@ -14,7 +14,7 @@ enum ComposerIntent: Equatable {
 struct ComposerView: View {
     let goal: GoalStatus
     let configuration: ComposerConfiguration
-    var hasAttachment = false
+    private let hasAttachmentOverride: Bool
     var onIntent: (ComposerIntent) -> Void = { _ in }
 
     @State private var draftText: String
@@ -29,10 +29,14 @@ struct ComposerView: View {
     ) {
         self.goal = goal
         self.configuration = configuration
-        self.hasAttachment = hasAttachment || configuration.attachmentPreview != nil
+        self.hasAttachmentOverride = hasAttachment
         self.onIntent = onIntent
         _draftText = State(initialValue: text)
         _selectedContexts = State(initialValue: configuration.visibleContextSelections)
+    }
+
+    private var showsAttachment: Bool {
+        composerShowsAttachment(hasAttachment: hasAttachmentOverride, configuration: configuration)
     }
 
     private var isSendEnabled: Bool {
@@ -43,7 +47,7 @@ struct ComposerView: View {
         VStack(spacing: 0) {
             ComposerBody(
                 goal: goal,
-                hasAttachment: hasAttachment,
+                hasAttachment: showsAttachment,
                 draftText: $draftText,
                 selectedContexts: $selectedContexts,
                 contextReferences: configuration.contextReferences,
@@ -124,7 +128,7 @@ struct ComposerView: View {
         }
         .frame(
             width: AteliaClientLayout.contentWidth,
-            height: hasAttachment ? AteliaClientLayout.composerAttachmentHeight : AteliaClientLayout.composerMinHeight
+            height: showsAttachment ? AteliaClientLayout.composerAttachmentHeight : AteliaClientLayout.composerMinHeight
         )
         .background {
             ComposerSurface()
@@ -276,6 +280,10 @@ func composerTextAfterInsertingMention(draftText: String, mention: String) -> St
     }
 
     return "\(normalizedDraft) \(mention) "
+}
+
+func composerShowsAttachment(hasAttachment: Bool, configuration: ComposerConfiguration) -> Bool {
+    hasAttachment || configuration.attachmentPreview != nil
 }
 
 private struct ComposerContextChip: View {

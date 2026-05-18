@@ -46,6 +46,30 @@ import AteliaMacClientModels
     ])
 }
 
+@Test func chatListItemsCarryConversationMenuSymbols() {
+    let surfaceBackedItem = ChatListItem(
+        id: "nav:package-management",
+        projectID: "project:test",
+        resourceID: "package-management",
+        title: "Packages",
+        trailing: nil,
+        surface: .packageManagement
+    )
+    let leadingBackedItem = ChatListItem(
+        id: "nav:activity",
+        projectID: "project:test",
+        resourceID: "activity",
+        title: "Activity",
+        trailing: nil,
+        leadingAffordance: .activity,
+        surface: .settings
+    )
+
+    #expect(surfaceBackedItem.conversationMenuSymbolName == "square.grid.2x2")
+    #expect(MockSurfaceReference.settings.conversationMenuSymbolName == "gearshape")
+    #expect(leadingBackedItem.conversationMenuSymbolName == "circle.fill")
+}
+
 @Test func packageProvidedAreasAreOptionalBundledSurfaces() {
     let state = ClientMockState.ateliaReference
     let navigationItems = state.workspaceGroups.flatMap { $0.items + $0.settings } + state.recentChats
