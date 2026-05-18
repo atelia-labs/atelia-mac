@@ -195,6 +195,11 @@ final class ClientAppModel {
         }
     }
 
+    func openGlobalSettings() {
+        sidebarSelectionState = .globalSettings(title: "設定")
+        syncSidebarProjection()
+    }
+
     func handleProjectSectionHeaderAction(_ action: ProjectSectionHeaderActionViewData) {
         switch action.kind {
         case .createFolder:

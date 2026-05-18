@@ -422,6 +422,24 @@ private let clientAppModelLifecycleJobFixture = AteliaJob(
 }
 
 @MainActor
+@Test func clientAppModelOpensGlobalSettingsFromTopBarAction() async throws {
+    let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
+    let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")
+    let model = ClientAppModel(projectStatusStore: store)
+
+    try await model.reloadProjectStatus()
+
+    model.openGlobalSettings()
+
+    #expect(model.sidebarProjection.activeConversationTitle == "設定")
+    #expect(model.sidebarProjection.activeProjectTitle == "全プロジェクト")
+    #expect(model.sidebarProjection.activeSelection.projectID == "global")
+    #expect(model.sidebarProjection.activeSelection.resourceID == "settings:global:workspace")
+    #expect(model.sidebarProjection.activeNavigationItemID == "global:settings")
+    #expect(model.sidebarProjection.activeSurfaceID == MockSurfaceReference.settings.id)
+}
+
+@MainActor
 @Test func clientAppModelRoutesProjectSettingsSelectionIntoProjectState() async throws {
     let client = ProjectStatusClientFixture(response: clientAppModelProjectStatusFixture)
     let store = MacProjectStatusStore(client: client, session: AteliaSession(), repositoryId: "repo_123")

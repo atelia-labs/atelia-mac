@@ -100,6 +100,33 @@ import Testing
     #expect(model.contentWidth > AteliaDiffScrollModel.minimumContentWidth)
 }
 
+@Test func diffScrollModelMeasuresRenderedTabsAndWideUnicode() {
+    let tabbedWideLine = String(repeating: "let value\t= \"承認フロー\" ", count: 48)
+    let file = AteliaChangedFile(
+        id: "file.rendered-width",
+        path: "Sources/承認Flow.swift",
+        additions: 1,
+        deletions: 0,
+        hunks: [
+            AteliaDiffHunk(
+                id: "hunk.rendered-width",
+                header: "@@ rendered width @@",
+                lines: [
+                    .added(id: "line.rendered-width", tabbedWideLine)
+                ]
+            )
+        ]
+    )
+
+    let model = AteliaDiffScrollModel(files: [file])
+    let renderedLineWidth = (tabbedWideLine as NSString).size(
+        withAttributes: [.font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)]
+    ).width
+
+    #expect(model.contentWidth >= renderedLineWidth + AteliaDiffScrollModel.lineChromeWidth)
+    #expect(model.contentWidth > AteliaDiffScrollModel.minimumContentWidth)
+}
+
 @Test func conversationBlockIdsForwardWrappedModelIds() {
     let message = AteliaMessageBlock(id: "message.id", text: "Message", attachmentName: nil)
     let activity = AteliaActivityBlock(id: "activity.id", duration: "1s", status: "完了", title: "Done", bullets: [])

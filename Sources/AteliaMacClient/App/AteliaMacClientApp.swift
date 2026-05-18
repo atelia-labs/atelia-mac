@@ -58,7 +58,7 @@ struct AteliaMacClientApp: App {
     private func handleClientShellAction(_ action: ClientShellAction) {
         switch action {
         case .openSettings:
-            break
+            appModel.openGlobalSettings()
         case .sidebar(let sidebarAction):
             appModel.handleSidebarAction(sidebarAction)
         case .composer(let composerIntent):

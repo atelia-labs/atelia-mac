@@ -1,4 +1,5 @@
 import AteliaMacClientModels
+import AppKit
 import CoreGraphics
 import Foundation
 
@@ -354,8 +355,9 @@ private extension AteliaDiffLine.Kind {
 
 struct AteliaDiffScrollModel {
     static let minimumContentWidth: CGFloat = 960
-    static let leadingChromeWidth: CGFloat = 44
-    static let estimatedCharacterWidth: CGFloat = 7
+    static let lineChromeWidth: CGFloat = 64
+    static let hunkHeaderChromeWidth: CGFloat = 44
+    static let fileHeaderChromeWidth: CGFloat = 144
 
     var files: [AteliaChangedFile]
 
@@ -364,13 +366,23 @@ struct AteliaDiffScrollModel {
     var wrapsLines: Bool { false }
 
     var contentWidth: CGFloat {
-        let longestLine = files
+        let lineWidth = files
             .flatMap(\.hunks)
             .flatMap(\.lines)
-            .map(\.text.count)
+            .map { Self.renderedWidth(for: $0.text, font: .monospacedSystemFont(ofSize: 11, weight: .regular)) + Self.lineChromeWidth }
+            .max() ?? 0
+        let hunkHeaderWidth = files
+            .flatMap(\.hunks)
+            .map { Self.renderedWidth(for: $0.header, font: .monospacedSystemFont(ofSize: 11, weight: .regular)) + Self.hunkHeaderChromeWidth }
+            .max() ?? 0
+        let fileHeaderWidth = files
+            .map { Self.renderedWidth(for: $0.path, font: .systemFont(ofSize: 12, weight: .medium)) + Self.fileHeaderChromeWidth }
             .max() ?? 0
 
-        let estimatedWidth = CGFloat(longestLine) * Self.estimatedCharacterWidth + Self.leadingChromeWidth
-        return max(Self.minimumContentWidth, estimatedWidth)
+        return ceil(max(Self.minimumContentWidth, lineWidth, hunkHeaderWidth, fileHeaderWidth))
+    }
+
+    private static func renderedWidth(for text: String, font: NSFont) -> CGFloat {
+        (text as NSString).size(withAttributes: [.font: font]).width
     }
 }

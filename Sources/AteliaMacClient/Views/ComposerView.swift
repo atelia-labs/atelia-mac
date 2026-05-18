@@ -2,12 +2,8 @@ import AteliaMacClientModels
 import SwiftUI
 
 enum ComposerIntent: Equatable {
-    case attachFile
     case insertMention(String)
     case openContext(ComposerContextSelection)
-    case selectPermissionMode(ComposerPermissionMode)
-    case selectModel(ComposerModelSelection)
-    case startVoiceInput
     case send(text: String, configuration: ComposerConfiguration, contexts: [ComposerContextSelection])
 }
 
@@ -56,22 +52,12 @@ struct ComposerView: View {
             )
 
             HStack(spacing: 13) {
-                ComposerAttachmentButton {
-                    onIntent(.attachFile)
+                HStack(spacing: 5) {
+                    Image(systemName: "exclamationmark.shield")
+                        .font(.system(size: 14, weight: .regular))
+                    Text(configuration.permissionMode.displayName)
                 }
-
-                Button {
-                    onIntent(.selectPermissionMode(configuration.permissionMode))
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "exclamationmark.shield")
-                            .font(.system(size: 14, weight: .regular))
-                        Text(configuration.permissionMode.displayName)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .regular))
-                    }
-                }
-                .buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
                 .accessibilityLabel("権限モード: \(configuration.permissionMode.displayName)")
                 .accessibilityHint(configuration.permissionMode.permissionScope)
                 .font(.atelia(13))
@@ -84,28 +70,14 @@ struct ComposerView: View {
                     .foregroundStyle(Color.clientMutedText)
                     .accessibilityHidden(true)
 
-                Button {
-                    onIntent(.selectModel(configuration.selectedModel))
-                } label: {
-                    HStack(spacing: 5) {
-                        Text(configuration.selectedModel.displayName)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .regular))
-                    }
+                HStack(spacing: 5) {
+                    Text(configuration.selectedModel.displayName)
                 }
-                .buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
                 .accessibilityLabel("モデル: \(configuration.selectedModel.displayName)")
                 .accessibilityHint(configuration.selectedModel.routeKey)
                 .font(.atelia(14))
                 .foregroundStyle(Color.clientText)
-
-                PlainIconButton(
-                    systemName: "mic",
-                    accessibilityLabel: "音声入力",
-                    accessibilityHint: "音声入力を開始"
-                ) {
-                    onIntent(.startVoiceInput)
-                }
 
                 Button {
                     guard isSendEnabled else { return }
@@ -444,55 +416,5 @@ private extension Array where Element == ComposerContextSelection {
         } else {
             append(selection)
         }
-    }
-}
-
-private struct PlainIconButton: View {
-    let systemName: String
-    let accessibilityLabel: String
-    let accessibilityHint: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 15, weight: .regular))
-                .symbolRenderingMode(.monochrome)
-                .foregroundStyle(Color.clientMutedText)
-                .frame(width: 17, height: 17)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint(accessibilityHint)
-    }
-}
-
-private struct ComposerAttachmentButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: "paperclip")
-                    .font(.system(size: 14, weight: .regular))
-
-                Text("ファイル")
-                    .font(.atelia(13))
-            }
-            .foregroundStyle(Color.clientMutedText)
-            .frame(height: 26)
-            .padding(.horizontal, 9)
-            .background {
-                Capsule()
-                    .fill(Color.clientSurfaceSofter)
-            }
-            .overlay {
-                Capsule()
-                    .stroke(Color.clientDockHairline, lineWidth: 1)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("ファイルを添付")
-        .accessibilityHint("会話にファイルを追加")
     }
 }
