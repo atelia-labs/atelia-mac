@@ -3,7 +3,6 @@ import SwiftUI
 
 enum ComposerIntent: Equatable {
     case insertMention(String)
-    case openContext(ComposerContextSelection)
     case send(text: String, configuration: ComposerConfiguration, contexts: [ComposerContextSelection])
 }
 
@@ -45,7 +44,6 @@ struct ComposerView: View {
                 goal: goal,
                 hasAttachment: showsAttachment,
                 draftText: $draftText,
-                selectedContexts: $selectedContexts,
                 contextReferences: configuration.contextReferences,
                 attachmentPreview: configuration.attachmentPreview,
                 onIntent: onIntent
@@ -129,7 +127,6 @@ private struct ComposerBody: View {
     let goal: GoalStatus
     let hasAttachment: Bool
     @Binding var draftText: String
-    @Binding var selectedContexts: [ComposerContextSelection]
     let contextReferences: [ComposerContextReference]
     let attachmentPreview: ComposerAttachmentPreview?
     let onIntent: (ComposerIntent) -> Void
@@ -161,15 +158,7 @@ private struct ComposerBody: View {
                         ComposerContextChip(
                             context: context,
                             tint: context.kind.composerTint
-                        ) {
-                            let selection = ComposerContextSelection(
-                                id: context.id,
-                                kind: context.kind,
-                                displayName: context.displayName
-                            )
-                            selectedContexts.upsert(selection)
-                            onIntent(.openContext(selection))
-                        }
+                        )
                     }
 
                     Spacer(minLength: 0)
@@ -265,20 +254,15 @@ func composerShowsAttachment(hasAttachment: Bool, configuration: ComposerConfigu
 private struct ComposerContextChip: View {
     let context: ComposerContextReference
     let tint: Color
-    let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            ComposerContextChipLabel(
-                title: context.title,
-                subtitle: context.subtitle,
-                systemName: context.systemImageName,
-                tint: tint
-            )
-        }
-        .buttonStyle(.plain)
+        ComposerContextChipLabel(
+            title: context.title,
+            subtitle: context.subtitle,
+            systemName: context.systemImageName,
+            tint: tint
+        )
         .accessibilityLabel(context.accessibilityLabel)
-        .accessibilityHint("文脈を開く")
     }
 }
 

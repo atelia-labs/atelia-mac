@@ -366,14 +366,15 @@ struct AteliaDiffScrollModel {
     var wrapsLines: Bool { false }
 
     var contentWidth: CGFloat {
+        let diffMonospacedFont = AteliaClientFont.monospacedNSFont(size: 11)
         let lineWidth = files
             .flatMap(\.hunks)
             .flatMap(\.lines)
-            .map { Self.renderedWidth(for: $0.text, font: .monospacedSystemFont(ofSize: 11, weight: .regular)) + Self.lineChromeWidth }
+            .map { Self.renderedWidth(for: $0.text, font: diffMonospacedFont) + Self.lineChromeWidth }
             .max() ?? 0
         let hunkHeaderWidth = files
             .flatMap(\.hunks)
-            .map { Self.renderedWidth(for: $0.header, font: .monospacedSystemFont(ofSize: 11, weight: .regular)) + Self.hunkHeaderChromeWidth }
+            .map { Self.renderedWidth(for: $0.header, font: diffMonospacedFont) + Self.hunkHeaderChromeWidth }
             .max() ?? 0
         let fileHeaderWidth = files
             .map { Self.renderedWidth(for: $0.path, font: .systemFont(ofSize: 12, weight: .medium)) + Self.fileHeaderChromeWidth }

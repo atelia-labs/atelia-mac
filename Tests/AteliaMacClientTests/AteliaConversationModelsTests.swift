@@ -120,7 +120,7 @@ import Testing
 
     let model = AteliaDiffScrollModel(files: [file])
     let renderedLineWidth = (tabbedWideLine as NSString).size(
-        withAttributes: [.font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)]
+        withAttributes: [.font: AteliaClientFont.monospacedNSFont(size: 11)]
     ).width
 
     #expect(model.contentWidth >= renderedLineWidth + AteliaDiffScrollModel.lineChromeWidth)
