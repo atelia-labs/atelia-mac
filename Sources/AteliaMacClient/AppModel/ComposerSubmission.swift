@@ -19,6 +19,7 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
     let modelRouteKey: String
     let permissionModeRouteKey: String
     let contextIDs: [String]
+    let contextDisplayNames: [String]
     let pathScope: AteliaPathScope?
 
     static func fromSendIntent(
@@ -41,6 +42,7 @@ struct ComposerJobSubmissionRequest: Equatable, Sendable {
             modelRouteKey: configuration.selectedModel.routeKey,
             permissionModeRouteKey: configuration.permissionMode.routeKey,
             contextIDs: contexts.map(\.id),
+            contextDisplayNames: contexts.map { $0.displayName ?? $0.id },
             pathScope: pathScope
         )
     }

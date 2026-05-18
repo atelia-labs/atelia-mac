@@ -829,10 +829,12 @@ public struct ComposerContextReference: Identifiable, Equatable, Sendable {
 public struct ComposerContextSelection: Equatable, Sendable {
     public var id: String
     public var kind: ComposerContextKind
+    public var displayName: String?
 
-    public init(id: String, kind: ComposerContextKind) {
+    public init(id: String, kind: ComposerContextKind, displayName: String? = nil) {
         self.id = id
         self.kind = kind
+        self.displayName = displayName
     }
 }
 
@@ -1301,6 +1303,8 @@ public extension MockSurfaceReference {
             return "square.grid.2x2"
         case Self.permissionRecovery.surfaceID:
             return "checklist"
+        case Self.globalSearch.surfaceID:
+            return "magnifyingglass"
         case Self.officialAutomations.surfaceID:
             return "clock"
         case Self.projectConversation.surfaceID:

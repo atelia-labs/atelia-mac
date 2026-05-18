@@ -1057,7 +1057,7 @@ private let clientAppModelLifecycleJobFixture = AteliaJob(
         text: "  テスト計画を作って  ",
         configuration: ClientMockState.ateliaReference.composer,
         contexts: [
-            ComposerContextSelection(id: "context:file:test-plan", kind: .file)
+            ComposerContextSelection(id: "context:file:test-plan", kind: .file, displayName: "test-plan.md")
         ]
     ))
 
@@ -1068,6 +1068,12 @@ private let clientAppModelLifecycleJobFixture = AteliaJob(
 
     #expect(userDraft.blocks.first?.id == "message.user.local-draft:repo_123:1")
     #expect(secretaryDraft.blocks.first?.id == "activity.secretary.local-draft:repo_123:1")
+
+    guard case .message(let message) = userDraft.blocks.first else {
+        Issue.record("Expected user draft to contain a message block")
+        return
+    }
+    #expect(message.attachmentName == "test-plan.md")
 }
 
 @MainActor

@@ -32,8 +32,8 @@ import Testing
     )
 
     #expect(configuration.visibleContextSelections == [
-        ComposerContextSelection(id: "context:file:brief", kind: .file),
-        ComposerContextSelection(id: "context:extension:review", kind: .packageExtension)
+        ComposerContextSelection(id: "context:file:brief", kind: .file, displayName: "brief.md"),
+        ComposerContextSelection(id: "context:extension:review", kind: .packageExtension, displayName: "review")
     ])
 }
 
@@ -42,8 +42,16 @@ import Testing
 
     #expect(state.composer.attachmentPreview?.contextReferenceID == "context:file:standard-surfaces")
     #expect(state.composer.visibleContextSelections == [
-        ComposerContextSelection(id: "context:file:standard-surfaces", kind: .file),
-        ComposerContextSelection(id: "context:extension:surface-protocol", kind: .packageExtension)
+        ComposerContextSelection(
+            id: "context:file:standard-surfaces",
+            kind: .file,
+            displayName: "standard-surfaces.md"
+        ),
+        ComposerContextSelection(
+            id: "context:extension:surface-protocol",
+            kind: .packageExtension,
+            displayName: "文脈"
+        )
     ])
 }
 
@@ -60,7 +68,7 @@ import Testing
     )
 
     #expect(configuration.visibleContextSelections == [
-        ComposerContextSelection(id: "attachment:standalone", kind: .file)
+        ComposerContextSelection(id: "attachment:standalone", kind: .file, displayName: "standalone.md")
     ])
 }
 

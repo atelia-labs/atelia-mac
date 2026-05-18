@@ -67,6 +67,7 @@ import AteliaMacClientModels
 
     #expect(surfaceBackedItem.conversationMenuSymbolName == "square.grid.2x2")
     #expect(MockSurfaceReference.settings.conversationMenuSymbolName == "gearshape")
+    #expect(MockSurfaceReference.globalSearch.conversationMenuSymbolName == "magnifyingglass")
     #expect(leadingBackedItem.conversationMenuSymbolName == "circle.fill")
 }
 

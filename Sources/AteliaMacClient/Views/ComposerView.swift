@@ -190,7 +190,11 @@ private struct ComposerBody: View {
                             context: context,
                             tint: context.kind.composerTint
                         ) {
-                            let selection = ComposerContextSelection(id: context.id, kind: context.kind)
+                            let selection = ComposerContextSelection(
+                                id: context.id,
+                                kind: context.kind,
+                                displayName: context.displayName
+                            )
                             selectedContexts.upsert(selection)
                             onIntent(.openContext(selection))
                         }
@@ -404,15 +408,32 @@ private extension ComposerContextReference {
 
 extension ComposerConfiguration {
     var visibleContextSelections: [ComposerContextSelection] {
-        var selections = contextReferences.map { ComposerContextSelection(id: $0.id, kind: $0.kind) }
+        var selections = contextReferences.map {
+            ComposerContextSelection(
+                id: $0.id,
+                kind: $0.kind,
+                displayName: $0.displayName
+            )
+        }
 
         if let attachmentPreview {
             let attachmentContextID = attachmentPreview.contextReferenceID ?? attachmentPreview.id
             let attachmentContextKind = contextReferences.first { $0.id == attachmentContextID }?.kind ?? ComposerContextKind.file
-            selections.upsert(ComposerContextSelection(id: attachmentContextID, kind: attachmentContextKind))
+            let attachmentDisplayName = attachmentPreview.title
+            selections.upsert(ComposerContextSelection(
+                id: attachmentContextID,
+                kind: attachmentContextKind,
+                displayName: attachmentDisplayName
+            ))
         }
 
         return selections
+    }
+}
+
+private extension ComposerContextReference {
+    var displayName: String {
+        subtitle.isEmpty ? title : subtitle
     }
 }
 

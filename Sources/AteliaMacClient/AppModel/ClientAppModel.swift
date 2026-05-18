@@ -490,7 +490,7 @@ final class ClientAppModel {
                         ChatMessage(
                             id: "message.user.\(draftID)",
                             text: request.message,
-                            attachmentName: request.contextIDs.first
+                            attachmentName: request.contextDisplayNames.first
                         )
                     )
                 ]
@@ -744,7 +744,7 @@ final class ClientAppModel {
         ]
 
         if !request.contextIDs.isEmpty {
-            let contextLabel = request.contextIDs.joined(separator: ", ")
+            let contextLabel = request.contextDisplayNames.joined(separator: ", ")
             bullets.append("Context \(contextLabel)")
         }
 
