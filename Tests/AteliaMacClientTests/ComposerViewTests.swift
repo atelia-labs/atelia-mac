@@ -32,8 +32,8 @@ import Testing
     )
 
     #expect(configuration.visibleContextSelections == [
-        ComposerContextSelection(id: "context:file:brief", kind: .file),
-        ComposerContextSelection(id: "context:extension:review", kind: .packageExtension)
+        ComposerContextSelection(id: "context:file:brief", kind: .file, displayName: "brief.md"),
+        ComposerContextSelection(id: "context:extension:review", kind: .packageExtension, displayName: "review")
     ])
 }
 
@@ -42,8 +42,16 @@ import Testing
 
     #expect(state.composer.attachmentPreview?.contextReferenceID == "context:file:standard-surfaces")
     #expect(state.composer.visibleContextSelections == [
-        ComposerContextSelection(id: "context:file:standard-surfaces", kind: .file),
-        ComposerContextSelection(id: "context:extension:surface-protocol", kind: .packageExtension)
+        ComposerContextSelection(
+            id: "context:file:standard-surfaces",
+            kind: .file,
+            displayName: "standard-surfaces.md"
+        ),
+        ComposerContextSelection(
+            id: "context:extension:surface-protocol",
+            kind: .packageExtension,
+            displayName: "文脈"
+        )
     ])
 }
 
@@ -60,6 +68,52 @@ import Testing
     )
 
     #expect(configuration.visibleContextSelections == [
-        ComposerContextSelection(id: "attachment:standalone", kind: .file)
+        ComposerContextSelection(id: "attachment:standalone", kind: .file, displayName: "standalone.md")
     ])
+}
+
+@Test func composerAttachmentVisibilityFollowsCurrentConfigurationOrOverride() {
+    let emptyConfiguration = ComposerConfiguration(
+        routeKey: "composer:test",
+        selectedModel: ComposerModelSelection(displayName: "Test"),
+        permissionMode: ComposerPermissionMode(displayName: "Allowed")
+    )
+    let attachmentConfiguration = ComposerConfiguration(
+        routeKey: "composer:test",
+        selectedModel: ComposerModelSelection(displayName: "Test"),
+        permissionMode: ComposerPermissionMode(displayName: "Allowed"),
+        attachmentPreview: ComposerAttachmentPreview(
+            id: "attachment:standalone",
+            title: "standalone.md",
+            subtitle: "ファイル文脈"
+        )
+    )
+
+    #expect(!composerShowsAttachment(hasAttachment: false, configuration: emptyConfiguration))
+    #expect(composerShowsAttachment(hasAttachment: true, configuration: emptyConfiguration))
+    #expect(composerShowsAttachment(hasAttachment: false, configuration: attachmentConfiguration))
+}
+
+@Test func composerInsertMentionNormalizesSpacingForEmptyDraft() {
+    #expect(
+        composerTextAfterInsertingMention(draftText: "", mention: "@Secretary") == "@Secretary "
+    )
+}
+
+@Test func composerInsertMentionAddsOneSpaceForNonWhitespaceSuffix() {
+    #expect(
+        composerTextAfterInsertingMention(draftText: "analyze", mention: "@Secretary")
+            == "analyze @Secretary "
+    )
+}
+
+@Test func composerInsertMentionNormalizesSingleOrMultipleTrailingWhitespace() {
+    #expect(
+        composerTextAfterInsertingMention(draftText: "analyze ", mention: "@Secretary")
+            == "analyze @Secretary "
+    )
+    #expect(
+        composerTextAfterInsertingMention(draftText: "analyze  ", mention: "@Secretary")
+            == "analyze @Secretary "
+    )
 }

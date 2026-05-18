@@ -41,6 +41,10 @@ struct LocalProjectRegistration: Codable, Equatable, Identifiable, Sendable {
         URL(fileURLWithPath: path).standardizedFileURL.path.precomposedStringWithCanonicalMapping
     }
 
+    static func isLocalProjectID(_ id: String) -> Bool {
+        id.hasPrefix("local_")
+    }
+
     func hasSameRootPath(as path: String) -> Bool {
         normalizedRootPath == Self.normalizedRootPath(path)
     }
@@ -123,7 +127,7 @@ final class UserDefaultsLocalProjectRegistry: LocalProjectRegistry {
             let data = try JSONEncoder().encode(projects)
             defaults.set(data, forKey: key)
         } catch {
-            Self.logger.error("Failed to persist local project registry: \(error.localizedDescription, privacy: .public)")
+            Self.logger.error("Failed to persist local project registry: \(error.localizedDescription, privacy: .private)")
             #if DEBUG
             assertionFailure("Failed to persist local project registry: \(error)")
             #endif

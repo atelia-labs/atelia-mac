@@ -523,25 +523,23 @@ public struct ClientConversationDiffLineFixture: Identifiable, Sendable {
     }
 
     public static func rawUnifiedDiff(id: String, kind: Kind, text: String) -> ClientConversationDiffLineFixture {
-        ClientConversationDiffLineFixture(id: id, kind: kind, text: normalizedText(text, kind: kind))
+        ClientConversationDiffLineFixture(
+            id: id,
+            kind: kind,
+            text: ClientUnifiedDiffText.normalized(text, marker: kind.unifiedDiffMarker)
+        )
     }
+}
 
-    private static func normalizedText(_ text: String, marker: Character) -> String {
-        guard text.first == marker else {
-            return text
-        }
-
-        return String(text.dropFirst())
-    }
-
-    private static func normalizedText(_ text: String, kind: Kind) -> String {
-        switch kind {
+private extension ClientConversationDiffLineFixture.Kind {
+    var unifiedDiffMarker: ClientUnifiedDiffLineMarker {
+        switch self {
         case .added:
-            normalizedText(text, marker: "+")
+            .added
         case .removed:
-            normalizedText(text, marker: "-")
+            .removed
         case .context:
-            normalizedText(text, marker: " ")
+            .context
         }
     }
 }
@@ -831,10 +829,12 @@ public struct ComposerContextReference: Identifiable, Equatable, Sendable {
 public struct ComposerContextSelection: Equatable, Sendable {
     public var id: String
     public var kind: ComposerContextKind
+    public var displayName: String?
 
-    public init(id: String, kind: ComposerContextKind) {
+    public init(id: String, kind: ComposerContextKind, displayName: String? = nil) {
         self.id = id
         self.kind = kind
+        self.displayName = displayName
     }
 }
 
@@ -1265,6 +1265,54 @@ public extension LeadingAffordanceRole {
             return .branchGlyph
         case .packageInstall:
             return .addGlyph
+        }
+    }
+}
+
+public extension ChatListItem {
+    var conversationMenuSymbolName: String {
+        if let leadingAffordance {
+            return leadingAffordance.presentation.conversationMenuSymbolName
+        }
+
+        return surface.conversationMenuSymbolName
+    }
+}
+
+public extension LeadingAffordancePresentation {
+    var conversationMenuSymbolName: String {
+        switch self {
+        case .statusDot:
+            return "circle.fill"
+        case .assistantMark:
+            return "sparkles"
+        case .branchGlyph:
+            return "arrow.triangle.branch"
+        case .addGlyph:
+            return "plus.circle"
+        }
+    }
+}
+
+public extension MockSurfaceReference {
+    var conversationMenuSymbolName: String {
+        switch surfaceID {
+        case Self.settings.surfaceID:
+            return "gearshape"
+        case Self.packageManagement.surfaceID:
+            return "square.grid.2x2"
+        case Self.permissionRecovery.surfaceID:
+            return "checklist"
+        case Self.globalSearch.surfaceID:
+            return "magnifyingglass"
+        case Self.officialAutomations.surfaceID:
+            return "clock"
+        case Self.officialReview.surfaceID:
+            return "doc.text.magnifyingglass"
+        case Self.projectConversation.surfaceID:
+            return "message"
+        default:
+            return "circle.questionmark"
         }
     }
 }

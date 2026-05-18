@@ -1,4 +1,5 @@
 import AteliaMacClientModels
+import AppKit
 import CoreGraphics
 import Foundation
 
@@ -95,6 +96,9 @@ struct AteliaActivityBlock: Identifiable {
     var status: String
     var title: String
     var bullets: [String]
+    var identifiedBullets: [AteliaIdentifiedTextLine] {
+        AteliaIdentifiedTextLine.rows(parentID: id, role: "bullet", texts: bullets)
+    }
 
     init(id: String, duration: String, status: String, title: String, bullets: [String]) {
         self.id = id
@@ -127,6 +131,9 @@ struct AteliaToolOutputBlock: Identifiable {
     var command: String
     var status: Status
     var output: [String]
+    var identifiedOutputLines: [AteliaIdentifiedTextLine] {
+        AteliaIdentifiedTextLine.rows(parentID: id, role: "output", texts: output)
+    }
 
     init(id: String, toolName: String, command: String, status: Status, output: [String]) {
         self.id = id
@@ -153,6 +160,34 @@ struct AteliaToolOutputBlock: Identifiable {
             status: mappedStatus,
             output: fixture.output
         )
+    }
+}
+
+struct AteliaIdentifiedTextLine: Identifiable, Equatable {
+    var id: String
+    var text: String
+
+    static func rows(parentID: String, role: String, texts: [String]) -> [AteliaIdentifiedTextLine] {
+        var occurrenceByFingerprint: [String: Int] = [:]
+
+        return texts.map { text in
+            let fingerprint = stableFingerprint(for: text)
+            let occurrence = occurrenceByFingerprint[fingerprint, default: 0]
+            occurrenceByFingerprint[fingerprint] = occurrence + 1
+            return AteliaIdentifiedTextLine(
+                id: "\(parentID).\(role).\(fingerprint).\(occurrence)",
+                text: text
+            )
+        }
+    }
+
+    private static func stableFingerprint(for text: String) -> String {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in text.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x100000001b3
+        }
+        return String(hash, radix: 16)
     }
 }
 
@@ -277,15 +312,11 @@ struct AteliaDiffLine: Identifiable {
     }
 
     static func rawUnifiedDiff(id: String, kind: Kind, text: String) -> AteliaDiffLine {
-        AteliaDiffLine(id: id, kind: kind, text: normalizedText(text, kind: kind))
-    }
-
-    private static func normalizedText(_ text: String, marker: Character) -> String {
-        guard text.first == marker else {
-            return text
-        }
-
-        return String(text.dropFirst())
+        AteliaDiffLine(
+            id: id,
+            kind: kind,
+            text: ClientUnifiedDiffText.normalized(text, marker: kind.unifiedDiffMarker)
+        )
     }
 
     init(id: String, kind: Kind, text: String) {
@@ -307,22 +338,26 @@ struct AteliaDiffLine: Identifiable {
         self.init(id: fixture.id, kind: mappedKind, text: fixture.text)
     }
 
-    private static func normalizedText(_ text: String, kind: Kind) -> String {
-        switch kind {
+}
+
+private extension AteliaDiffLine.Kind {
+    var unifiedDiffMarker: ClientUnifiedDiffLineMarker {
+        switch self {
         case .added:
-            normalizedText(text, marker: "+")
+            .added
         case .removed:
-            normalizedText(text, marker: "-")
+            .removed
         case .context:
-            normalizedText(text, marker: " ")
+            .context
         }
     }
 }
 
 struct AteliaDiffScrollModel {
     static let minimumContentWidth: CGFloat = 960
-    static let leadingChromeWidth: CGFloat = 44
-    static let estimatedCharacterWidth: CGFloat = 7
+    static let lineChromeWidth: CGFloat = 64
+    static let hunkHeaderChromeWidth: CGFloat = 44
+    static let fileHeaderChromeWidth: CGFloat = 144
 
     var files: [AteliaChangedFile]
 
@@ -331,13 +366,24 @@ struct AteliaDiffScrollModel {
     var wrapsLines: Bool { false }
 
     var contentWidth: CGFloat {
-        let longestLine = files
+        let diffMonospacedFont = AteliaClientFont.monospacedNSFont(size: 11)
+        let lineWidth = files
             .flatMap(\.hunks)
             .flatMap(\.lines)
-            .map(\.text.count)
+            .map { Self.renderedWidth(for: $0.text, font: diffMonospacedFont) + Self.lineChromeWidth }
+            .max() ?? 0
+        let hunkHeaderWidth = files
+            .flatMap(\.hunks)
+            .map { Self.renderedWidth(for: $0.header, font: diffMonospacedFont) + Self.hunkHeaderChromeWidth }
+            .max() ?? 0
+        let fileHeaderWidth = files
+            .map { Self.renderedWidth(for: $0.path, font: .systemFont(ofSize: 12, weight: .medium)) + Self.fileHeaderChromeWidth }
             .max() ?? 0
 
-        let estimatedWidth = CGFloat(longestLine) * Self.estimatedCharacterWidth + Self.leadingChromeWidth
-        return max(Self.minimumContentWidth, estimatedWidth)
+        return ceil(max(Self.minimumContentWidth, lineWidth, hunkHeaderWidth, fileHeaderWidth))
+    }
+
+    private static func renderedWidth(for text: String, font: NSFont) -> CGFloat {
+        (text as NSString).size(withAttributes: [.font: font]).width
     }
 }

@@ -1,3 +1,4 @@
+import AteliaKit
 import AteliaMacClientModels
 import AteliaMacCore
 import Foundation
@@ -7,6 +8,7 @@ import Observation
 @Observable
 final class ClientAppModel {
     private let projectStatusStore: MacProjectStatusStore
+    private let projectLifecycleStore: (any MacProjectLifecycleStoring)?
     private let projectFolderSelection: any ProjectFolderSelectionProviding
     private let localProjectRegistry: any LocalProjectRegistry
 
@@ -17,15 +19,22 @@ final class ClientAppModel {
     private(set) var isReloading: Bool
     private(set) var lastErrorMessage: String?
     private(set) var lastComposerSubmissionRequest: ComposerJobSubmissionRequest?
+    private(set) var lastAteliaSubmitJobRequest: AteliaSubmitJobRequest?
     private(set) var sidebarSelectionState: ClientSidebarSelectionState?
     private var localConversationDrafts: [String: [ClientConversationTurnFixture]]
+    private var registeredRepositoryIDsByLocalProjectID: [String: String]
+    private var composerSubmissionSequence: UInt64
+    private var localProjectOpenTasksByID: [String: LocalProjectOpenTask]
+    private var projectTopologyGeneration: UInt64
 
     init(
         projectStatusStore: MacProjectStatusStore,
+        projectLifecycleStore: (any MacProjectLifecycleStoring)? = nil,
         projectFolderSelection: any ProjectFolderSelectionProviding = ProjectFolderPicker(),
         localProjectRegistry: any LocalProjectRegistry = InMemoryLocalProjectRegistry()
     ) {
         self.projectStatusStore = projectStatusStore
+        self.projectLifecycleStore = projectLifecycleStore
         self.projectFolderSelection = projectFolderSelection
         self.localProjectRegistry = localProjectRegistry
         self.projectStatusSnapshot = nil
@@ -42,6 +51,11 @@ final class ClientAppModel {
         self.isReloading = false
         self.lastErrorMessage = nil
         self.lastComposerSubmissionRequest = nil
+        self.lastAteliaSubmitJobRequest = nil
+        self.registeredRepositoryIDsByLocalProjectID = [:]
+        self.composerSubmissionSequence = 0
+        self.localProjectOpenTasksByID = [:]
+        self.projectTopologyGeneration = 0
         syncShellState()
     }
 
@@ -62,13 +76,18 @@ final class ClientAppModel {
     }
 
     func clearProjectStatus() async {
+        projectTopologyGeneration += 1
+        cancelLocalProjectOpenTasks()
         await projectStatusStore.clear()
         projectStatusSnapshot = nil
         localProjects = []
         localProjectRegistry.clearProjects()
         sidebarSelectionState = .unloaded()
         lastComposerSubmissionRequest = nil
+        lastAteliaSubmitJobRequest = nil
         localConversationDrafts = [:]
+        registeredRepositoryIDsByLocalProjectID = [:]
+        composerSubmissionSequence += 1
         syncSidebarProjection()
         lastErrorMessage = nil
     }
@@ -77,6 +96,19 @@ final class ClientAppModel {
         let snapshot = await projectStatusStore.snapshot
         projectStatusSnapshot = snapshot
         if let snapshot {
+            func upgradedProjectSelection(from selectionState: ClientSidebarSelectionState) -> ClientSidebarSelectionState {
+                if selectionState.activePrimaryCommandID == "primary:new-thread" {
+                    return .newThread(
+                        commandID: "primary:new-thread",
+                        title: selectionState.activeConversationTitle,
+                        projectSnapshot: snapshot,
+                        surface: MockSurfaceReference.projectConversation
+                    )
+                }
+
+                return .projectSecretary(snapshot: snapshot)
+            }
+
             migrateLocalConversationDrafts(
                 matchingRootPath: snapshot.repositoryRootPath,
                 to: snapshot.repositoryId
@@ -85,27 +117,9 @@ final class ClientAppModel {
             if let selectionState = sidebarSelectionState,
                let selectedLocalProject = localProject(forProjectID: selectionState.activeSelection.projectID),
                selectedLocalProject.hasSameRootPath(as: snapshot.repositoryRootPath) {
-                if selectionState.activePrimaryCommandID == "primary:new-thread" {
-                    sidebarSelectionState = .newThread(
-                        commandID: "primary:new-thread",
-                        title: selectionState.activeConversationTitle,
-                        projectSnapshot: snapshot,
-                        surface: MockSurfaceReference.projectConversation
-                    )
-                } else {
-                    sidebarSelectionState = .projectSecretary(snapshot: snapshot)
-                }
+                sidebarSelectionState = upgradedProjectSelection(from: selectionState)
             } else if let selectionState = sidebarSelectionState, selectionState.isUnloaded {
-                if selectionState.activePrimaryCommandID == "primary:new-thread" {
-                    sidebarSelectionState = .newThread(
-                        commandID: "primary:new-thread",
-                        title: selectionState.activeConversationTitle,
-                        projectSnapshot: snapshot,
-                        surface: MockSurfaceReference.projectConversation
-                    )
-                } else {
-                    sidebarSelectionState = .projectSecretary(snapshot: snapshot)
-                }
+                sidebarSelectionState = upgradedProjectSelection(from: selectionState)
             } else if sidebarSelectionState == nil {
                 sidebarSelectionState = .projectSecretary(snapshot: snapshot)
             }
@@ -181,6 +195,11 @@ final class ClientAppModel {
         }
     }
 
+    func openGlobalSettings() {
+        sidebarSelectionState = .globalSettings(title: "設定")
+        syncSidebarProjection()
+    }
+
     func handleProjectSectionHeaderAction(_ action: ProjectSectionHeaderActionViewData) {
         switch action.kind {
         case .createFolder:
@@ -213,6 +232,7 @@ final class ClientAppModel {
         sidebarSelectionState = .projectSecretary(project: project)
         lastErrorMessage = nil
         syncSidebarProjection()
+        openLocalProject(project)
     }
 
     func removeLocalProject(id: String) {
@@ -222,6 +242,8 @@ final class ClientAppModel {
 
         localProjects = localProjectRegistry.listProjects()
         localConversationDrafts[id] = nil
+        registeredRepositoryIDsByLocalProjectID[id] = nil
+        localProjectOpenTasksByID.removeValue(forKey: id)?.task.cancel()
         if sidebarSelectionState?.activeSelection.projectID == "project:\(id)" {
             if let snapshot = projectStatusSnapshot {
                 sidebarSelectionState = .projectSecretary(snapshot: snapshot)
@@ -400,6 +422,7 @@ final class ClientAppModel {
         contexts: [ComposerContextSelection]
     ) {
         lastComposerSubmissionRequest = nil
+        lastAteliaSubmitJobRequest = nil
         lastErrorMessage = nil
 
         guard let request = makeComposerJobSubmissionRequest(
@@ -414,6 +437,12 @@ final class ClientAppModel {
         lastComposerSubmissionRequest = request
         appendLocalComposerDraft(request)
         syncShellState()
+        composerSubmissionSequence += 1
+        submitComposerRequest(
+            request,
+            generation: projectTopologyGeneration,
+            sequence: composerSubmissionSequence
+        )
     }
 
     private func makeComposerJobSubmissionRequest(
@@ -431,12 +460,25 @@ final class ClientAppModel {
             text: text,
             repositoryId: repositoryId,
             configuration: configuration,
-            contexts: contexts
+            contexts: contexts,
+            repositoryRootPath: repositoryRootPath(for: repositoryId)
         ) else {
             return nil
         }
 
         return request
+    }
+
+    private func repositoryRootPath(for repositoryId: String) -> String? {
+        if let localProject = localProjects.first(where: { $0.id == repositoryId }) {
+            return localProject.rootPath
+        }
+
+        if let snapshot = projectStatusSnapshot, snapshot.repositoryId == repositoryId {
+            return snapshot.repositoryRootPath
+        }
+
+        return nil
     }
 
     private func appendLocalComposerDraft(_ request: ComposerJobSubmissionRequest) {
@@ -453,7 +495,7 @@ final class ClientAppModel {
                         ChatMessage(
                             id: "message.user.\(draftID)",
                             text: request.message,
-                            attachmentName: request.contextIDs.first
+                            attachmentName: request.contextDisplayNames.first
                         )
                     )
                 ]
@@ -498,6 +540,208 @@ final class ClientAppModel {
         localConversationDrafts[repositoryId] = repositoryDrafts
     }
 
+    private func openLocalProject(_ project: LocalProjectRegistration) {
+        guard let openTask = localProjectOpenTask(for: project, generation: projectTopologyGeneration) else {
+            return
+        }
+
+        let generation = projectTopologyGeneration
+        Task { [weak self] in
+            do {
+                let repository = try await openTask.task.value
+                await MainActor.run {
+                    guard let self,
+                          generation == self.projectTopologyGeneration,
+                          self.hasLocalProject(id: project.id) else {
+                        return
+                    }
+                    self.registeredRepositoryIDsByLocalProjectID[project.id] = repository.repositoryId
+                    if self.localProjectOpenTasksByID[project.id] === openTask {
+                        self.localProjectOpenTasksByID[project.id] = nil
+                    }
+                }
+            } catch is CancellationError {
+                await MainActor.run {
+                    if let self, self.localProjectOpenTasksByID[project.id] === openTask {
+                        self.localProjectOpenTasksByID[project.id] = nil
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    if let self, self.localProjectOpenTasksByID[project.id] === openTask {
+                        self.localProjectOpenTasksByID[project.id] = nil
+                    }
+                    guard let self,
+                          generation == self.projectTopologyGeneration,
+                          self.hasLocalProject(id: project.id) else {
+                        return
+                    }
+                    self.lastErrorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func submitComposerRequest(
+        _ request: ComposerJobSubmissionRequest,
+        generation: UInt64,
+        sequence: UInt64
+    ) {
+        guard projectLifecycleStore != nil else {
+            return
+        }
+
+        if LocalProjectRegistration.isLocalProjectID(request.repositoryId),
+           !hasLocalProject(id: request.repositoryId) {
+            return
+        }
+
+        Task { [weak self] in
+            await self?.submitComposerRequestToLifecycleStore(
+                request,
+                generation: generation,
+                sequence: sequence
+            )
+        }
+    }
+
+    private func submitComposerRequestToLifecycleStore(
+        _ request: ComposerJobSubmissionRequest,
+        generation: UInt64,
+        sequence: UInt64
+    ) async {
+        guard let projectLifecycleStore else {
+            return
+        }
+
+        do {
+            if LocalProjectRegistration.isLocalProjectID(request.repositoryId),
+               !hasLocalProject(id: request.repositoryId) {
+                return
+            }
+            guard generation == projectTopologyGeneration else {
+                return
+            }
+            let repositoryId = try await lifecycleRepositoryID(for: request.repositoryId, generation: generation)
+            guard generation == projectTopologyGeneration else {
+                return
+            }
+            let ateliaRequest = request.ateliaSubmitJobRequest(repositoryId: repositoryId)
+            _ = try await projectLifecycleStore.submit(request: ateliaRequest)
+            if LocalProjectRegistration.isLocalProjectID(request.repositoryId),
+               !hasLocalProject(id: request.repositoryId) {
+                return
+            }
+            guard sequence == composerSubmissionSequence else {
+                return
+            }
+            lastAteliaSubmitJobRequest = ateliaRequest
+        } catch {
+            guard sequence == composerSubmissionSequence else {
+                return
+            }
+            if LocalProjectRegistration.isLocalProjectID(request.repositoryId),
+               !hasLocalProject(id: request.repositoryId) {
+                return
+            }
+            lastErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func lifecycleRepositoryID(for repositoryId: String, generation: UInt64) async throws -> String {
+        guard generation == projectTopologyGeneration else {
+            throw ClientAppModelLifecycleError.staleLocalProject
+        }
+
+        if let localProject = localProjects.first(where: { $0.id == repositoryId }) {
+            if let registeredRepositoryID = registeredRepositoryIDsByLocalProjectID[localProject.id] {
+                return registeredRepositoryID
+            }
+
+            let repository = try await openLocalProjectIfNeeded(localProject, generation: generation)
+            return repository.repositoryId
+        }
+
+        if LocalProjectRegistration.isLocalProjectID(repositoryId) {
+            throw ClientAppModelLifecycleError.staleLocalProject
+        }
+
+        return repositoryId
+    }
+
+    @discardableResult
+    private func openLocalProjectIfNeeded(
+        _ project: LocalProjectRegistration,
+        generation: UInt64
+    ) async throws -> AteliaRepository {
+        if let registeredRepositoryID = registeredRepositoryIDsByLocalProjectID[project.id] {
+            return AteliaRepository(
+                repositoryId: registeredRepositoryID,
+                displayName: project.displayName,
+                rootPath: project.rootPath,
+                allowedScope: AteliaPathScope(kind: .repository),
+                trustState: .unspecified,
+                createdAtUnixMilliseconds: 0,
+                updatedAtUnixMilliseconds: 0
+            )
+        }
+
+        guard let openTask = localProjectOpenTask(for: project, generation: generation) else {
+            throw ClientAppModelLifecycleError.staleLocalProject
+        }
+        defer {
+            if localProjectOpenTasksByID[project.id] === openTask {
+                localProjectOpenTasksByID[project.id] = nil
+            }
+        }
+
+        let repository = try await openTask.task.value
+        if generation == projectTopologyGeneration, hasLocalProject(id: project.id) {
+            registeredRepositoryIDsByLocalProjectID[project.id] = repository.repositoryId
+        }
+        return repository
+    }
+
+    private func localProjectOpenTask(
+        for project: LocalProjectRegistration,
+        generation: UInt64
+    ) -> LocalProjectOpenTask? {
+        guard generation == projectTopologyGeneration,
+              hasLocalProject(id: project.id),
+              let projectLifecycleStore else {
+            return nil
+        }
+
+        if let existingOpenTask = localProjectOpenTasksByID[project.id] {
+            return existingOpenTask
+        }
+
+        let request = AteliaRegisterRepositoryRequest(
+            displayName: project.displayName,
+            rootPath: project.rootPath,
+            allowedScope: AteliaPathScope(kind: .repository),
+            requester: ClientLifecycleRequestIdentity.requester
+        )
+        let openTask = LocalProjectOpenTask(task: Task {
+            try Task.checkCancellation()
+            return try await projectLifecycleStore.open(request: request)
+        })
+        localProjectOpenTasksByID[project.id] = openTask
+        return openTask
+    }
+
+    private func hasLocalProject(id: String) -> Bool {
+        localProjects.contains { $0.id == id }
+    }
+
+    private func cancelLocalProjectOpenTasks() {
+        let tasks = localProjectOpenTasksByID.values
+        localProjectOpenTasksByID = [:]
+        for openTask in tasks {
+            openTask.task.cancel()
+        }
+    }
+
     private func localDraftBullets(for request: ComposerJobSubmissionRequest) -> [String] {
         var bullets = [
             "Goal は未指定のまま会話メッセージとして保持",
@@ -505,7 +749,7 @@ final class ClientAppModel {
         ]
 
         if !request.contextIDs.isEmpty {
-            let contextLabel = request.contextIDs.joined(separator: ", ")
+            let contextLabel = request.contextDisplayNames.joined(separator: ", ")
             bullets.append("Context \(contextLabel)")
         }
 
@@ -539,5 +783,27 @@ final class ClientAppModel {
         }
 
         return localProject(forProjectID: projectID)?.id
+    }
+}
+
+private final class LocalProjectOpenTask {
+    let task: Task<AteliaRepository, any Error>
+
+    init(task: Task<AteliaRepository, any Error>) {
+        self.task = task
+    }
+}
+
+private enum ClientAppModelLifecycleError: LocalizedError {
+    case lifecycleStoreUnavailable
+    case staleLocalProject
+
+    var errorDescription: String? {
+        switch self {
+        case .lifecycleStoreUnavailable:
+            return "Project lifecycle store is unavailable."
+        case .staleLocalProject:
+            return "Local project is no longer available."
+        }
     }
 }

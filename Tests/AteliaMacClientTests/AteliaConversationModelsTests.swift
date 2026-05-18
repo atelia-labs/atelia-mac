@@ -100,6 +100,33 @@ import Testing
     #expect(model.contentWidth > AteliaDiffScrollModel.minimumContentWidth)
 }
 
+@Test func diffScrollModelMeasuresRenderedTabsAndWideUnicode() {
+    let tabbedWideLine = String(repeating: "let value\t= \"承認フロー\" ", count: 48)
+    let file = AteliaChangedFile(
+        id: "file.rendered-width",
+        path: "Sources/承認Flow.swift",
+        additions: 1,
+        deletions: 0,
+        hunks: [
+            AteliaDiffHunk(
+                id: "hunk.rendered-width",
+                header: "@@ rendered width @@",
+                lines: [
+                    .added(id: "line.rendered-width", tabbedWideLine)
+                ]
+            )
+        ]
+    )
+
+    let model = AteliaDiffScrollModel(files: [file])
+    let renderedLineWidth = (tabbedWideLine as NSString).size(
+        withAttributes: [.font: AteliaClientFont.monospacedNSFont(size: 11)]
+    ).width
+
+    #expect(model.contentWidth >= renderedLineWidth + AteliaDiffScrollModel.lineChromeWidth)
+    #expect(model.contentWidth > AteliaDiffScrollModel.minimumContentWidth)
+}
+
 @Test func conversationBlockIdsForwardWrappedModelIds() {
     let message = AteliaMessageBlock(id: "message.id", text: "Message", attachmentName: nil)
     let activity = AteliaActivityBlock(id: "activity.id", duration: "1s", status: "完了", title: "Done", bullets: [])
@@ -110,6 +137,37 @@ import Testing
     #expect(AteliaConversationBlock.activity(activity).id == activity.id)
     #expect(AteliaConversationBlock.toolOutput(toolOutput).id == toolOutput.id)
     #expect(AteliaConversationBlock.changeSet(changeSet).id == changeSet.id)
+}
+
+@Test func activityAndToolOutputRowsUseContentStableIdentities() {
+    let activity = AteliaActivityBlock(
+        id: "activity.id",
+        duration: "1s",
+        status: "完了",
+        title: "Done",
+        bullets: ["Read manifest", "Run tests", "Run tests"]
+    )
+    let toolOutput = AteliaToolOutputBlock(
+        id: "tool.id",
+        toolName: "swift test",
+        command: "swift test",
+        status: .succeeded,
+        output: ["Build complete", "Test passed"]
+    )
+
+    #expect(activity.identifiedBullets.map(\.text) == activity.bullets)
+    #expect(Set(activity.identifiedBullets.map(\.id)).count == activity.bullets.count)
+    #expect(toolOutput.identifiedOutputLines.map(\.text) == toolOutput.output)
+
+    let updatedActivity = AteliaActivityBlock(
+        id: activity.id,
+        duration: activity.duration,
+        status: activity.status,
+        title: activity.title,
+        bullets: ["Inspect CodeRabbit"] + activity.bullets
+    )
+    #expect(updatedActivity.identifiedBullets[1].id == activity.identifiedBullets[0].id)
+    #expect(updatedActivity.identifiedBullets[2].id == activity.identifiedBullets[1].id)
 }
 
 @Test func diffLineFactoriesPreserveSemanticText() {

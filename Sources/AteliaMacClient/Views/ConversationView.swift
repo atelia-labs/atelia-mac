@@ -164,43 +164,15 @@ private struct ConversationMenuItemButton: View {
                     action: action
                 ))
             } label: {
-                Label(item.title, systemImage: symbolName)
+                Label(item.title, systemImage: item.conversationMenuSymbolName)
             }
         } else {
             Button {} label: {
-                Label(item.title, systemImage: symbolName)
+                Label(item.title, systemImage: item.conversationMenuSymbolName)
             }
             .disabled(true)
             .accessibilityLabel(item.title)
             .accessibilityHint("利用できません")
-        }
-    }
-
-    private var symbolName: String {
-        switch item.leadingAffordance?.presentation {
-        case .some(.statusDot):
-            return "circle.fill"
-        case .some(.assistantMark):
-            return "sparkles"
-        case .some(.branchGlyph):
-            return "arrow.triangle.branch"
-        case .some(.addGlyph):
-            return "plus.circle"
-        case nil:
-            switch item.surface.surfaceID {
-            case "settings":
-                return "gearshape"
-            case "package-management":
-                return "square.grid.2x2"
-            case "permission-recovery":
-                return "checklist"
-            case "automations-home":
-                return "clock"
-            case "project-conversation":
-                return "message"
-            default:
-                return "circle.questionmark"
-            }
         }
     }
 }
@@ -294,14 +266,14 @@ private struct AteliaActivityView: View {
             }
 
             VStack(alignment: .leading, spacing: 7) {
-                ForEach(Array(activity.bullets.enumerated()), id: \.offset) { _, bullet in
+                ForEach(activity.identifiedBullets) { bullet in
                     HStack(alignment: .top, spacing: 8) {
                         Circle()
                             .fill(Color.clientSuccess)
                             .frame(width: 5, height: 5)
                             .padding(.top, 7)
 
-                        Text(bullet)
+                        Text(bullet.text)
                             .font(.atelia(13))
                             .foregroundStyle(Color.clientText)
                             .lineSpacing(2)
@@ -337,8 +309,8 @@ private struct AteliaToolOutputView: View {
                 Text("$ \(toolOutput.command)")
                     .foregroundStyle(Color.clientMutedText)
 
-                ForEach(Array(toolOutput.output.enumerated()), id: \.offset) { _, line in
-                    Text(line)
+                ForEach(toolOutput.identifiedOutputLines) { line in
+                    Text(line.text)
                         .foregroundStyle(Color.clientText)
                 }
             }

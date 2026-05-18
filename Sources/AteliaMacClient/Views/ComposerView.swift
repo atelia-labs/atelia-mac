@@ -2,19 +2,14 @@ import AteliaMacClientModels
 import SwiftUI
 
 enum ComposerIntent: Equatable {
-    case attachFile
     case insertMention(String)
-    case openContext(ComposerContextSelection)
-    case selectPermissionMode(ComposerPermissionMode)
-    case selectModel(ComposerModelSelection)
-    case startVoiceInput
     case send(text: String, configuration: ComposerConfiguration, contexts: [ComposerContextSelection])
 }
 
 struct ComposerView: View {
     let goal: GoalStatus
     let configuration: ComposerConfiguration
-    var hasAttachment = false
+    private let hasAttachmentOverride: Bool
     var onIntent: (ComposerIntent) -> Void = { _ in }
 
     @State private var draftText: String
@@ -29,10 +24,14 @@ struct ComposerView: View {
     ) {
         self.goal = goal
         self.configuration = configuration
-        self.hasAttachment = hasAttachment || configuration.attachmentPreview != nil
+        self.hasAttachmentOverride = hasAttachment
         self.onIntent = onIntent
         _draftText = State(initialValue: text)
         _selectedContexts = State(initialValue: configuration.visibleContextSelections)
+    }
+
+    private var showsAttachment: Bool {
+        composerShowsAttachment(hasAttachment: hasAttachmentOverride, configuration: configuration)
     }
 
     private var isSendEnabled: Bool {
@@ -43,31 +42,20 @@ struct ComposerView: View {
         VStack(spacing: 0) {
             ComposerBody(
                 goal: goal,
-                hasAttachment: hasAttachment,
+                hasAttachment: showsAttachment,
                 draftText: $draftText,
-                selectedContexts: $selectedContexts,
                 contextReferences: configuration.contextReferences,
                 attachmentPreview: configuration.attachmentPreview,
                 onIntent: onIntent
             )
 
             HStack(spacing: 13) {
-                ComposerAttachmentButton {
-                    onIntent(.attachFile)
+                HStack(spacing: 5) {
+                    Image(systemName: "exclamationmark.shield")
+                        .font(.system(size: 14, weight: .regular))
+                    Text(configuration.permissionMode.displayName)
                 }
-
-                Button {
-                    onIntent(.selectPermissionMode(configuration.permissionMode))
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "exclamationmark.shield")
-                            .font(.system(size: 14, weight: .regular))
-                        Text(configuration.permissionMode.displayName)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .regular))
-                    }
-                }
-                .buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
                 .accessibilityLabel("権限モード: \(configuration.permissionMode.displayName)")
                 .accessibilityHint(configuration.permissionMode.permissionScope)
                 .font(.atelia(13))
@@ -80,28 +68,14 @@ struct ComposerView: View {
                     .foregroundStyle(Color.clientMutedText)
                     .accessibilityHidden(true)
 
-                Button {
-                    onIntent(.selectModel(configuration.selectedModel))
-                } label: {
-                    HStack(spacing: 5) {
-                        Text(configuration.selectedModel.displayName)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .regular))
-                    }
+                HStack(spacing: 5) {
+                    Text(configuration.selectedModel.displayName)
                 }
-                .buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
                 .accessibilityLabel("モデル: \(configuration.selectedModel.displayName)")
                 .accessibilityHint(configuration.selectedModel.routeKey)
                 .font(.atelia(14))
                 .foregroundStyle(Color.clientText)
-
-                PlainIconButton(
-                    systemName: "mic",
-                    accessibilityLabel: "音声入力",
-                    accessibilityHint: "音声入力を開始"
-                ) {
-                    onIntent(.startVoiceInput)
-                }
 
                 Button {
                     guard isSendEnabled else { return }
@@ -124,7 +98,7 @@ struct ComposerView: View {
         }
         .frame(
             width: AteliaClientLayout.contentWidth,
-            height: hasAttachment ? AteliaClientLayout.composerAttachmentHeight : AteliaClientLayout.composerMinHeight
+            height: showsAttachment ? AteliaClientLayout.composerAttachmentHeight : AteliaClientLayout.composerMinHeight
         )
         .background {
             ComposerSurface()
@@ -153,7 +127,6 @@ private struct ComposerBody: View {
     let goal: GoalStatus
     let hasAttachment: Bool
     @Binding var draftText: String
-    @Binding var selectedContexts: [ComposerContextSelection]
     let contextReferences: [ComposerContextReference]
     let attachmentPreview: ComposerAttachmentPreview?
     let onIntent: (ComposerIntent) -> Void
@@ -185,11 +158,7 @@ private struct ComposerBody: View {
                         ComposerContextChip(
                             context: context,
                             tint: context.kind.composerTint
-                        ) {
-                            let selection = ComposerContextSelection(id: context.id, kind: context.kind)
-                            selectedContexts.upsert(selection)
-                            onIntent(.openContext(selection))
-                        }
+                        )
                     }
 
                     Spacer(minLength: 0)
@@ -262,28 +231,38 @@ private struct ComposerMentionMenu: View {
     }
 
     private func insertMention(_ mention: String) {
-        draftText = draftText.isEmpty ? "\(mention) " : "\(draftText) \(mention)"
+        draftText = composerTextAfterInsertingMention(draftText: draftText, mention: mention)
         onIntent(.insertMention(mention))
     }
+}
+
+func composerTextAfterInsertingMention(draftText: String, mention: String) -> String {
+    guard !draftText.isEmpty else { return "\(mention) " }
+
+    var normalizedDraft = draftText
+    while normalizedDraft.last?.isWhitespace == true {
+        normalizedDraft.removeLast()
+    }
+
+    return "\(normalizedDraft) \(mention) "
+}
+
+func composerShowsAttachment(hasAttachment: Bool, configuration: ComposerConfiguration) -> Bool {
+    hasAttachment || configuration.attachmentPreview != nil
 }
 
 private struct ComposerContextChip: View {
     let context: ComposerContextReference
     let tint: Color
-    let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            ComposerContextChipLabel(
-                title: context.title,
-                subtitle: context.subtitle,
-                systemName: context.systemImageName,
-                tint: tint
-            )
-        }
-        .buttonStyle(.plain)
+        ComposerContextChipLabel(
+            title: context.title,
+            subtitle: context.subtitle,
+            systemName: context.systemImageName,
+            tint: tint
+        )
         .accessibilityLabel(context.accessibilityLabel)
-        .accessibilityHint("文脈を開く")
     }
 }
 
@@ -385,15 +364,32 @@ private extension ComposerContextReference {
 
 extension ComposerConfiguration {
     var visibleContextSelections: [ComposerContextSelection] {
-        var selections = contextReferences.map { ComposerContextSelection(id: $0.id, kind: $0.kind) }
+        var selections = contextReferences.map {
+            ComposerContextSelection(
+                id: $0.id,
+                kind: $0.kind,
+                displayName: $0.displayName
+            )
+        }
 
         if let attachmentPreview {
             let attachmentContextID = attachmentPreview.contextReferenceID ?? attachmentPreview.id
             let attachmentContextKind = contextReferences.first { $0.id == attachmentContextID }?.kind ?? ComposerContextKind.file
-            selections.upsert(ComposerContextSelection(id: attachmentContextID, kind: attachmentContextKind))
+            let attachmentDisplayName = attachmentPreview.title
+            selections.upsert(ComposerContextSelection(
+                id: attachmentContextID,
+                kind: attachmentContextKind,
+                displayName: attachmentDisplayName
+            ))
         }
 
         return selections
+    }
+}
+
+private extension ComposerContextReference {
+    var displayName: String {
+        subtitle.isEmpty ? title : subtitle
     }
 }
 
@@ -404,55 +400,5 @@ private extension Array where Element == ComposerContextSelection {
         } else {
             append(selection)
         }
-    }
-}
-
-private struct PlainIconButton: View {
-    let systemName: String
-    let accessibilityLabel: String
-    let accessibilityHint: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 15, weight: .regular))
-                .symbolRenderingMode(.monochrome)
-                .foregroundStyle(Color.clientMutedText)
-                .frame(width: 17, height: 17)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint(accessibilityHint)
-    }
-}
-
-private struct ComposerAttachmentButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: "paperclip")
-                    .font(.system(size: 14, weight: .regular))
-
-                Text("ファイル")
-                    .font(.atelia(13))
-            }
-            .foregroundStyle(Color.clientMutedText)
-            .frame(height: 26)
-            .padding(.horizontal, 9)
-            .background {
-                Capsule()
-                    .fill(Color.clientSurfaceSofter)
-            }
-            .overlay {
-                Capsule()
-                    .stroke(Color.clientDockHairline, lineWidth: 1)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("ファイルを添付")
-        .accessibilityHint("会話にファイルを追加")
     }
 }

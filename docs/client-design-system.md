@@ -89,28 +89,31 @@ Dark mode requires a dedicated pass; do not ship partial dark styling.
   `作成`. `既存のフォルダを使用` uses `NSOpenPanel` with the title
   `既存のフォルダを使用`, message `Atelia で使うフォルダを選択してください。`,
   and prompt `選択`.
-- A confirmed folder selection becomes a compact candidate row in the sidebar.
-  The row shows `追加候補`, the selected folder name, and a small dismiss slot
-  for the shell to wire. It should carry a combined accessibility label and
-  value so the selected folder name is announced cleanly.
-- The candidate row is transient. Canceling the panel leaves the sidebar
-  unchanged; confirming a folder shows the candidate; clearing project status
-  also clears the pending candidate selection.
+- A confirmed folder selection is persisted immediately as a
+  `LocalProjectRegistration` and rendered as a normal project group. Use the
+  selected folder name as the group title and the registration subtitle; do not
+  show a separate `追加候補` candidate row or pending-dismiss slot.
+- Confirming a folder selects and opens the registered project group. Canceling
+  the panel leaves the sidebar unchanged. If the selected folder matches the
+  current project status snapshot, select that existing project group instead
+  of creating a duplicate local registration.
 
 ## Composer
 
 - Composer width is 736 pt. Height is 112 pt normally and 193 pt with an
   attachment preview. The current footer control row is 42 pt high. The
   `composerFooterHeight` token is reserved sketch/future spacing and must not
-  be treated as current implementation layout.
+  be treated as current implementation layout. Derive the 42 pt footer row from
+  actual control/component height plus padding tokens, or reference the
+  dedicated implementation token if one exists.
 - Composer corner radius is 18 pt. Keep it as the only docked input surface at
   the bottom of the conversation; do not nest it inside another card.
 - Placeholder copy is action-oriented and contextual. The current composer
   keeps the active goal/scope visible above the placeholder and uses
-  `@Global Secretary にフォローアップの変更を求める` when the input is empty.
-- The left control is an extension affordance, not just a raw plus icon. Use
-  `plus.circle` plus the label `拡張機能`, with a compact capsule, soft
-  surface fill, and hairline border.
+  `コマンドを入力` when the input is empty.
+- The left control is a file attachment affordance. Use `paperclip` plus the
+  label `ファイル`, with a compact capsule, soft surface fill, and hairline
+  border.
 - Permission mode is visible in the footer and uses the shield warning icon plus
   warning color. Current risky mode copy is `フルアクセス`, but the displayed
   value must come from `ComposerConfiguration.permissionMode`.

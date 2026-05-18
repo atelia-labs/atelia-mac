@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 struct ClientScrollView<Content: View>: NSViewRepresentable {
     let content: Content
 
@@ -18,22 +19,16 @@ struct ClientScrollView<Content: View>: NSViewRepresentable {
         scrollView.contentView.postsBoundsChangedNotifications = true
 
         let hostingView = NSHostingView(rootView: content)
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.documentView = hostingView
 
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: scrollView.contentView.leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: scrollView.contentView.trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: scrollView.contentView.topAnchor),
-            hostingView.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor)
-        ])
-
         context.coordinator.hostingView = hostingView
+        context.coordinator.resizeDocumentView(in: scrollView)
         return scrollView
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         context.coordinator.hostingView?.rootView = content
+        context.coordinator.resizeDocumentView(in: scrollView)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -42,5 +37,22 @@ struct ClientScrollView<Content: View>: NSViewRepresentable {
 
     final class Coordinator {
         var hostingView: NSHostingView<Content>?
+
+        @MainActor
+        func resizeDocumentView(in scrollView: NSScrollView) {
+            guard let hostingView else {
+                return
+            }
+
+            let contentWidth = scrollView.contentSize.width
+            hostingView.frame.size.width = contentWidth
+            let fittingHeight = hostingView.fittingSize.height
+            hostingView.setFrameSize(
+                NSSize(
+                    width: contentWidth,
+                    height: fittingHeight
+                )
+            )
+        }
     }
 }
