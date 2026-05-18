@@ -63,3 +63,27 @@ import Testing
         ComposerContextSelection(id: "attachment:standalone", kind: .file)
     ])
 }
+
+@Test func composerInsertMentionNormalizesSpacingForEmptyDraft() {
+    #expect(
+        composerTextAfterInsertingMention(draftText: "", mention: "@Secretary") == "@Secretary "
+    )
+}
+
+@Test func composerInsertMentionAddsOneSpaceForNonWhitespaceSuffix() {
+    #expect(
+        composerTextAfterInsertingMention(draftText: "analyze", mention: "@Secretary")
+            == "analyze @Secretary "
+    )
+}
+
+@Test func composerInsertMentionNormalizesSingleOrMultipleTrailingWhitespace() {
+    #expect(
+        composerTextAfterInsertingMention(draftText: "analyze ", mention: "@Secretary")
+            == "analyze @Secretary "
+    )
+    #expect(
+        composerTextAfterInsertingMention(draftText: "analyze  ", mention: "@Secretary")
+            == "analyze @Secretary "
+    )
+}

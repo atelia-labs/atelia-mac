@@ -262,9 +262,20 @@ private struct ComposerMentionMenu: View {
     }
 
     private func insertMention(_ mention: String) {
-        draftText = draftText.isEmpty ? "\(mention) " : "\(draftText) \(mention) "
+        draftText = composerTextAfterInsertingMention(draftText: draftText, mention: mention)
         onIntent(.insertMention(mention))
     }
+}
+
+func composerTextAfterInsertingMention(draftText: String, mention: String) -> String {
+    guard !draftText.isEmpty else { return "\(mention) " }
+
+    var normalizedDraft = draftText
+    while normalizedDraft.last?.isWhitespace == true {
+        normalizedDraft.removeLast()
+    }
+
+    return "\(normalizedDraft) \(mention) "
 }
 
 private struct ComposerContextChip: View {
