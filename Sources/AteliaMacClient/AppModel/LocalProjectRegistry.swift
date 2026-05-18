@@ -127,7 +127,7 @@ final class UserDefaultsLocalProjectRegistry: LocalProjectRegistry {
             let data = try JSONEncoder().encode(projects)
             defaults.set(data, forKey: key)
         } catch {
-            Self.logger.error("Failed to persist local project registry: \(error.localizedDescription, privacy: .public)")
+            Self.logger.error("Failed to persist local project registry: \(error.localizedDescription, privacy: .private)")
             #if DEBUG
             assertionFailure("Failed to persist local project registry: \(error)")
             #endif

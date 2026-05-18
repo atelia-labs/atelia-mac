@@ -262,7 +262,7 @@ private struct ComposerMentionMenu: View {
     }
 
     private func insertMention(_ mention: String) {
-        draftText = draftText.isEmpty ? "\(mention) " : "\(draftText) \(mention)"
+        draftText = draftText.isEmpty ? "\(mention) " : "\(draftText) \(mention) "
         onIntent(.insertMention(mention))
     }
 }
