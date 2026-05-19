@@ -24,7 +24,8 @@ ATELIA_E2E_MAX_WAIT_MS=30000 \
 `./Scripts/pdh175-live-secretary-verifier.sh` は実行時に以下を記録します。
 
 - Mac ワークツリー SHA
-- atelia-kit SHA（隣接 repo が存在する場合）
+- atelia-kit の `Package.resolved` エントリ（依存ロックの証跡）
+- `atelia-kit` SwiftPM チェックアウト情報（`.build/checkouts/atelia-kit`、存在する場合）
 - atelia-secretary SHA（隣接 repo が存在する場合）
 - 使用デーモン endpoint
 - 使用 project path と送信 command

@@ -27,7 +27,8 @@ ATELIA_E2E_MAX_WAIT_MS=30000 \
 The verifier records:
 
 - Mac worktree SHA
-- atelia-kit SHA when the sibling repo exists
+- `Package.resolved` entry for `atelia-kit` (the dependency lock evidence)
+- `atelia-kit` SwiftPM checkout metadata at `.build/checkouts/atelia-kit` when present
 - atelia-secretary SHA when the sibling repo exists
 - daemon endpoint
 - project path and submitted command

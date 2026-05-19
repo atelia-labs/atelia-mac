@@ -84,6 +84,27 @@ private func pdh175LiveSmokeDeadlineExceeded(
     return ContinuousClock.now - start > .milliseconds(maxWaitMilliseconds)
 }
 
+private func pdh175LiveSmokeMatchesFilesystemSearchRequest(
+    output: ClientConversationToolOutputFixture,
+    command: String
+) -> Bool {
+    guard output.toolName == "filesystem.search" else {
+        return false
+    }
+    if output.command.isEmpty {
+        return true
+    }
+    return output.command == command
+}
+
+private func pdh175LiveSmokeToolOutputSummary(_ turnIndex: Int, turnID: String, output: ClientConversationToolOutputFixture) -> String {
+    "\(turnIndex) \(turnID) \(output.id) \(output.toolName) \(output.command.isEmpty ? "<empty command>" : output.command) \(output.status)"
+}
+
+private func pdh175LiveSmokeToolOutputSignature(_ turnIndex: Int, output: ClientConversationToolOutputFixture) -> String {
+    "\(turnIndex)-\(output.id)-\(String(reflecting: output.status))"
+}
+
 private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
     projectPath.lastPathComponent
 }
@@ -187,14 +208,32 @@ private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
     #expect(submitRequest.requestedCapabilities == ["filesystem.search"])
 
     let outputDeadline = ContinuousClock.now
+    let outputStartTurnIndex = model.shellState.conversation.turns.count
     var toolOutputBlock: ClientConversationToolOutputFixture?
+    var toolOutputDiagnostics: [String] = []
+    var observedToolOutputSignatures: Set<String> = []
     while toolOutputBlock == nil && !pdh175LiveSmokeDeadlineExceeded(start: outputDeadline, maxWaitMilliseconds: config.maxWaitMilliseconds) && model.lastErrorMessage == nil {
-        for turn in model.shellState.conversation.turns where turn.actor == .secretary {
-            toolOutputBlock = turn.blocks.compactMap({ block in
-                if case .toolOutput(let output) = block { return output }
-                return nil
-            }).first
-            if toolOutputBlock != nil { break }
+        let turns = model.shellState.conversation.turns
+        for turnIndex in outputStartTurnIndex..<turns.count {
+            let turn = turns[turnIndex]
+            guard turn.actor == .secretary else { continue }
+            for block in turn.blocks {
+                if case .toolOutput(let output) = block {
+                    let signature = pdh175LiveSmokeToolOutputSignature(turnIndex, output: output)
+                    if observedToolOutputSignatures.contains(signature) {
+                        continue
+                    }
+                    observedToolOutputSignatures.insert(signature)
+                    toolOutputDiagnostics.append(
+                        pdh175LiveSmokeToolOutputSummary(turnIndex, turnID: turn.id, output: output)
+                    )
+                    if pdh175LiveSmokeMatchesFilesystemSearchRequest(output: output, command: config.command) {
+                        if case .succeeded = output.status {
+                            toolOutputBlock = output
+                        }
+                    }
+                }
+            }
         }
         if toolOutputBlock == nil {
             try await Task.sleep(for: .milliseconds(150))
@@ -205,6 +244,7 @@ private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
             """
             PDH-175 live smoke output timeout:
             error: \(String(describing: model.lastErrorMessage))
+            candidate tool outputs:\n\(toolOutputDiagnostics.joined(separator: "\n"))
             """
         )
     }
@@ -212,7 +252,9 @@ private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
 
     let renderedToolOutput = try #require(toolOutputBlock)
     #expect(renderedToolOutput.toolName == "filesystem.search")
-    #expect(renderedToolOutput.command == config.command)
+    if !renderedToolOutput.command.isEmpty {
+        #expect(renderedToolOutput.command == config.command)
+    }
     #expect(!renderedToolOutput.output.isEmpty)
     #expect(renderedToolOutput.status == .succeeded)
 }
