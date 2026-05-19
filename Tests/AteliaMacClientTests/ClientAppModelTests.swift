@@ -64,6 +64,7 @@ private actor ProjectLifecycleStoreFixture: MacProjectLifecycleStoring {
     private let jobEvents: [AteliaEvent]
     private var openErrors: [any Error]
     private let submitError: (any Error)?
+    private let jobEventsError: (any Error)?
     private let waitsForOpenRelease: Bool
     private let waitsForSubmitRelease: Bool
     private let waitsForJobEventsRelease: Bool
@@ -81,6 +82,7 @@ private actor ProjectLifecycleStoreFixture: MacProjectLifecycleStoring {
         jobEvents: [AteliaEvent] = [],
         openError: (any Error)? = nil,
         submitError: (any Error)? = nil,
+        jobEventsError: (any Error)? = nil,
         waitsForOpenRelease: Bool = false,
         waitsForSubmitRelease: Bool = false,
         waitsForJobEventsRelease: Bool = false
@@ -90,6 +92,7 @@ private actor ProjectLifecycleStoreFixture: MacProjectLifecycleStoring {
         self.jobEvents = jobEvents
         self.openErrors = openError.map { [$0] } ?? []
         self.submitError = submitError
+        self.jobEventsError = jobEventsError
         self.waitsForOpenRelease = waitsForOpenRelease
         self.waitsForSubmitRelease = waitsForSubmitRelease
         self.waitsForJobEventsRelease = waitsForJobEventsRelease
@@ -127,6 +130,9 @@ private actor ProjectLifecycleStoreFixture: MacProjectLifecycleStoring {
     func listJobEvents(jobId: String, request: AteliaListEventsRequest) async throws -> [AteliaEvent] {
         _ = jobId
         _ = request
+        if let jobEventsError {
+            throw jobEventsError
+        }
         if waitsForJobEventsRelease {
             await withCheckedContinuation { continuation in
                 jobEventsReleaseContinuations.append(continuation)
@@ -1157,7 +1163,89 @@ private let clientAppModelRenderedToolOutputFixture = AteliaToolOutputRenderResp
     } else {
         Issue.record("expected failed tool output")
     }
-    #expect(toolOutputBlock.output == ["render failed"])
+    #expect(toolOutputBlock.output == [
+        "Phase: render",
+        "Endpoint: toolOutputRenderStore.render",
+        "Capability: filesystem.search",
+        "Model route: models/atelia-balanced",
+        "Permission route: permissions/full-access",
+        "Job: job_lifecycle",
+        "Event: evt_tool_result",
+        "Error: render failed"
+    ])
+}
+
+@MainActor
+@Test func clientAppModelMarksToolOutputFailedWhenRenderingStructuredBackendError() async throws {
+    let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/LifecycleProject")
+    let localProject = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)
+    let registry = InMemoryLocalProjectRegistry(projects: [localProject])
+    let statusClient = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let statusStore = MacProjectStatusStore(client: statusClient, session: AteliaSession(), repositoryId: "repo_ready")
+    let lifecycleStore = ProjectLifecycleStoreFixture(
+        repository: clientAppModelLifecycleRepositoryFixture,
+        job: clientAppModelSucceededLifecycleJobFixture,
+        jobEvents: [clientAppModelToolResultEventFixture]
+    )
+    let renderStore = ToolOutputRenderStoreFixture(
+        error: HTTPAteliaClientError.apiError(
+            AteliaAPIError(
+                code: "rate_limit",
+                reason: "API rate limit reached",
+                recoverable: true,
+                nextState: "retry_same_request",
+                retryAfter: .seconds(2.5),
+                auditRef: "audit_abc"
+            )
+        )
+    )
+    let model = ClientAppModel(
+        projectStatusStore: statusStore,
+        projectLifecycleStore: lifecycleStore,
+        toolOutputRenderStore: renderStore,
+        localProjectRegistry: registry
+    )
+
+    model.handleComposerIntent(.send(
+        text: "search AteliaSubmitJobRequest",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
+
+    _ = await lifecycleStore.waitForSubmitRequest()
+    for _ in 0..<20 {
+        if !(await renderStore.recordedRequests().isEmpty) {
+            break
+        }
+        try await Task.sleep(for: .milliseconds(10))
+    }
+
+    let secretaryTurn = try #require(model.shellState.conversation.turns.last)
+    let toolOutputBlock = try #require(secretaryTurn.blocks.compactMap { block -> ClientConversationToolOutputFixture? in
+        if case .toolOutput(let output) = block {
+            return output
+        }
+        return nil
+    }.first)
+    if case .failed = toolOutputBlock.status {
+    } else {
+        Issue.record("expected failed tool output")
+    }
+    #expect(toolOutputBlock.output == [
+        "Phase: render",
+        "Endpoint: toolOutputRenderStore.render",
+        "Capability: filesystem.search",
+        "Model route: models/atelia-balanced",
+        "Permission route: permissions/full-access",
+        "Job: job_lifecycle",
+        "Event: evt_tool_result",
+        "Code: rate_limit",
+        "Reason: API rate limit reached",
+        "Recoverable: true",
+        "Next action: retry_same_request",
+        "Retry after: 2.5s",
+        "Audit ref: audit_abc"
+    ])
 }
 
 @MainActor
@@ -1190,7 +1278,200 @@ private let clientAppModelRenderedToolOutputFixture = AteliaToolOutputRenderResp
     #expect(ateliaRequest.kind == "message")
     #expect(ateliaRequest.message == "進捗を要約して")
     #expect(model.lastAteliaSubmitJobRequest == nil)
+    let secretaryTurn = try #require(model.shellState.conversation.turns.last)
+    let secretaryActivity = try #require(secretaryTurn.blocks.compactMap { block -> ClientConversationActivityFixture? in
+        if case .activity(let activity) = block {
+            return activity
+        }
+        return nil
+    }.first)
+    #expect(secretaryActivity.title == "Secretary ジョブの送信に失敗しました。")
+    #expect(secretaryActivity.status == "失敗")
+    #expect(secretaryActivity.bullets == [
+        "Phase: submit",
+        "Endpoint: projectLifecycleStore.submit",
+        "Capability: message",
+        "Model route: models/atelia-balanced",
+        "Permission route: permissions/full-access",
+        "Error: submit failed"
+    ])
     #expect(model.lastErrorMessage == "submit failed")
+}
+
+@MainActor
+@Test func clientAppModelReportsLifecycleSubmitFailureWithStructuredBackendError() async throws {
+    let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/LifecycleProject")
+    let localProject = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)
+    let registry = InMemoryLocalProjectRegistry(projects: [localProject])
+    let statusClient = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let statusStore = MacProjectStatusStore(client: statusClient, session: AteliaSession(), repositoryId: "repo_ready")
+    let lifecycleStore = ProjectLifecycleStoreFixture(
+        repository: clientAppModelLifecycleRepositoryFixture,
+        job: clientAppModelLifecycleJobFixture,
+        submitError: HTTPAteliaClientError.apiError(
+            AteliaAPIError(
+                code: "validation_error",
+                reason: "Invalid project route",
+                recoverable: false,
+                nextState: "abort_submission",
+                retryAfter: nil,
+                auditRef: nil
+            )
+        )
+    )
+    let model = ClientAppModel(
+        projectStatusStore: statusStore,
+        projectLifecycleStore: lifecycleStore,
+        localProjectRegistry: registry
+    )
+
+    model.handleComposerIntent(.send(
+        text: "進捗を要約して",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
+
+    let ateliaRequest = await lifecycleStore.waitForSubmitRequest()
+
+    #expect(ateliaRequest.repositoryId == "repo_lifecycle")
+    #expect(ateliaRequest.kind == "message")
+    #expect(ateliaRequest.message == "進捗を要約して")
+    #expect(model.lastAteliaSubmitJobRequest == nil)
+    let secretaryTurn = try #require(model.shellState.conversation.turns.last)
+    let secretaryActivity = try #require(secretaryTurn.blocks.compactMap { block -> ClientConversationActivityFixture? in
+        if case .activity(let activity) = block {
+            return activity
+        }
+        return nil
+    }.first)
+    #expect(secretaryActivity.bullets == [
+        "Phase: submit",
+        "Endpoint: projectLifecycleStore.submit",
+        "Capability: message",
+        "Model route: models/atelia-balanced",
+        "Permission route: permissions/full-access",
+        "Code: validation_error",
+        "Reason: Invalid project route",
+        "Recoverable: false",
+        "Next action: abort_submission"
+    ])
+    #expect(model.lastErrorMessage == "validation_error: Invalid project route")
+}
+
+@MainActor
+@Test func clientAppModelReportsLifecycleSubmitFailureWithHTTPStatusReason() async throws {
+    let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/LifecycleProject")
+    let localProject = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)
+    let registry = InMemoryLocalProjectRegistry(projects: [localProject])
+    let statusClient = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let statusStore = MacProjectStatusStore(client: statusClient, session: AteliaSession(), repositoryId: "repo_ready")
+    let lifecycleStore = ProjectLifecycleStoreFixture(
+        repository: clientAppModelLifecycleRepositoryFixture,
+        job: clientAppModelLifecycleJobFixture,
+        submitError: HTTPAteliaClientError.unsuccessfulStatus(code: 503, reason: "Service unavailable")
+    )
+    let model = ClientAppModel(
+        projectStatusStore: statusStore,
+        projectLifecycleStore: lifecycleStore,
+        localProjectRegistry: registry
+    )
+
+    model.handleComposerIntent(.send(
+        text: "進捗を要約して",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
+
+    _ = await lifecycleStore.waitForSubmitRequest()
+
+    let secretaryTurn = try #require(model.shellState.conversation.turns.last)
+    let secretaryActivity = try #require(secretaryTurn.blocks.compactMap { block -> ClientConversationActivityFixture? in
+        if case .activity(let activity) = block {
+            return activity
+        }
+        return nil
+    }.first)
+    #expect(secretaryActivity.bullets == [
+        "Phase: submit",
+        "Endpoint: projectLifecycleStore.submit",
+        "Capability: message",
+        "Model route: models/atelia-balanced",
+        "Permission route: permissions/full-access",
+        "Status: 503",
+        "Reason: Service unavailable"
+    ])
+    #expect(model.lastErrorMessage == "HTTP 503: Service unavailable")
+}
+
+@MainActor
+@Test func clientAppModelReportsLifecycleEventObservationFailureWithStructuredBackendError() async throws {
+    let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/LifecycleProject")
+    let localProject = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)
+    let registry = InMemoryLocalProjectRegistry(projects: [localProject])
+    let statusClient = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let statusStore = MacProjectStatusStore(client: statusClient, session: AteliaSession(), repositoryId: "repo_ready")
+    let lifecycleStore = ProjectLifecycleStoreFixture(
+        repository: clientAppModelLifecycleRepositoryFixture,
+        job: clientAppModelLifecycleJobFixture,
+        jobEventsError: HTTPAteliaClientError.apiError(
+            AteliaAPIError(
+                code: "transient_observation_error",
+                reason: "Failed to list events",
+                recoverable: true,
+                nextState: "retry_same_request",
+                retryAfter: .seconds(1.5)
+            )
+        )
+    )
+    let model = ClientAppModel(
+        projectStatusStore: statusStore,
+        projectLifecycleStore: lifecycleStore,
+        localProjectRegistry: registry
+    )
+
+    model.handleComposerIntent(.send(
+        text: "search AteliaSubmitJobRequest",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
+
+    _ = await lifecycleStore.waitForSubmitRequest()
+    for _ in 0..<20 {
+        let status = model.shellState.conversation.turns.last?.blocks.compactMap { block -> ClientConversationActivityFixture? in
+            if case .activity(let activity) = block {
+                return activity
+            }
+            return nil
+        }.first?.status
+        if status == "結果取得失敗" {
+            break
+        }
+        try await Task.sleep(for: .milliseconds(10))
+    }
+
+    let secretaryTurn = try #require(model.shellState.conversation.turns.last)
+    let secretaryActivity = try #require(secretaryTurn.blocks.compactMap { block -> ClientConversationActivityFixture? in
+        if case .activity(let activity) = block {
+            return activity
+        }
+        return nil
+    }.first)
+    #expect(secretaryActivity.status == "結果取得失敗")
+    #expect(secretaryActivity.title == "Secretary ジョブは送信されましたが、結果を取得できませんでした。")
+    #expect(secretaryActivity.bullets == [
+        "Phase: event-observation",
+        "Endpoint: projectLifecycleStore.listJobEvents",
+        "Capability: filesystem.search",
+        "Model route: models/atelia-balanced",
+        "Permission route: permissions/full-access",
+        "Job: job_lifecycle",
+        "Code: transient_observation_error",
+        "Reason: Failed to list events",
+        "Recoverable: true",
+        "Next action: retry_same_request",
+        "Retry after: 1.5s"
+    ])
+    #expect(model.lastErrorMessage == "transient_observation_error: Failed to list events")
 }
 
 @MainActor
