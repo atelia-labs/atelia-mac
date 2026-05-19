@@ -1119,6 +1119,85 @@ private let clientAppModelRenderedToolOutputFixture = AteliaToolOutputRenderResp
 }
 
 @MainActor
+@Test func clientAppModelFixtureBackedPathForProjectSecretaryFilesystemSearch() async throws {
+    let picker = ProjectFolderSelectionClientFixture()
+    let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/LifecycleProject")
+    picker.existingFolderURL = folderURL
+    let expectedProject = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)
+    let statusClient = ProjectStatusClientFixture(response: readyClientAppModelProjectStatusFixture)
+    let statusStore = MacProjectStatusStore(client: statusClient, session: AteliaSession(), repositoryId: "repo_ready")
+    let lifecycleStore = ProjectLifecycleStoreFixture(
+        repository: clientAppModelLifecycleRepositoryFixture,
+        job: clientAppModelSucceededLifecycleJobFixture,
+        jobEvents: [clientAppModelToolResultEventFixture]
+    )
+    let renderStore = ToolOutputRenderStoreFixture(response: clientAppModelRenderedToolOutputFixture)
+    let model = ClientAppModel(
+        projectStatusStore: statusStore,
+        projectLifecycleStore: lifecycleStore,
+        toolOutputRenderStore: renderStore,
+        projectFolderSelection: picker
+    )
+
+    let useExistingFolderAction = ProjectSectionHeaderViewData.projectSectionHeader.actions.first(where: { $0.kind == .useExistingFolder })!
+    model.handleProjectSectionHeaderAction(useExistingFolderAction)
+
+    #expect(picker.existingFolderCallCount == 1)
+    #expect(picker.newFolderCallCount == 0)
+    #expect(model.localProjects == [expectedProject])
+    #expect(model.sidebarProjection.activeSelection.projectID == expectedProject.projectID)
+
+    let openRequest = await lifecycleStore.waitForOpenRequest()
+    #expect(openRequest == AteliaRegisterRepositoryRequest(
+        displayName: expectedProject.displayName,
+        rootPath: expectedProject.rootPath,
+        allowedScope: AteliaPathScope(kind: .repository),
+        requester: ClientLifecycleRequestIdentity.requester
+    ))
+
+    model.handleComposerIntent(.send(
+        text: "search AteliaSubmitJobRequest",
+        configuration: ClientMockState.ateliaReference.composer,
+        contexts: []
+    ))
+
+    let submitRequest = await lifecycleStore.waitForSubmitRequest()
+    #expect(submitRequest.repositoryId == "repo_lifecycle")
+    #expect(submitRequest.requestedCapabilities == ["filesystem.search"])
+    #expect(submitRequest.toolArgs == AteliaSubmitJobToolArgs(pattern: "AteliaSubmitJobRequest", max: 20))
+
+    for _ in 0..<20 {
+        if !(await renderStore.recordedRequests().isEmpty) {
+            break
+        }
+        try await Task.sleep(for: .milliseconds(10))
+    }
+
+    #expect(await renderStore.recordedRequests() == [
+        AteliaToolOutputRenderRequest(
+            toolResult: clientAppModelRenderedToolOutputFixture.toolResult,
+            format: .text
+        )
+    ])
+
+    let secretaryTurn = try #require(model.shellState.conversation.turns.last)
+    #expect(secretaryTurn.id == "turn.secretary.local-draft:\(expectedProject.id):1")
+    let toolOutputBlock = try #require(secretaryTurn.blocks.compactMap { block -> ClientConversationToolOutputFixture? in
+        if case .toolOutput(let output) = block {
+            return output
+        }
+        return nil
+    }.first)
+    #expect(toolOutputBlock.toolName == "filesystem.search")
+    #expect(toolOutputBlock.command == "search AteliaSubmitJobRequest")
+    if case .succeeded = toolOutputBlock.status {
+    } else {
+        Issue.record("expected succeeded tool output")
+    }
+    #expect(toolOutputBlock.output == ["Found 2 matches", "Sources/App.swift:42"])
+}
+
+@MainActor
 @Test func clientAppModelMarksToolOutputFailedWhenRenderingFails() async throws {
     let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/LifecycleProject")
     let localProject = LocalProjectRegistration.make(folderURL: folderURL, source: .existingFolder)

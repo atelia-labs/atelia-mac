@@ -6,6 +6,8 @@
 - [Standard Surfaces EN](standard-surfaces.md): English version.
 - [Mac Client Design System](client-design-system.ja.md): 現在の Atelia Mac client の layout、typography、sidebar、composer、dynamic-data readiness rules を扱います。
 - [Mac Client Design System EN](client-design-system.md): English version.
+- [PDH-175 Live E2E Verifier](pdh-175-live-e2e-verifier.ja.md): live Mac + Secretary verifier の実行コマンド、evidence scope、残る gap を扱います。
+- [PDH-175 Live E2E Verifier EN](pdh-175-live-e2e-verifier.md): English version.
 
 Normative な Surface Protocol documents は AEP specification family に置きます。
 
