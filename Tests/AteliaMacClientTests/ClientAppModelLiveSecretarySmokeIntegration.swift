@@ -86,6 +86,10 @@ private func pdh175LiveSmokeDeadlineExceeded(
     return ContinuousClock.now - start > .milliseconds(maxWaitMilliseconds)
 }
 
+private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
+    projectPath.lastPathComponent
+}
+
 @MainActor
 @Test func clientAppModelLiveSecretaryFilesystemSearchSmoke() async throws {
     let config = try pdh175LiveSmokeConfig()
@@ -105,7 +109,7 @@ private func pdh175LiveSmokeDeadlineExceeded(
     let statusStore = MacProjectStatusStore(
         client: client,
         session: session,
-        repositoryId: "local-smoke-repo"
+        repositoryId: pdh175LiveSmokeRepositoryID(for: projectPath)
     )
     let lifecycleStore = MacProjectLifecycleStore(
         client: client,
@@ -128,7 +132,6 @@ private func pdh175LiveSmokeDeadlineExceeded(
     )
 
     let health = try await client.health(for: session)
-    #expect(!health.capabilities.isEmpty)
     #expect(health.capabilities.contains("health.v1"))
 
     let useExistingFolderAction = ProjectSectionHeaderViewData.projectSectionHeader.actions.first(where: {
@@ -143,6 +146,18 @@ private func pdh175LiveSmokeDeadlineExceeded(
     let registrationDeadline = ContinuousClock.now
     while !(model.localProjects == [expectedProject]) && !pdh175LiveSmokeDeadlineExceeded(start: registrationDeadline, maxWaitMilliseconds: 10_000) {
         try await Task.sleep(for: .milliseconds(50))
+    }
+    if model.localProjects != [expectedProject] {
+        print(
+            """
+            PDH-175 live smoke registration timeout:
+            expected project id: \(expectedProject.id)
+            expected root path: \(expectedProject.rootPath)
+            actual project ids: \(model.localProjects.map(\.id))
+            actual root paths: \(model.localProjects.map(\.rootPath))
+            active selection project id: \(String(describing: model.sidebarProjection.activeSelection.projectID))
+            """
+        )
     }
     #expect(model.localProjects == [expectedProject])
     #expect(model.sidebarProjection.activeSelection.projectID == expectedProject.projectID)

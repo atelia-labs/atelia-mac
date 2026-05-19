@@ -1,44 +1,52 @@
 # PDH-175 Live E2E Evidence (Mac + Secretary)
 
-このワークツリーでは、UI操作までを完全に自動化せず、**ライブ Secretary デーモンを叩く AppModel 検証ハーネス**を追加しています。  
-実デーモンを起動できる場合、次の 1 連鎖を `ClientAppModel` 経由で検証します。
+This worktree adds an AppModel verifier harness that can run against a live
+Secretary daemon. It does not claim full UI automation coverage. When an
+authenticated daemon is available, it verifies the following chain through
+`ClientAppModel`:
 
-1. 既存フォルダ選択でローカルプロジェクトを登録
-2. `filesystem.search` でジョブを submit
-3. 会話に tool output が render 経由で表示されることを確認
+1. Register a local project through the existing-folder path.
+2. Submit a command that maps to `filesystem.search`.
+3. Confirm rendered tool output appears in the project Secretary conversation
+   state.
 
-## 実行コマンド
+## Command
 
 ```bash
 cd /Users/yohaku/atelia-labs/atelia-mac-live-e2e
 ATELIA_MAC_LIVE_E2E=1 \
 ATELIA_DAEMON_HOST=127.0.0.1 \
 ATELIA_DAEMON_PORT=8080 \
-ATELIA_DAEMON_AUTH_TOKEN=<secretary token or unset if daemon allows auth disabled> \
+ATELIA_DAEMON_AUTH_TOKEN=<secretary token or unset only if daemon auth is disabled> \
 ATELIA_E2E_PROJECT_PATH=/Users/yohaku/atelia-labs/atelia-mac-live-e2e \
 ATELIA_E2E_COMMAND='search package' \
 ATELIA_E2E_MAX_WAIT_MS=30000 \
 ./Scripts/pdh175-live-secretary-verifier.sh
 ```
 
-`./Scripts/pdh175-live-secretary-verifier.sh` は実行時に以下を記録します。
+The verifier records:
 
-- Mac ワークツリー SHA
-- atelia-kit SHA
-- atelia-secretary SHA
-- 使用デーモン endpoint
-- 使用テスト: `clientAppModelLiveSecretaryFilesystemSearchSmoke` (`AteliaMacClientTests`)
-- 実行コマンド（正確な文字列）
-- 結果（`swift test` の成功 / 失敗）
+- Mac worktree SHA
+- atelia-kit SHA when the sibling repo exists
+- atelia-secretary SHA when the sibling repo exists
+- daemon endpoint
+- project path and submitted command
+- test command: `swift test --filter clientAppModelLiveSecretaryFilesystemSearchSmoke`
+- result through the `swift test` exit code
 
-## テスト名
+## Test Name
 
 - `clientAppModelLiveSecretaryFilesystemSearchSmoke`
 
-## 補足（UI 自動化できない理由）
+## Remaining Evidence Gaps
 
-この環境では、Mac UI を AppKit/SwiftUI の実行体として起動して
-会話ビューまで到達させる自動化ハーネスが同時導入されていません（スナップショット UI
-フレームワークや macOS UI オートメーション側のラッパー整備が別レーンで進行中）。  
-そのため、同じ契約フローを忠実に再現する **最短のライブ経路**として
-`ClientAppModel` + live HTTP client の検証を採用しています。
+This is stronger than fixture-only coverage, but it is not final MDP evidence
+by itself until it has passed against an authenticated live Secretary daemon.
+The current harness intentionally fails closed if the daemon rejects the request
+with `401` or another HTTP error.
+
+Full macOS UI automation is still not covered here. This lane does not include
+a harness that launches the SwiftUI/AppKit executable, clicks through folder
+selection, submits in the visible composer, and screenshots the rendered
+conversation. The verifier instead exercises the same application model,
+HTTP client, project registration, submit, render, and conversation-state path.

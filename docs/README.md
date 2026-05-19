@@ -9,6 +9,10 @@ This directory contains Atelia Mac client architecture documents.
 - [Mac Client Design System](client-design-system.md): current Atelia Mac client
   layout, typography, sidebar, composer, and dynamic-data readiness rules.
 - [Mac Client Design System JA](client-design-system.ja.md): Japanese version.
+- [PDH-175 Live E2E Verifier](pdh-175-live-e2e-verifier.md): live Mac +
+  Secretary verifier command, evidence scope, and remaining gaps.
+- [PDH-175 Live E2E Verifier JA](pdh-175-live-e2e-verifier.ja.md): Japanese
+  version.
 
 Normative Surface Protocol documents live in the AEP specification family:
 
