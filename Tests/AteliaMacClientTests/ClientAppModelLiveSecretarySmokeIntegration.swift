@@ -195,6 +195,8 @@ private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
     #expect(model.localProjects == [expectedProject])
     #expect(model.sidebarProjection.activeSelection.projectID == expectedProject.projectID)
 
+    let outputStartTurnIndex = model.shellState.conversation.turns.count
+
     model.handleComposerIntent(ComposerIntent.send(
         text: config.command,
         configuration: ClientMockState.ateliaReference.composer,
@@ -219,7 +221,6 @@ private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
     #expect(submitRequest.requestedCapabilities == ["filesystem.search"])
 
     let outputDeadline = ContinuousClock.now
-    let outputStartTurnIndex = model.shellState.conversation.turns.count
     var toolOutputBlock: ClientConversationToolOutputFixture?
     var toolOutputDiagnostics: [String] = []
     var observedToolOutputSignatures: Set<String> = []
