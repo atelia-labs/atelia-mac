@@ -5,6 +5,7 @@ import Testing
 @testable import AteliaMacClient
 @testable import AteliaMacCore
 
+@MainActor
 private final class LocalProjectSelectionFixture: ProjectFolderSelectionProviding {
     var existingFolderURL: URL?
     var newFolderURL: URL?
