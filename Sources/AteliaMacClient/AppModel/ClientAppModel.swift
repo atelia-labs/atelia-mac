@@ -79,7 +79,7 @@ final class ClientAppModel {
             try await projectStatusStore.reload()
             await syncProjectStatusFromStore()
         } catch {
-            lastErrorMessage = error.localizedDescription
+            lastErrorMessage = userFacingErrorMessage(for: error)
             throw error
         }
     }
@@ -594,7 +594,7 @@ final class ClientAppModel {
                           self.hasLocalProject(id: project.id) else {
                         return
                     }
-                    self.lastErrorMessage = error.localizedDescription
+                    self.lastErrorMessage = self.userFacingErrorMessage(for: error)
                 }
             }
         }
@@ -682,7 +682,7 @@ final class ClientAppModel {
                     return
                 }
                 if sequence == composerSubmissionSequence {
-                    lastErrorMessage = error.localizedDescription
+                    lastErrorMessage = userFacingErrorMessage(for: error)
                 }
                 markLocalComposerDraftObservationFailed(request, draftID: draftID, job: job, error: error)
                 return
@@ -693,7 +693,7 @@ final class ClientAppModel {
             if !hasCurrentLocalProjectGeneration(request.repositoryId, generation: localProjectGeneration) {
                 return
             }
-            renderedOutputs = await renderedToolOutputs(from: events)
+            renderedOutputs = await renderedToolOutputs(from: events, request: request)
             guard generation == projectTopologyGeneration else {
                 return
             }
@@ -716,12 +716,15 @@ final class ClientAppModel {
             }
             markLocalComposerDraftFailed(request, draftID: draftID, error: error)
             if sequence == composerSubmissionSequence {
-                lastErrorMessage = error.localizedDescription
+                lastErrorMessage = userFacingErrorMessage(for: error)
             }
         }
     }
 
-    private func renderedToolOutputs(from events: [AteliaEvent]) async -> [ClientRenderedToolOutput] {
+    private func renderedToolOutputs(
+        from events: [AteliaEvent],
+        request: ComposerJobSubmissionRequest
+    ) async -> [ClientRenderedToolOutput] {
         guard let toolOutputRenderStore else {
             return []
         }
@@ -738,7 +741,17 @@ final class ClientAppModel {
                 )
                 renderedOutputs.append(ClientRenderedToolOutput(event: event, response: response, error: nil))
             } catch {
-                renderedOutputs.append(ClientRenderedToolOutput(event: event, response: nil, error: error.localizedDescription))
+                renderedOutputs.append(
+                    ClientRenderedToolOutput(
+                        event: event,
+                        response: nil,
+                        error: renderFailureLines(
+                            for: request,
+                            event: event,
+                            error: error
+                        )
+                    )
+                )
             }
         }
         return renderedOutputs
@@ -800,10 +813,14 @@ final class ClientAppModel {
                         duration: "job \(job.jobId)",
                         status: "結果取得失敗",
                         title: "Secretary ジョブは送信されましたが、結果を取得できませんでした。",
-                        bullets: [
-                            "Job \(job.jobId)",
-                            error.localizedDescription
-                        ]
+                        bullets: failureBullets(
+                            for: request,
+                            jobId: job.jobId,
+                            phase: "event-observation",
+                            endpoint: "projectLifecycleStore.listJobEvents",
+                            eventId: job.latestEventId,
+                            error: error
+                        )
                     )
                 )
             ]
@@ -833,7 +850,14 @@ final class ClientAppModel {
                         duration: "error",
                         status: "失敗",
                         title: "Secretary ジョブの送信に失敗しました。",
-                        bullets: [error.localizedDescription]
+                        bullets: failureBullets(
+                            for: request,
+                            jobId: nil,
+                            phase: "submit",
+                            endpoint: "projectLifecycleStore.submit",
+                            eventId: nil,
+                            error: error
+                        )
                     )
                 )
             ]
@@ -885,8 +909,10 @@ final class ClientAppModel {
             output = response.renderedOutput
                 .split(whereSeparator: \.isNewline)
                 .map(String.init)
+        } else if let errorOutput = renderedOutput.error {
+            output = errorOutput
         } else {
-            output = [renderedOutput.error ?? "Tool output rendering failed."]
+            output = ["Tool output rendering failed."]
         }
         return .toolOutput(
             ClientConversationToolOutputFixture(
@@ -897,6 +923,99 @@ final class ClientAppModel {
                 output: output.isEmpty ? ["No output."] : output
             )
         )
+    }
+
+    private func failureBullets(
+        for request: ComposerJobSubmissionRequest,
+        jobId: String?,
+        phase: String,
+        endpoint: String,
+        eventId: String?,
+        error: any Error
+    ) -> [String] {
+        var bullets = [
+            "Phase: \(phase)",
+            "Endpoint: \(endpoint)",
+            "Capability: \(request.primaryCapabilityLabel)",
+            "Model route: \(request.modelRouteKey)"
+        ]
+        if !request.permissionModeRouteKey.isEmpty {
+            bullets.append("Permission route: \(request.permissionModeRouteKey)")
+        }
+        if let jobId {
+            bullets.append("Job: \(jobId)")
+        }
+        if let eventId {
+            bullets.append("Event: \(eventId)")
+        }
+
+        if let httpError = error as? HTTPAteliaClientError {
+            switch httpError {
+            case .apiError(let apiError):
+                bullets.append("Code: \(apiError.code)")
+                bullets.append("Reason: \(apiError.reason)")
+                bullets.append("Recoverable: \(apiError.recoverable)")
+                bullets.append("Next action: \(apiError.nextState)")
+                if let retryAfter = apiError.retryAfter {
+                    bullets.append("Retry after: \(formattedRetryAfter(retryAfter))")
+                }
+                if let auditRef = apiError.auditRef {
+                    bullets.append("Audit ref: \(auditRef)")
+                }
+            case .unsuccessfulStatus(let statusCode, let reason):
+                bullets.append("Status: \(statusCode)")
+                if let reason {
+                    bullets.append("Reason: \(reason)")
+                }
+            default:
+                bullets.append("Error: \(error.localizedDescription)")
+            }
+        } else {
+            bullets.append("Error: \(error.localizedDescription)")
+        }
+        return bullets
+    }
+
+    private func renderFailureLines(
+        for request: ComposerJobSubmissionRequest,
+        event: AteliaEvent,
+        error: any Error
+    ) -> [String] {
+        failureBullets(
+            for: request,
+            jobId: event.refs.jobId,
+            phase: "render",
+            endpoint: "toolOutputRenderStore.render",
+            eventId: event.eventId,
+            error: error
+        )
+    }
+
+    private func userFacingErrorMessage(for error: any Error) -> String {
+        guard let httpError = error as? HTTPAteliaClientError else {
+            return error.localizedDescription
+        }
+
+        switch httpError {
+        case .apiError(let apiError):
+            return "\(apiError.code): \(apiError.reason)"
+        case .unsuccessfulStatus(let code, let reason):
+            if let reason {
+                return "HTTP \(code): \(reason)"
+            }
+            return "HTTP \(code)"
+        default:
+            return error.localizedDescription
+        }
+    }
+
+    private func formattedRetryAfter(_ retryAfter: AteliaRetryAfter) -> String {
+        switch retryAfter {
+        case .seconds(let seconds):
+            "\(seconds)s"
+        case .token(let token):
+            token
+        }
     }
 
     private func lifecycleRepositoryID(for repositoryId: String, generation: UInt64) async throws -> String {
@@ -1065,7 +1184,7 @@ private final class LocalProjectOpenTask {
 private struct ClientRenderedToolOutput {
     var event: AteliaEvent
     var response: AteliaToolOutputRenderResponse?
-    var error: String?
+    var error: [String]?
 }
 
 private extension ComposerJobSubmissionRequest {
