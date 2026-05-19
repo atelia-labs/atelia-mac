@@ -55,7 +55,7 @@ private func pdh175LiveSmokeConfig() throws -> PDH175LiveSmokeConfig {
     let host = environment["ATELIA_DAEMON_HOST"] ?? "127.0.0.1"
     let daemonPortRaw = environment["ATELIA_DAEMON_PORT"] ?? "8080"
     guard let configuredPort = Int(daemonPortRaw), configuredPort > 0 && configuredPort <= 65535 else {
-        throw PDH175LiveSmokeConfigError.invalidDaemonPort(environment["ATELIA_DAEMON_PORT"] ?? "8080")
+        throw PDH175LiveSmokeConfigError.invalidDaemonPort(daemonPortRaw)
     }
     let endpoint = AteliaEndpoint(host: host, port: configuredPort)
 
