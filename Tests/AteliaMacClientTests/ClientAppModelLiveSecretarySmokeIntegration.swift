@@ -33,6 +33,7 @@ private struct PDH175LiveSmokeConfig {
 
 private enum PDH175LiveSmokeConfigError: Error {
     case invalidDaemonPort(String)
+    case invalidProjectPath(String)
 }
 
 private func pdh175LiveSmokeConfig() throws -> PDH175LiveSmokeConfig {
@@ -55,7 +56,12 @@ private func pdh175LiveSmokeConfig() throws -> PDH175LiveSmokeConfig {
     }
     let endpoint = AteliaEndpoint(host: host, port: configuredPort)
 
-    let projectPath = URL(fileURLWithPath: environment["ATELIA_E2E_PROJECT_PATH"] ?? FileManager.default.currentDirectoryPath)
+    let projectPathString = environment["ATELIA_E2E_PROJECT_PATH"] ?? FileManager.default.currentDirectoryPath
+    let configuredProjectPath = URL(fileURLWithPath: projectPathString).standardizedFileURL
+    let isDirectory = (try? configuredProjectPath.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+    if !isDirectory {
+        throw PDH175LiveSmokeConfigError.invalidProjectPath(projectPathString)
+    }
     let command = environment["ATELIA_E2E_COMMAND"] ?? "search package"
     let waitMillisecondsRaw = environment["ATELIA_E2E_MAX_WAIT_MS"] ?? "30000"
     let maxWaitMilliseconds = UInt64(waitMillisecondsRaw) ?? 30_000
@@ -64,19 +70,11 @@ private func pdh175LiveSmokeConfig() throws -> PDH175LiveSmokeConfig {
     return PDH175LiveSmokeConfig(
         endpoint: endpoint,
         bearerToken: bearerToken,
-        projectPath: projectPath,
+        projectPath: configuredProjectPath,
         command: command,
         maxWaitMilliseconds: maxWaitMilliseconds,
         isEnabled: true
     )
-}
-
-private func pdh175LiveSmokeProjectFolder(for path: URL) -> URL {
-    let isDirectory = (try? path.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
-    if isDirectory {
-        return path
-    }
-    return path.standardizedFileURL.deletingLastPathComponent()
 }
 
 private func pdh175LiveSmokeDeadlineExceeded(
@@ -98,7 +96,8 @@ private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
         return
     }
 
-    let projectPath = pdh175LiveSmokeProjectFolder(for: config.projectPath)
+    let projectPath = config.projectPath
+    print("PDH-175 live smoke resolved project path: \(projectPath.path)")
     #expect(FileManager.default.fileExists(atPath: projectPath.path), "project path must exist")
 
     let client = HTTPAteliaClient(
@@ -144,13 +143,14 @@ private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
     #expect(picker.newFolderCallCount == 0)
 
     let registrationDeadline = ContinuousClock.now
-    while !(model.localProjects == [expectedProject]) && !pdh175LiveSmokeDeadlineExceeded(start: registrationDeadline, maxWaitMilliseconds: 10_000) {
+    while !(model.localProjects == [expectedProject]) && !pdh175LiveSmokeDeadlineExceeded(start: registrationDeadline, maxWaitMilliseconds: 10_000) && model.lastErrorMessage == nil {
         try await Task.sleep(for: .milliseconds(50))
     }
     if model.localProjects != [expectedProject] {
         print(
             """
-            PDH-175 live smoke registration timeout:
+            PDH-175 live smoke registration failed:
+            error: \(String(describing: model.lastErrorMessage))
             expected project id: \(expectedProject.id)
             expected root path: \(expectedProject.rootPath)
             actual project ids: \(model.localProjects.map(\.id))
@@ -159,6 +159,7 @@ private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
             """
         )
     }
+    #expect(model.lastErrorMessage == nil)
     #expect(model.localProjects == [expectedProject])
     #expect(model.sidebarProjection.activeSelection.projectID == expectedProject.projectID)
 
@@ -169,16 +170,25 @@ private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
     ))
 
     let submitTimeout = ContinuousClock.now
-    while model.lastAteliaSubmitJobRequest == nil && !pdh175LiveSmokeDeadlineExceeded(start: submitTimeout, maxWaitMilliseconds: config.maxWaitMilliseconds) {
+    while model.lastAteliaSubmitJobRequest == nil && !pdh175LiveSmokeDeadlineExceeded(start: submitTimeout, maxWaitMilliseconds: config.maxWaitMilliseconds) && model.lastErrorMessage == nil {
         try await Task.sleep(for: .milliseconds(100))
     }
+    if model.lastAteliaSubmitJobRequest == nil {
+        print(
+            """
+            PDH-175 live smoke submit timeout:
+            error: \(String(describing: model.lastErrorMessage))
+            """
+        )
+    }
+    #expect(model.lastErrorMessage == nil)
     #expect(model.lastAteliaSubmitJobRequest != nil)
     let submitRequest = try #require(model.lastAteliaSubmitJobRequest)
     #expect(submitRequest.requestedCapabilities == ["filesystem.search"])
 
     let outputDeadline = ContinuousClock.now
     var toolOutputBlock: ClientConversationToolOutputFixture?
-    while toolOutputBlock == nil && !pdh175LiveSmokeDeadlineExceeded(start: outputDeadline, maxWaitMilliseconds: config.maxWaitMilliseconds) {
+    while toolOutputBlock == nil && !pdh175LiveSmokeDeadlineExceeded(start: outputDeadline, maxWaitMilliseconds: config.maxWaitMilliseconds) && model.lastErrorMessage == nil {
         for turn in model.shellState.conversation.turns where turn.actor == .secretary {
             toolOutputBlock = turn.blocks.compactMap({ block in
                 if case .toolOutput(let output) = block { return output }
@@ -190,6 +200,15 @@ private func pdh175LiveSmokeRepositoryID(for projectPath: URL) -> String {
             try await Task.sleep(for: .milliseconds(150))
         }
     }
+    if toolOutputBlock == nil {
+        print(
+            """
+            PDH-175 live smoke output timeout:
+            error: \(String(describing: model.lastErrorMessage))
+            """
+        )
+    }
+    #expect(model.lastErrorMessage == nil)
 
     let renderedToolOutput = try #require(toolOutputBlock)
     #expect(renderedToolOutput.toolName == "filesystem.search")

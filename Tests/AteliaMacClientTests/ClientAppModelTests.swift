@@ -1119,7 +1119,7 @@ private let clientAppModelRenderedToolOutputFixture = AteliaToolOutputRenderResp
 }
 
 @MainActor
-@Test func clientAppModelE2ESmokePathForProjectSecretaryFilesystemSearch() async throws {
+@Test func clientAppModelFixtureBackedPathForProjectSecretaryFilesystemSearch() async throws {
     let picker = ProjectFolderSelectionClientFixture()
     let folderURL = URL(fileURLWithPath: "/Users/yohaku/Projects/LifecycleProject")
     picker.existingFolderURL = folderURL

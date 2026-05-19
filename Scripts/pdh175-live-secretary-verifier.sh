@@ -27,9 +27,29 @@ log_repo_ref() {
   printf '%s branch: %s (%s)\n' "$label" "$branch" "$sha"
 }
 
+log_resolved_package_reference() {
+  local package_name="$1"
+  local resolved_file="$WORKTREE_ROOT/Package.resolved"
+  printf 'Package.resolved entry for %s:\n' "$package_name"
+  if [ ! -f "$resolved_file" ]; then
+    printf '  <missing> %s\n' "$resolved_file"
+    return
+  fi
+
+  local start_line
+  start_line="$(grep -n "\"identity\" : \"$package_name\"" "$resolved_file" | head -n1 | cut -d: -f1 || true)"
+  if [ -z "$start_line" ]; then
+    printf '  <missing entry>\n'
+    return
+  fi
+
+  tail -n +$start_line "$resolved_file" | head -n 24 | sed 's/^/  /'
+}
+
 printf 'PDH-175 live verifier\n'
 printf 'Mac repo: %s (%s)\n' "$WORKTREE_ROOT" "$(git -C "$WORKTREE_ROOT" rev-parse --short HEAD)"
-log_repo_ref "atelia-kit" "$WORKTREE_ROOT/../atelia-kit"
+log_resolved_package_reference "atelia-kit"
+log_repo_ref "atelia-kit checkout" "$WORKTREE_ROOT/.build/checkouts/atelia-kit"
 log_repo_ref "atelia-secretary" "$WORKTREE_ROOT/../atelia-secretary"
 printf 'daemon endpoint: %s:%s\n' "$ATELIA_DAEMON_HOST" "$ATELIA_DAEMON_PORT"
 printf 'project path: %s\n' "$ATELIA_E2E_PROJECT_PATH"
