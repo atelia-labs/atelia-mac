@@ -34,6 +34,7 @@ private struct PDH175LiveSmokeConfig {
 
 private enum PDH175LiveSmokeConfigError: Error {
     case invalidDaemonPort(String)
+    case invalidMaxWait(String)
     case invalidProjectPath(String)
 }
 
@@ -52,7 +53,8 @@ private func pdh175LiveSmokeConfig() throws -> PDH175LiveSmokeConfig {
     }
 
     let host = environment["ATELIA_DAEMON_HOST"] ?? "127.0.0.1"
-    guard let configuredPort = Int(environment["ATELIA_DAEMON_PORT"] ?? "8080"), configuredPort > 0 else {
+    let daemonPortRaw = environment["ATELIA_DAEMON_PORT"] ?? "8080"
+    guard let configuredPort = Int(daemonPortRaw), configuredPort > 0 && configuredPort <= 65535 else {
         throw PDH175LiveSmokeConfigError.invalidDaemonPort(environment["ATELIA_DAEMON_PORT"] ?? "8080")
     }
     let endpoint = AteliaEndpoint(host: host, port: configuredPort)
@@ -64,8 +66,16 @@ private func pdh175LiveSmokeConfig() throws -> PDH175LiveSmokeConfig {
         throw PDH175LiveSmokeConfigError.invalidProjectPath(projectPathString)
     }
     let command = environment["ATELIA_E2E_COMMAND"] ?? "search package"
-    let waitMillisecondsRaw = environment["ATELIA_E2E_MAX_WAIT_MS"] ?? "30000"
-    let maxWaitMilliseconds = UInt64(waitMillisecondsRaw) ?? 30_000
+    let defaultMaxWaitMilliseconds: UInt64 = 30_000
+    let maxWaitMilliseconds: UInt64
+    if let waitMillisecondsRaw = environment["ATELIA_E2E_MAX_WAIT_MS"] {
+        guard let parsedMaxWaitMilliseconds = UInt64(waitMillisecondsRaw) else {
+            throw PDH175LiveSmokeConfigError.invalidMaxWait(waitMillisecondsRaw)
+        }
+        maxWaitMilliseconds = parsedMaxWaitMilliseconds
+    } else {
+        maxWaitMilliseconds = defaultMaxWaitMilliseconds
+    }
     let bearerToken = environment["ATELIA_DAEMON_AUTH_TOKEN"]
 
     return PDH175LiveSmokeConfig(
